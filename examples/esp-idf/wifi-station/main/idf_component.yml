@@ -1,0 +1,5 @@
+## IDF Component Manager Manifest File
+dependencies:
+  idf: ">=5.5,<7.0"
+  espressif/esp_hosted: "2.12.11"
+  espressif/esp_wifi_remote: "1.6.3"

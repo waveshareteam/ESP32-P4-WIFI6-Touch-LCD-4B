@@ -1,0 +1,22 @@
+# AsciiTable
+
+Renders a labeled ASCII character grid on the 720 x 720 MIPI DSI panel. Use it
+to check basic panel initialization, geometry, colors, and built-in font output.
+
+## Dependencies
+
+- Arduino-ESP32 `3.3.11`
+- GFX Library for Arduino `1.6.6`
+- The repository-local `Waveshare_ESP32_P4_4B_Display` helper
+
+## Board settings
+
+Enable PSRAM, select 32 MB flash with the 13 MB application partition, and use
+the `Before v3.00` (`ChipVariant=prev3`) target used by the product examples.
+Keep the USB mode, CDC-on-boot, MSC, DFU, and upload-mode selections at their
+default values so serial output remains on the board's USB-to-UART path.
+
+## Hardware boundary
+
+This display-only sketch does not use touch or the ESP32-C6 wireless
+coprocessor. It has not been validated on a physical board in this repository.

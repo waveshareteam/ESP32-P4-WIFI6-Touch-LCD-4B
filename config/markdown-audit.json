@@ -1,0 +1,12 @@
+{
+  "bilingual_pairs": [
+    {
+      "english": "firmware/brookesia/README.md",
+      "chinese": "firmware/brookesia/README_CN.md"
+    }
+  ],
+  "pair_exempt_patterns": [
+    "firmware/brookesia/README.md",
+    "firmware/brookesia/README_CN.md"
+  ]
+}

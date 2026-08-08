@@ -1,0 +1,36 @@
+# Local workspace state
+.agents/
+.codex/
+__pycache__/
+*.py[cod]
+
+# ESP-IDF build output
+build/
+**/build/
+**/build-*/
+sdkconfig
+sdkconfig.old
+managed_components/
+examples/esp-idf/**/dependencies.lock
+firmware/brookesia/dependencies.lock
+
+# Generated release output
+release-artifacts/
+releases/dist/
+releases/downloads/
+
+# Arduino CLI output and downloaded packages
+.arduino-cli/
+*.ino.bin
+*.ino.elf
+*.ino.map
+
+# Editors and operating systems
+.idea/
+.vscode/
+*.swp
+*.orig
+*.rej
+*.bak
+Thumbs.db
+.DS_Store

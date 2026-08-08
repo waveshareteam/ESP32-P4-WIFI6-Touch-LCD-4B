@@ -1,0 +1,2 @@
+# Project-specific defaults belong here.
+CONFIG_ESP_CONSOLE_UART_DEFAULT=y
