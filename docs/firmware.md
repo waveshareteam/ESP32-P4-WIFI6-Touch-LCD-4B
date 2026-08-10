@@ -1,5 +1,7 @@
 # Firmware and Flash Artifacts
 
+[English](firmware.md) · [简体中文](firmware_ZH.md)
+
 This repository distinguishes source firmware, source-built packages, and
 factory or recovery images. These terms are not interchangeable.
 

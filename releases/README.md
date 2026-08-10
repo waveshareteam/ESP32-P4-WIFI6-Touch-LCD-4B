@@ -1,5 +1,7 @@
 # Firmware Packages
 
+[English](README.md) · [简体中文](README_ZH.md)
+
 This directory documents generated firmware packages. Generated archives are
 not committed; the default output locations `release-artifacts/`,
 `releases/dist/`, and `releases/downloads/` are ignored.

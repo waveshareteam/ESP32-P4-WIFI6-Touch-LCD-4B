@@ -1,5 +1,7 @@
 # GFX_ESPWiFiAnalyzer
 
+[中文](README_ZH.md)
+
 Scans nearby 2.4 GHz Wi-Fi networks and plots channel occupancy and signal
 strength on the 720 x 720 display.
 

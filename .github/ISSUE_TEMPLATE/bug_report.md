@@ -6,6 +6,8 @@ labels: bug
 assignees: ""
 ---
 
+[English](bug_report.md) · [简体中文](bug_report_ZH.md)
+
 ## Summary
 
 Describe the problem clearly.

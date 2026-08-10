@@ -1,5 +1,7 @@
 # I2C tools
 
+[中文](README_ZH.md)
+
 Interactive I2C console for the board's shared bus:
 
 - SDA: GPIO 7

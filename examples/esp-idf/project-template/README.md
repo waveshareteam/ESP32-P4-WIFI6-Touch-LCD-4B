@@ -1,5 +1,7 @@
 # Project template
 
+[中文](README_ZH.md)
+
 Minimal ESP-IDF application layout for the ESP32-P4-WIFI6-Touch-LCD-4B. Use it as a clean starting point before adding display, touch, audio, storage, networking, or bottom-board features.
 
 ## Use

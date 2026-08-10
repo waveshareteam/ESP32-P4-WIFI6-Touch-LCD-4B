@@ -11,7 +11,10 @@ endif()
 
 idf_component_register(SRCS ${srcs}
                        INCLUDE_DIRS "include" "tusb"
-                       PRIV_REQUIRES esp_driver_jpeg)
+                       PRIV_REQUIRES
+                       esp_driver_jpeg
+                       bsp_extra
+                       usb)
 
 idf_component_get_property(UAC_PATH espressif__usb_device_uac COMPONENT_DIR)
 

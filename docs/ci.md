@@ -21,7 +21,7 @@ silently expanding the product example matrix.
 
 ## 📌 Version matrix
 
-The stable versions were rechecked on 2026-08-08 and are pinned rather than
+The stable versions were rechecked on 2026-08-10 and are pinned rather than
 referenced through moving aliases:
 
 | Surface | Framework version | Target | Default entries |
@@ -115,13 +115,16 @@ not validate the GT911, display timing, or ESP32-C6 Wi-Fi runtime.
 
 ## ✅ Policy and evidence
 
-`Repository Policy` runs standard-library unit tests for the routing contract.
-The tests cover the expected 13/5 inventory, documentation-only changes,
-direct and shared inputs, firmware boundaries, unknown-input fallback,
-renames, copies, deletions, empty scope, and the exact manual selector
-invocation. Synthetic packaging tests also verify complete flash-file capture,
-manifest hashes and ordering, unsafe-path rejection, and overwrite protection;
-they do not compile firmware.
+`Repository Policy` runs a repository-local checker plus standard-library unit
+tests. The checker validates local links and fragments, the complete maintained
+English/Simplified-Chinese document surface, reciprocal language navigation,
+same-language local routing, public-text privacy, and CI boundaries. The tests
+also cover the expected 13/5 inventory, documentation-only changes, direct and
+shared inputs, firmware boundaries, unknown-input fallback, renames, copies,
+deletions, empty scope, and the exact manual selector invocation. Synthetic
+packaging tests verify complete flash-file capture, manifest hashes and
+ordering, unsafe-path rejection, and overwrite protection; none of these
+policy checks compile firmware.
 
 Use evidence terms consistently:
 

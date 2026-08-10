@@ -1,5 +1,7 @@
 # RS485 echo
 
+[中文](README_ZH.md)
+
 Exercises the RS485 transceiver on the bottom board of the related
 ESP32-P4-86-Panel-ETH-2RO assembly. This is not a TTL-UART wiring example; the
 standalone 4B board does not expose the RS485 A/B pair, and its main PCB must

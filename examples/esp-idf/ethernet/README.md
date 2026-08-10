@@ -1,5 +1,7 @@
 # IP101 Ethernet
 
+[中文](README_ZH.md)
+
 Starts the ESP32-P4 internal EMAC with the board's IP101-compatible PHY and obtains an IPv4 address through DHCP.
 
 | Signal | GPIO |

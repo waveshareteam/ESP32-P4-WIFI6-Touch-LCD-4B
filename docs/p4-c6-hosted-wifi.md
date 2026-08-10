@@ -1,5 +1,7 @@
 # P4 and C6 Hosted Wi-Fi Compatibility
 
+[English](p4-c6-hosted-wifi.md) · [简体中文](p4-c6-hosted-wifi_ZH.md)
+
 ESP32-P4 has no integrated Wi-Fi radio. This board uses an
 ESP32-C6-MINI-1U-H8 coprocessor over SDIO. The P4 host software and the C6
 slave firmware form one compatibility contract; updating only the P4 side can

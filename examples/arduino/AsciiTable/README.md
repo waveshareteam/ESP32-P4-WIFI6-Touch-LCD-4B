@@ -1,5 +1,7 @@
 # AsciiTable
 
+[中文](README_ZH.md)
+
 Renders a labeled ASCII character grid on the 720 x 720 MIPI DSI panel. Use it
 to check basic panel initialization, geometry, colors, and built-in font output.
 

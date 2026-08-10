@@ -1,5 +1,7 @@
 # Wi-Fi station through ESP32-C6
 
+[中文](README_ZH.md)
+
 Runs the standard station example on ESP32-P4 while `esp_wifi_remote` uses `esp_hosted` and the board's ESP32-C6 coprocessor over SDIO.
 
 Pinned host components:

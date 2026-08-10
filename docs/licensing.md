@@ -1,5 +1,7 @@
 # Licensing and Redistribution Boundaries
 
+[English](licensing.md) · [简体中文](licensing_ZH.md)
+
 No repository-wide license has been selected. Do not infer one from a
 subcomponent, an SPDX header, a dependency manifest, or an upstream repository.
 This document records observed boundaries; it is not legal advice and does not

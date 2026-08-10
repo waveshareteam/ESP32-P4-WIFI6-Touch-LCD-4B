@@ -114,7 +114,7 @@ UAC 麦克风路径尚未验证。该开发板将 ES8311 播放与 ES7210 采集
 
 ## 来源
 
-精确的 Waveshare 压缩包、获取日期、哈希和导入映射记录在 [仓库的源记录](../../../docs/sources.md)中。有用的上游参考资料包括：
+精确的 Waveshare 压缩包、获取日期、哈希和导入映射记录在 [仓库的源记录](../../../docs/sources_ZH.md)中。有用的上游参考资料包括：
 
 - [Waveshare 产品文档](https://docs.waveshare.com/ESP32-P4-WIFI6-Touch-LCD-4B)
 - [Waveshare BSP 3.0.0](https://components.espressif.com/components/waveshare/esp32_p4_wifi6_touch_lcd_4b/versions/3.0.0)

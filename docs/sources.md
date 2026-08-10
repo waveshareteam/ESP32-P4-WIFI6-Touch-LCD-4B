@@ -1,5 +1,7 @@
 # Official Sources and Import Record
 
+[English](sources.md) · [简体中文](sources_ZH.md)
+
 This repository normalizes material from the official Waveshare resources for
 the ESP32-P4-WIFI6-Touch-LCD-4B. The source archive is intentionally not
 committed; the table below records the exact files used for this import.

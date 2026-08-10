@@ -1,5 +1,7 @@
 # Archived firmware components
 
+[English](README.md) · [简体中文](README_ZH.md)
+
 This directory stores implementation snapshots that are intentionally excluded
 from the ESP-IDF component discovery path.
 

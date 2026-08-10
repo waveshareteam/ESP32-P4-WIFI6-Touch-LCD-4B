@@ -1,5 +1,7 @@
 # Schematics
 
+[English](README.md) · [简体中文](README_ZH.md)
+
 This directory contains references for two distinct hardware assemblies. Do
 not use a bottom-board schematic as though it described the standalone display
 board.

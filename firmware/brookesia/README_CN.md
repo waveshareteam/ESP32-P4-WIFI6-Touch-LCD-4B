@@ -38,8 +38,8 @@ ESP-IDF v5.5.5 活动依赖图。生成的 `dependencies.lock` 因本地组件�
 路径而保持忽略；提交验证证据时应另外记录其解析出的传递依赖版本。
 
 硬件引脚和 P4/C6 兼容关系分别见
-[`docs/board.md`](../../docs/board.md) 与
-[`docs/p4-c6-hosted-wifi.md`](../../docs/p4-c6-hosted-wifi.md)。
+[`docs/board_ZH.md`](../../docs/board_ZH.md) 与
+[`docs/p4-c6-hosted-wifi_ZH.md`](../../docs/p4-c6-hosted-wifi_ZH.md)。
 
 ## 应用列表
 
@@ -250,7 +250,7 @@ Relay Control 在 NVS 命名空间 `relay_control` 的 `output_state` 键中保�
 
 Ethernet 应用启动 IP101（PHY 地址 1）和 DHCP，并显示链路、IPv4、掩码、
 网关、MAC、速率/双工以及 PHY 信息。引脚属于 `components/bsp_extra` 中的产品
-专用适配，详见 [`docs/board.md`](../../docs/board.md)。
+专用适配，详见 [`docs/board_ZH.md`](../../docs/board_ZH.md)。
 
 ### RS485
 
@@ -359,7 +359,7 @@ Ethernet 链路事件或四路 ES7210 peak，同时注明板卡版本、ESP-IDF 
 
 ## 贡献、支持与发布检查
 
-提交修改前请阅读仓库级[贡献指南](../../CONTRIBUTING.md)和
+提交修改前请阅读仓库级[贡献指南](../../CONTRIBUTING_ZH.md)和
 [支持说明](../../SUPPORT_ZH.md)。可复用的 BSP/驱动修复应尽量提交到对应上游组件，
 本工程只保留产品组合和板级专用适配。仓库目前没有对外声明已经核实的私密漏洞报告
 入口，因此不要在公开 Issue 中填写未公开的安全细节。

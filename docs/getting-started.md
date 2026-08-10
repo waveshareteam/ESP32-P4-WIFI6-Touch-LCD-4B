@@ -1,5 +1,7 @@
 # Getting Started
 
+[English](getting-started.md) · [简体中文](getting-started_ZH.md)
+
 ## Choose a framework surface
 
 This repository contains:

@@ -1,5 +1,7 @@
 # Board Information
 
+[English](board.md) · [简体中文](board_ZH.md)
+
 This document separates the standalone ESP32-P4-WIFI6-Touch-LCD-4B from the
 related ESP32-P4-86-Panel-ETH-2RO assembly and its bottom board. The official
 product page identifies different main-PCB and enclosure arrangements; the

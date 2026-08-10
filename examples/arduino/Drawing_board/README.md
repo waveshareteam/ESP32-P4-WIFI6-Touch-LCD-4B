@@ -1,5 +1,7 @@
 # Drawing_board
 
+[中文](README_ZH.md)
+
 Polls the GT911 touch controller and draws blue points on the 720 x 720 MIPI
 DSI panel, providing a minimal display-and-touch interaction check.
 

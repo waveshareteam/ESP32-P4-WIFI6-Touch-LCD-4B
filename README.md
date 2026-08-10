@@ -5,6 +5,7 @@
   <p>
     <a href="https://www.waveshare.com/esp32-p4-wifi6-touch-lcd-4b.htm">🌐 Product</a> ·
     <a href="https://docs.waveshare.com/ESP32-P4-WIFI6-Touch-LCD-4B">📚 Documentation</a> ·
+    <a href="docs/firmware.md">📦 Firmware</a> ·
     <a href="docs/getting-started.md">🚀 Quick start</a> ·
     <a href="examples/esp-idf/README.md">🧩 ESP-IDF</a> ·
     <a href="examples/arduino/README.md">🔧 Arduino</a>
@@ -59,7 +60,7 @@ The complete example lists are in
 ## 🧪 Framework matrix
 
 The pinned default matrix was rechecked against stable upstream releases on
-2026-08-08:
+2026-08-10:
 
 | Surface | Maintained version | Default Actions coverage | Runtime boundary |
 | --- | --- | ---: | --- |

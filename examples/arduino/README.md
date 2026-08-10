@@ -1,5 +1,7 @@
 # Arduino Examples
 
+[中文](README_ZH.md)
+
 These five first-party sketches were imported from the official
 ESP32-P4-WIFI6-Touch-LCD-4B product example archive.
 

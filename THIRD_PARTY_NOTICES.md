@@ -1,5 +1,7 @@
 # Third-Party Notices
 
+[English](THIRD_PARTY_NOTICES.md) · [简体中文](THIRD_PARTY_NOTICES_ZH.md)
+
 This file is an inventory aid. It does not replace the license text shipped
 with a component, resolve conflicting metadata, grant a repository-wide
 license, or constitute legal advice. Exact contents of a distribution may vary;

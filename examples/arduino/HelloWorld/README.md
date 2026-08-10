@@ -1,5 +1,7 @@
 # HelloWorld
 
+[中文](README_ZH.md)
+
 Initializes the 720 x 720 MIPI DSI panel, prints a greeting, and then draws the
 same text at randomized positions, colors, and sizes.
 

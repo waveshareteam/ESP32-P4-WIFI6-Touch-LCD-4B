@@ -1,5 +1,7 @@
 # Hello World
 
+[中文](README_ZH.md)
+
 This minimal project verifies that the repository, toolchain, and ESP32-P4
 target are configured correctly. It does not initialize the display, touch
 controller, audio hardware, storage, or wireless coprocessor.

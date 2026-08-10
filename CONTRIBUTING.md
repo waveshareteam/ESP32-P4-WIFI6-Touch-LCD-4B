@@ -1,5 +1,7 @@
 # Contributing
 
+[English](CONTRIBUTING.md) · [简体中文](CONTRIBUTING_ZH.md)
+
 Keep changes focused and preserve the canonical repository layout. Place
 first-party ESP-IDF projects under `examples/esp-idf/` and first-party Arduino
 sketches under `examples/arduino/`.

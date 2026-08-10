@@ -5,9 +5,10 @@
   <p>
     <a href="https://www.waveshare.com/esp32-p4-wifi6-touch-lcd-4b.htm">🌐 产品页面</a> ·
     <a href="https://docs.waveshare.com/ESP32-P4-WIFI6-Touch-LCD-4B">📚 产品文档</a> ·
-    <a href="docs/getting-started.md">🚀 快速开始</a> ·
-    <a href="examples/esp-idf/README.md">🧩 ESP-IDF</a> ·
-    <a href="examples/arduino/README.md">🔧 Arduino</a>
+    <a href="docs/firmware_ZH.md">📦 固件</a> ·
+    <a href="docs/getting-started_ZH.md">🚀 快速开始</a> ·
+    <a href="examples/esp-idf/README_ZH.md">🧩 ESP-IDF</a> ·
+    <a href="examples/arduino/README_ZH.md">🔧 Arduino</a>
   </p>
 </div>
 
@@ -27,8 +28,8 @@ PSRAM、4 英寸 720 × 720 ST7703 双通道 MIPI DSI 屏、GT911 触摸、音�
 相关的 ESP32-P4-86-Panel-ETH-2RO 是另一套产品总成。其底板提供 IP101 以太网、
 两路继电器和 RS485；相关示例需要完整匹配的总成，不能视为独立 4B 主板的功能。
 修改引脚或跨硬件版本复用结论前，请先阅读
-[`docs/board.md`](docs/board.md) 和
-[`schematic/README.md`](schematic/README.md)。
+[`docs/board_ZH.md`](docs/board_ZH.md) 和
+[`schematic/README_ZH.md`](schematic/README_ZH.md)。
 
 受维护的 ESP-IDF BSP 将 DSI 通道速率配置为 750 Mbps，而产品资源包导入的
 Arduino 辅助库使用 480 Mbps。二者是不同的软件配置，不是可以互换的硬件事实；
@@ -49,12 +50,12 @@ Arduino 辅助库使用 480 Mbps。二者是不同的软件配置，不是可以
 | `.github/` | 持续集成和贡献模板 |
 
 完整示例清单见
-[`examples/esp-idf/README.md`](examples/esp-idf/README.md) 和
-[`examples/arduino/README.md`](examples/arduino/README.md)。
+[`examples/esp-idf/README_ZH.md`](examples/esp-idf/README_ZH.md) 和
+[`examples/arduino/README_ZH.md`](examples/arduino/README_ZH.md)。
 
 ## 🧪 框架矩阵
 
-以下默认矩阵已于 2026-08-08 对照上游稳定版本重新核验：
+以下默认矩阵已于 2026-08-10 对照上游稳定版本重新核验：
 
 | 范围 | 受维护版本 | 默认 Actions 覆盖 | 运行边界 |
 | --- | --- | ---: | --- |
@@ -69,7 +70,7 @@ CI 会先分类完整的变更文件范围：单个示例的源码变更只选�
 
 编译成功不等于硬件验证。Wi-Fi 还依赖 ESP32-C6 协处理器上的兼容镜像，而官方
 示例资源包并未提供该镜像。参见
-[`docs/p4-c6-hosted-wifi.md`](docs/p4-c6-hosted-wifi.md)。
+[`docs/p4-c6-hosted-wifi_ZH.md`](docs/p4-c6-hosted-wifi_ZH.md)。
 
 ## 🚀 快速开始
 
@@ -89,20 +90,20 @@ idf.py -C firmware/brookesia build
 ```
 
 Arduino 构建使用 FQBN `esp32:esp32:esp32p4`、32 MB Flash、已启用 PSRAM，
-以及 [`examples/arduino/README.md`](examples/arduino/README.md) 中列出的选项。
-完整构建和烧录说明见 [`docs/getting-started.md`](docs/getting-started.md)。
+以及 [`examples/arduino/README_ZH.md`](examples/arduino/README_ZH.md) 中列出的选项。
+完整构建和烧录说明见 [`docs/getting-started_ZH.md`](docs/getting-started_ZH.md)。
 
 ## 📦 来源与固件溯源
 
 官方下载地址、压缩包哈希和规范化目录映射记录在
-[`docs/sources.md`](docs/sources.md) 中。CI 构建包与未来可能提供的工厂或恢复
-镜像属于不同制品类别，参见 [`docs/firmware.md`](docs/firmware.md)。生成的构建树、
+[`docs/sources_ZH.md`](docs/sources_ZH.md) 中。CI 构建包与未来可能提供的工厂或恢复
+镜像属于不同制品类别，参见 [`docs/firmware_ZH.md`](docs/firmware_ZH.md)。生成的构建树、
 依赖缓存、锁文件和发布包均有意排除在源码版本控制之外。
 
 ## 📄 许可与再分发
 
 本仓库尚未选择仓库级许可证。单个文件或组件可能带有自己的许可证，但这不代表
 整个仓库获得相同授权。公开发布或再分发导入的源码、二进制、媒体、原理图或结构图
-之前，请阅读 [`docs/licensing.md`](docs/licensing.md) 和
-[`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md)。仓库支持边界见
+之前，请阅读 [`docs/licensing_ZH.md`](docs/licensing_ZH.md) 和
+[`THIRD_PARTY_NOTICES_ZH.md`](THIRD_PARTY_NOTICES_ZH.md)。仓库支持边界见
 [`SUPPORT_ZH.md`](SUPPORT_ZH.md)。

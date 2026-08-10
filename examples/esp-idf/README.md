@@ -1,5 +1,7 @@
 # ESP-IDF Examples
 
+[中文](README_ZH.md)
+
 This directory contains the normalized first-party ESP-IDF projects from the
 official ESP32-P4-WIFI6-Touch-LCD-4B product example archive. Projects are
 immediate children of this directory so build discovery does not accidentally

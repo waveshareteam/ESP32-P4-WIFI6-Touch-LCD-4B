@@ -1,5 +1,7 @@
 # MicroSD card
 
+[中文](README_ZH.md)
+
 Mounts a FAT filesystem through the ESP32-P4 SDMMC host, writes and reads test files, then unmounts the card.
 
 | Signal | GPIO |

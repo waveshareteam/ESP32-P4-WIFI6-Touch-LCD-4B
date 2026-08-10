@@ -1,5 +1,7 @@
 # Hardware References
 
+[English](README.md) · [简体中文](README_ZH.md)
+
 `hardware/dimensions/` contains the mechanical files extracted from the
 official ESP32-P4-WIFI6-Touch-LCD-4B 2D resource archive retrieved on
 2026-07-30.
