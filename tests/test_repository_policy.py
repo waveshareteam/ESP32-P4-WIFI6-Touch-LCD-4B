@@ -27,6 +27,26 @@ class RepositoryPolicyTests(unittest.TestCase):
     def test_maintained_bilingual_contract(self) -> None:
         self.assertEqual([], policy.check_bilingual_contract(ROOT))
 
+    def test_single_product_homepage_contract(self) -> None:
+        self.assertEqual([], policy.check_homepage_contract(ROOT))
+        expected_badges = ["Repository Policy", "ESP-IDF Build", "Arduino Build", "Firmware Build"]
+        for relative, expected_alt in policy.README_HERO_ALTS.items():
+            text = (ROOT / relative).read_text(encoding="utf-8")
+            heroes = [image for image in policy._html_images(text) if image.get("src") == policy.README_HERO_PATH]
+            self.assertEqual(1, len(heroes))
+            self.assertEqual(expected_alt, heroes[0].get("alt"))
+            self.assertEqual(expected_badges, [image.get("alt") for image in policy._html_images(text) if image.get("alt") in expected_badges])
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self.write_fixture(root, "README.md", "<img src=\"docs/assets/esp32-p4-wifi6-touch-lcd-4b.jpg\" alt=\"wrong\">\n")
+            self.write_fixture(root, "README_ZH.md", "<img src=\"docs/assets/esp32-p4-wifi6-touch-lcd-4b.jpg\" alt=\"wrong\">\n")
+            self.write_fixture(root, "config/markdown-audit.json", "{}\n")
+            errors = policy.check_homepage_contract(root)
+            self.assertIn("Homepage hero is missing: docs/assets/esp32-p4-wifi6-touch-lcd-4b.jpg", errors)
+            self.assertIn("README.md: homepage hero alt must be the localized product description", errors)
+            self.assertIn("config/markdown-audit.json: homepage_pairs must declare the homepage contract", errors)
+
     def test_ci_boundaries(self) -> None:
         self.assertEqual([], policy.check_ci_contract(ROOT))
 
@@ -148,6 +168,8 @@ class RepositoryPolicyTests(unittest.TestCase):
         chinese = (ROOT / "README_ZH.md").read_text(encoding="utf-8")
         self.assertIn('<a href="docs/firmware.md">📦 Firmware</a>', english)
         self.assertIn('<a href="docs/firmware_ZH.md">📦 固件</a>', chinese)
+        self.assertEqual(policy.README_H2_ICONS, tuple(policy.H2_RE.findall(english)))
+        self.assertEqual(policy.README_H2_ICONS, tuple(policy.H2_RE.findall(chinese)))
         for relative in ("README.md", "README_ZH.md", "docs/ci.md", "docs/ci_ZH.md"):
             self.assertIn("2026-08-10", (ROOT / relative).read_text(encoding="utf-8"))
 

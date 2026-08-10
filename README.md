@@ -1,6 +1,13 @@
 <div align="center">
   <h1>ESP32-P4-WIFI6-Touch-LCD-4B</h1>
   <strong>Source examples, board references, and maintained firmware boundaries for the Waveshare 4-inch ESP32-P4 product.</strong>
+  <p>
+    <a href="https://github.com/waveshareteam/ESP32-P4-WIFI6-Touch-LCD-4B/actions/workflows/repository-policy.yml"><img src="https://github.com/waveshareteam/ESP32-P4-WIFI6-Touch-LCD-4B/actions/workflows/repository-policy.yml/badge.svg" alt="Repository Policy"></a>
+    <a href="https://github.com/waveshareteam/ESP32-P4-WIFI6-Touch-LCD-4B/actions/workflows/esp-idf.yml"><img src="https://github.com/waveshareteam/ESP32-P4-WIFI6-Touch-LCD-4B/actions/workflows/esp-idf.yml/badge.svg" alt="ESP-IDF Build"></a>
+    <a href="https://github.com/waveshareteam/ESP32-P4-WIFI6-Touch-LCD-4B/actions/workflows/arduino.yml"><img src="https://github.com/waveshareteam/ESP32-P4-WIFI6-Touch-LCD-4B/actions/workflows/arduino.yml/badge.svg" alt="Arduino Build"></a>
+    <a href="https://github.com/waveshareteam/ESP32-P4-WIFI6-Touch-LCD-4B/actions/workflows/firmware.yml"><img src="https://github.com/waveshareteam/ESP32-P4-WIFI6-Touch-LCD-4B/actions/workflows/firmware.yml/badge.svg" alt="Firmware Build"></a>
+  </p>
+  <p><img src="docs/assets/esp32-p4-wifi6-touch-lcd-4b.jpg" width="720" alt="ESP32-P4-WIFI6-Touch-LCD-4B 4-inch touch display"></p>
   <p><strong>English</strong> · <a href="README_ZH.md">简体中文</a></p>
   <p>
     <a href="https://www.waveshare.com/esp32-p4-wifi6-touch-lcd-4b.htm">🌐 Product</a> ·

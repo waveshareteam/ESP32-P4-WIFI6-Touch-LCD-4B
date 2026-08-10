@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import csv
 import html
+import json
 import re
 import subprocess
 import sys
@@ -30,6 +31,19 @@ README_ZH_QUICK_LINKS = (
     ("🧩", "ESP-IDF", "examples/esp-idf/README_ZH.md"),
     ("🔧", "Arduino", "examples/arduino/README_ZH.md"),
 )
+README_HERO_PATH = "docs/assets/esp32-p4-wifi6-touch-lcd-4b.jpg"
+README_HERO_ALTS = {
+    "README.md": "ESP32-P4-WIFI6-Touch-LCD-4B 4-inch touch display",
+    "README_ZH.md": "ESP32-P4-WIFI6-Touch-LCD-4B 4 英寸触摸显示屏",
+}
+README_WORKFLOW_BADGES = (
+    ("Repository Policy", "repository-policy.yml"),
+    ("ESP-IDF Build", "esp-idf.yml"),
+    ("Arduino Build", "arduino.yml"),
+    ("Firmware Build", "firmware.yml"),
+)
+README_H2_ICONS = ("🖥️", "🗂️", "🧪", "🚀", "📦", "📄")
+GITHUB_WORKFLOW_URL = "https://github.com/waveshareteam/ESP32-P4-WIFI6-Touch-LCD-4B/actions/workflows/{}"
 ICON_SYNCHRONIZED_PAIRS = (
     ("README.md", "README_ZH.md"),
     ("SUPPORT.md", "SUPPORT_ZH.md"),
@@ -37,6 +51,8 @@ ICON_SYNCHRONIZED_PAIRS = (
 )
 MARKDOWN_LINK_RE = re.compile(r"!?\[([^\]]*)\]\(([^)]+)\)")
 HTML_HREF_RE = re.compile(r"\bhref=[\"']([^\"']+)[\"']", re.IGNORECASE)
+HTML_IMAGE_RE = re.compile(r"<img\b(?P<attributes>[^>]*)>", re.IGNORECASE)
+HTML_ATTRIBUTE_RE = re.compile(r"\b(?P<name>[a-zA-Z0-9_-]+)=[\"'](?P<value>[^\"']*)[\"']")
 HEADING_RE = re.compile(r"^ {0,3}#{1,6}\s+(.+?)\s*#*\s*$")
 H2_RE = re.compile(r"^##\s+(\S+)", re.MULTILINE)
 FENCE_RE = re.compile(r"^ {0,3}(```|~~~)")
@@ -156,6 +172,13 @@ def _iter_links(text: str) -> tuple[tuple[str, str], ...]:
     links = [(label, raw) for label, raw in MARKDOWN_LINK_RE.findall(text)]
     links.extend(("", raw) for raw in HTML_HREF_RE.findall(text))
     return tuple(links)
+
+
+def _html_images(text: str) -> tuple[dict[str, str], ...]:
+    return tuple(
+        {match.group("name").lower(): html.unescape(match.group("value")) for match in HTML_ATTRIBUTE_RE.finditer(image.group("attributes"))}
+        for image in HTML_IMAGE_RE.finditer(text)
+    )
 
 
 def _case_exact(path: Path) -> bool:
@@ -311,6 +334,62 @@ def check_bilingual_contract(root: Path) -> list[str]:
     return errors
 
 
+def check_homepage_contract(root: Path) -> list[str]:
+    errors: list[str] = []
+    hero_path = root / README_HERO_PATH
+    if not hero_path.is_file():
+        errors.append(f"Homepage hero is missing: {README_HERO_PATH}")
+
+    for name, expected_alt in README_HERO_ALTS.items():
+        path = root / name
+        if not path.is_file():
+            errors.append(f"Homepage is missing: {name}")
+            continue
+        text = path.read_text(encoding="utf-8")
+        heroes = [image for image in _html_images(text) if image.get("src") == README_HERO_PATH]
+        if len(heroes) != 1:
+            errors.append(f"{name}: must contain exactly one local homepage hero at {README_HERO_PATH}")
+        elif heroes[0].get("alt") != expected_alt or not heroes[0].get("alt", "").strip():
+            errors.append(f"{name}: homepage hero alt must be the localized product description")
+
+        positions: list[int] = []
+        for label, workflow in README_WORKFLOW_BADGES:
+            workflow_url = GITHUB_WORKFLOW_URL.format(workflow)
+            marker = f'<a href="{workflow_url}"><img src="{workflow_url}/badge.svg" alt="{label}"></a>'
+            positions.append(text.find(marker))
+        if any(position < 0 for position in positions) or positions != sorted(positions):
+            errors.append(f"{name}: workflow badges must be present in Repository Policy, ESP-IDF, Arduino, Firmware order")
+
+    try:
+        config = json.loads((root / "config/markdown-audit.json").read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        return errors + [f"config/markdown-audit.json: cannot read homepage audit contract: {exc}"]
+    pairs = config.get("homepage_pairs")
+    if not isinstance(pairs, list):
+        return errors + ["config/markdown-audit.json: homepage_pairs must declare the homepage contract"]
+    homepage = next(
+        (
+            pair
+            for pair in pairs
+            if isinstance(pair, dict) and pair.get("english") == "README.md" and pair.get("chinese") == "README_ZH.md"
+        ),
+        None,
+    )
+    if not isinstance(homepage, dict):
+        return errors + ["config/markdown-audit.json: README homepage pair is missing"]
+    if homepage.get("profile") != "single-product":
+        errors.append("config/markdown-audit.json: README homepage profile must be single-product")
+    if "hero_image" not in homepage.get("required_components", []):
+        errors.append("config/markdown-audit.json: README homepage must require hero_image")
+    if homepage.get("required_quick_links") != ["product", "documentation", "firmware", "quick_start", "esp_idf", "arduino"]:
+        errors.append("config/markdown-audit.json: README quick-link contract differs from policy")
+    if "build" not in homepage.get("required_badges", []):
+        errors.append("config/markdown-audit.json: README homepage must require a build badge")
+    if homepage.get("required_h2_icons") != list(README_H2_ICONS):
+        errors.append("config/markdown-audit.json: README H2-icon contract differs from policy")
+    return errors
+
+
 def check_public_text(root: Path, markdown_files: tuple[Path, ...]) -> list[str]:
     errors: list[str] = []
     for markdown in markdown_files:
@@ -370,6 +449,7 @@ def run_checks(root: Path) -> list[str]:
     errors: list[str] = []
     errors.extend(check_links(root, markdown_files))
     errors.extend(check_bilingual_contract(root))
+    errors.extend(check_homepage_contract(root))
     errors.extend(check_public_text(root, markdown_files))
     errors.extend(check_ci_contract(root))
     errors.extend(check_idf_partition_contract(root))

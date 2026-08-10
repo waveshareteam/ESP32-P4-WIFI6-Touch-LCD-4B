@@ -10,10 +10,21 @@ Retrieval date: **2026-07-30**
 
 ## Product documentation
 
+- [Official product page](https://www.waveshare.com/esp32-p4-wifi6-touch-lcd-4b.htm)
 - [Product documentation](https://docs.waveshare.com/ESP32-P4-WIFI6-Touch-LCD-4B)
 - [Resources and documents](https://docs.waveshare.com/ESP32-P4-WIFI6-Touch-LCD-4B/Resources-And-Documents)
 - [ESP-IDF development guide](https://docs.waveshare.com/ESP32-P4-WIFI6-Touch-LCD-4B/Development-Environment-Setup-IDF)
 - [FAQ](https://docs.waveshare.com/ESP32-P4-WIFI6-Touch-LCD-4B/FAQ)
+
+## Product hero image
+
+- Official product page: [ESP32-P4-WIFI6-Touch-LCD-4B](https://www.waveshare.com/esp32-p4-wifi6-touch-lcd-4b.htm)
+- Official hero source: [esp32-p4-wifi6-touch-lcd-4b-1.jpg](https://www.waveshare.com/media/catalog/product/cache/1/image/800x800/9df78eab33525d08d6e5fb8d27136e95/e/s/esp32-p4-wifi6-touch-lcd-4b-1.jpg)
+- Local path: [`docs/assets/esp32-p4-wifi6-touch-lcd-4b.jpg`](assets/esp32-p4-wifi6-touch-lcd-4b.jpg)
+- Retrieval date: **2026-08-10**
+- Downloaded file: 35469 bytes; SHA-256 `7e6c58a99317e17d30bb0a7ed5c759da126a5922cae496c8bffddcefcd3c21ab`
+
+The image is used only for product identification and does not change repository or upstream licensing boundaries.
 
 ## Downloaded resources
 

@@ -9,10 +9,21 @@
 
 ## 产品文档
 
+- [官方产品页面](https://www.waveshare.com/esp32-p4-wifi6-touch-lcd-4b.htm)
 - [产品文档](https://docs.waveshare.com/ESP32-P4-WIFI6-Touch-LCD-4B)
 - [资源与文档](https://docs.waveshare.com/ESP32-P4-WIFI6-Touch-LCD-4B/Resources-And-Documents)
 - [ESP-IDF 开发指南](https://docs.waveshare.com/ESP32-P4-WIFI6-Touch-LCD-4B/Development-Environment-Setup-IDF)
 - [常见问题](https://docs.waveshare.com/ESP32-P4-WIFI6-Touch-LCD-4B/FAQ)
+
+## 产品主图
+
+- 官方产品页面：[ESP32-P4-WIFI6-Touch-LCD-4B](https://www.waveshare.com/esp32-p4-wifi6-touch-lcd-4b.htm)
+- 官方主图来源：[esp32-p4-wifi6-touch-lcd-4b-1.jpg](https://www.waveshare.com/media/catalog/product/cache/1/image/800x800/9df78eab33525d08d6e5fb8d27136e95/e/s/esp32-p4-wifi6-touch-lcd-4b-1.jpg)
+- 本地路径：[`docs/assets/esp32-p4-wifi6-touch-lcd-4b.jpg`](assets/esp32-p4-wifi6-touch-lcd-4b.jpg)
+- 获取日期：**2026-08-10**
+- 下载文件：35469 bytes；SHA-256 `7e6c58a99317e17d30bb0a7ed5c759da126a5922cae496c8bffddcefcd3c21ab`
+
+该图片仅用于产品识别，不改变仓库或上游材料的许可边界。
 
 ## 已下载资源
 
