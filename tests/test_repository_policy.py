@@ -53,6 +53,15 @@ class RepositoryPolicyTests(unittest.TestCase):
                        usb""",
             usb_cmake,
         )
+        usb_bsp_extra_manifest = (
+            ROOT
+            / "examples/esp-idf/usb-extended-screen/components/bsp_extra/idf_component.yml"
+        ).read_text(encoding="utf-8")
+        self.assertIn(
+            'chmorgan/esp-audio-player:\n    version: "1.1.0"\n    public: true',
+            usb_bsp_extra_manifest,
+        )
+        self.assertNotIn('chmorgan/esp-audio-player:\n    version: "1.0.7"', usb_bsp_extra_manifest)
 
     def test_first_party_pair_inventory_detects_orphan_and_excludes_upstream_trees(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
