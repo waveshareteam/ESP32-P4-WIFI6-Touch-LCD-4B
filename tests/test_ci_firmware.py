@@ -3,23 +3,62 @@ from __future__ import annotations
 import importlib.util
 import json
 import os
+import shutil
 import sys
 import tempfile
 import unittest
 import zipfile
 from pathlib import Path
+from unittest import mock
 
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "scripts" / "package_ci_firmware.py"
+SELECTOR_SCRIPT = ROOT / "scripts" / "select_ci_targets.py"
 SPEC = importlib.util.spec_from_file_location("package_ci_firmware", SCRIPT)
 assert SPEC and SPEC.loader
 packager = importlib.util.module_from_spec(SPEC)
 sys.modules[SPEC.name] = packager
 SPEC.loader.exec_module(packager)
+SELECTOR_SPEC = importlib.util.spec_from_file_location("select_ci_targets_for_firmware_test", SELECTOR_SCRIPT)
+assert SELECTOR_SPEC and SELECTOR_SPEC.loader
+selector = importlib.util.module_from_spec(SELECTOR_SPEC)
+sys.modules[SELECTOR_SPEC.name] = selector
+SELECTOR_SPEC.loader.exec_module(selector)
 
 
 class CiFirmwarePackageTests(unittest.TestCase):
+    @staticmethod
+    def expected_list_only_items() -> list[tuple[str, str]]:
+        inventory = selector.discover_inventory(ROOT)
+        expected = [
+            (f"firmware-esp-idf-{Path(project).name}-{version}", project)
+            for project in inventory.idf_projects
+            for version in ("v5.5.5", "v6.0.2")
+        ]
+        expected += [
+            (f"firmware-arduino-{Path(sketch).name}-3.3.11", sketch)
+            for sketch in inventory.arduino_sketches
+        ]
+        return expected + [("firmware-brookesia-v5.5.5", "firmware/brookesia")]
+
+    @staticmethod
+    def list_only_powershell() -> str | None:
+        return next((name for name in ("powershell.exe", "pwsh", "powershell") if shutil.which(name)), None)
+
+    def assert_static_list_only_contract(self, expected: list[tuple[str, str]]) -> None:
+        flasher = (ROOT / "scripts" / "Flash-CI-Firmware.ps1").read_text(encoding="utf-8")
+        idf_names = ",".join(repr(Path(project).name) for _, project in expected[:26:2])
+        arduino_names = ",".join(repr(Path(project).name) for _, project in expected[26:31])
+        self.assertIn(idf_names, flasher)
+        self.assertIn(arduino_names, flasher)
+        self.assertIn('Artifact="firmware-esp-idf-$name-$version"', flasher)
+        self.assertIn('Artifact="firmware-arduino-$($_)-3.3.11"', flasher)
+        self.assertIn("Artifact='firmware-brookesia-v5.5.5'", flasher)
+        self.assertIn("$Items.Count -ne 32", flasher)
+        self.assertIn("C6FirmwareIncluded=false", flasher)
+        self.assertIn("if ($ListOnly)", flasher)
+
     def fixture(self, root: Path) -> tuple[Path, Path]:
         project = root / "examples" / "esp-idf" / "hello_world"
         build = project / "build"
@@ -122,19 +161,28 @@ class CiFirmwarePackageTests(unittest.TestCase):
     def test_list_only_matches_selector_inventory_and_artifact_contract(self) -> None:
         import subprocess
 
-        completed = subprocess.run(
-            ["powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(ROOT / "scripts/Flash-CI-Firmware.ps1"), "-ListOnly"],
-            check=True, capture_output=True, text=True, encoding="utf-8",
-        )
-        lines = [line for line in completed.stdout.splitlines() if line[:1].isdigit()]
-        self.assertEqual(32, len(lines))
-        idf = [path.name for path in sorted((ROOT / "examples/esp-idf").iterdir()) if (path / "CMakeLists.txt").is_file()]
-        arduino = [path.name for path in sorted((ROOT / "examples/arduino").iterdir()) if (path / f"{path.name}.ino").is_file()]
-        expected = [f"firmware-esp-idf-{name}-{version}" for name in idf for version in ("v5.5.5", "v6.0.2")]
-        expected += [f"firmware-arduino-{name}-3.3.11" for name in arduino]
-        expected += ["firmware-brookesia-v5.5.5"]
-        actual = [line.split(" artifact=", 1)[1].split(" source=", 1)[0] for line in lines]
-        self.assertEqual(expected, actual)
+        expected = self.expected_list_only_items()
+        self.assertEqual(32, len(expected))
+        powershell = self.list_only_powershell()
+        if powershell:
+            completed = subprocess.run(
+                [powershell, "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(ROOT / "scripts/Flash-CI-Firmware.ps1"), "-ListOnly"],
+                check=True, capture_output=True, text=True, encoding="utf-8",
+            )
+            lines = [line for line in completed.stdout.splitlines() if line[:1].isdigit()]
+            self.assertEqual(32, len(lines))
+            actual = [
+                (line.split(" artifact=", 1)[1].split(" source=", 1)[0], line.rsplit(" source=", 1)[1])
+                for line in lines
+            ]
+            self.assertEqual(expected, actual)
+        else:
+            self.assert_static_list_only_contract(expected)
+
+    def test_list_only_static_contract_is_available_without_powershell(self) -> None:
+        with mock.patch("shutil.which", return_value=None):
+            self.assertIsNone(self.list_only_powershell())
+        self.assert_static_list_only_contract(self.expected_list_only_items())
 
 
 if __name__ == "__main__":
