@@ -116,10 +116,11 @@ jobs:
             --build-dir "build/arduino/${{ matrix.name }}" \
             --framework-version "$ARDUINO_CORE_VERSION" \
             --fqbn "$ARDUINO_FQBN" \
-            --output "release-artifacts/firmware-arduino-${{ matrix.name }}-3.3.11.zip"
+            --board-profile rev1_3 \
+            --output "release-artifacts/firmware-arduino-${{ matrix.name }}-3.3.11-rev1_3.zip"
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: firmware-arduino-${{ matrix.name }}-3.3.11
-          path: release-artifacts/firmware-arduino-${{ matrix.name }}-3.3.11.zip
+          name: firmware-arduino-${{ matrix.name }}-3.3.11-rev1_3
+          path: release-artifacts/firmware-arduino-${{ matrix.name }}-3.3.11-rev1_3.zip
           if-no-files-found: error
           retention-days: 14

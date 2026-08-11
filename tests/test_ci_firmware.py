@@ -32,15 +32,18 @@ class CiFirmwarePackageTests(unittest.TestCase):
     def expected_list_only_items() -> list[tuple[str, str]]:
         inventory = selector.discover_inventory(ROOT)
         expected = [
-            (f"firmware-esp-idf-{Path(project).name}-{version}", project)
+            (f"firmware-esp-idf-{Path(project).name}-{version}-rev1_3", project)
             for project in inventory.idf_projects
             for version in ("v5.5.5", "v6.0.2")
         ]
         expected += [
-            (f"firmware-arduino-{Path(sketch).name}-3.3.11", sketch)
+            (f"firmware-arduino-{Path(sketch).name}-3.3.11-rev1_3", sketch)
             for sketch in inventory.arduino_sketches
         ]
-        return expected + [("firmware-brookesia-v5.5.5", "firmware/brookesia")]
+        return expected + [
+            ("firmware-brookesia-v5.5.5-rev1_3", "firmware/brookesia"),
+            ("firmware-brookesia-v5.5.5-rev3_x", "firmware/brookesia"),
+        ]
 
     @staticmethod
     def list_only_powershell() -> str | None:
@@ -52,10 +55,18 @@ class CiFirmwarePackageTests(unittest.TestCase):
         arduino_names = ",".join(repr(Path(project).name) for _, project in expected[26:31])
         self.assertIn(idf_names, flasher)
         self.assertIn(arduino_names, flasher)
-        self.assertIn('Artifact="firmware-esp-idf-$name-$version"', flasher)
-        self.assertIn('Artifact="firmware-arduino-$($_)-3.3.11"', flasher)
-        self.assertIn("Artifact='firmware-brookesia-v5.5.5'", flasher)
-        self.assertIn("$Items.Count -ne 32", flasher)
+        self.assertIn('Artifact="firmware-esp-idf-$name-$version-rev1_3"', flasher)
+        self.assertIn('Artifact="firmware-arduino-$($_)-3.3.11-rev1_3"', flasher)
+        self.assertIn("Artifact='firmware-brookesia-v5.5.5-rev1_3'", flasher)
+        self.assertIn("Artifact='firmware-brookesia-v5.5.5-rev3_x'", flasher)
+        self.assertIn("$Items.Count -ne 33", flasher)
+        self.assertIn("Profile='rev1_3'", flasher)
+        self.assertIn("Profile='rev3_x'", flasher)
+        self.assertIn("$DetectedProfile=Get-ProfileForMajor $DetectedMajor", flasher)
+        self.assertIn("cross-profile=blocked", flasher)
+        self.assertIn("$StateVersion = 4", flasher)
+        self.assertIn("Get-StatePath $StateRoot $DetectedProfile", flasher)
+        self.assertIn("state-v4-$Profile.json", flasher)
         self.assertIn("C6FirmwareIncluded=false", flasher)
         self.assertIn("if ($ListOnly)", flasher)
 
@@ -65,6 +76,8 @@ class CiFirmwarePackageTests(unittest.TestCase):
         build.mkdir(parents=True)
         (build / "bootloader.bin").write_bytes(b"boot")
         (build / "app.bin").write_bytes(b"application")
+        (build / "config").mkdir()
+        (build / "config" / "sdkconfig.json").write_text(json.dumps({"ESP32P4_SELECTS_REV_LESS_V3": True, "ESP32P4_REV_MIN_100": True}), encoding="utf-8")
         (build / "flasher_args.json").write_text(json.dumps({"flash_files": {"0x0": "bootloader.bin", "0x10000": "app.bin"}}), encoding="utf-8")
         return project, build
 
@@ -73,7 +86,7 @@ class CiFirmwarePackageTests(unittest.TestCase):
             root = Path(directory); project, build = self.fixture(root); output = root / "artifact.zip"
             old = Path.cwd(); os.chdir(root)
             try:
-                packager.package_idf(project, build, "v5.5.5", output)
+                packager.package_idf(project, build, "v5.5.5", output, "rev1_3")
             finally:
                 os.chdir(old)
             with zipfile.ZipFile(output) as archive:
@@ -82,6 +95,9 @@ class CiFirmwarePackageTests(unittest.TestCase):
             self.assertEqual(1, document["schema_version"])
             self.assertEqual("examples/esp-idf/hello_world", document["source_project"])
             self.assertEqual("esp32p4", document["chip"])
+            self.assertEqual("rev1_3", document["board_profile"])
+            self.assertEqual("1.0", document["chip_revision"]["minimum"])
+            self.assertEqual("3.0", document["chip_revision"]["maximum_exclusive"])
             self.assertEqual(32 * 1024 * 1024, document["flash"]["size_bytes"])
             self.assertFalse(document["c6_firmware_included"])
             self.assertNotIn("erase_flash", document["flash"]["command"])
@@ -92,13 +108,22 @@ class CiFirmwarePackageTests(unittest.TestCase):
             root = Path(directory); project, build = self.fixture(root); old = Path.cwd(); os.chdir(root)
             try:
                 (build / "flasher_args.json").write_text(json.dumps({"flash_files": {"0x0": "../escape.bin"}}), encoding="utf-8")
-                with self.assertRaises(ValueError): packager.package_idf(project, build, "v5.5.5", root / "bad.zip")
+                with self.assertRaises(ValueError): packager.package_idf(project, build, "v5.5.5", root / "bad.zip", "rev1_3")
                 (build / "flasher_args.json").write_text(json.dumps({"flash_files": {"0x0": "bootloader.bin"}, "write_flash_args": ["--erase-all"]}), encoding="utf-8")
-                with self.assertRaises(ValueError): packager.package_idf(project, build, "v5.5.5", root / "dangerous.zip")
+                with self.assertRaises(ValueError): packager.package_idf(project, build, "v5.5.5", root / "dangerous.zip", "rev1_3")
                 with self.assertRaises(ValueError): packager.validate_plan([{"offset": "0x0", "size": 8}, {"offset": "0x4", "size": 8}])
                 with self.assertRaises(ValueError): packager.validate_plan([{"offset": "0x1fffff0", "size": 32}])
             finally:
                 os.chdir(old)
+
+    def test_idf_profile_accepts_prefixed_json_keys_and_rejects_the_wrong_profile(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory); project, build = self.fixture(root)
+            config = build / "config" / "sdkconfig.json"
+            config.write_text(json.dumps({"CONFIG_ESP32P4_SELECTS_REV_LESS_V3": True, "CONFIG_ESP32P4_REV_MIN_100": True}), encoding="utf-8")
+            self.assertEqual("y", packager.sdkconfig_values(build)["CONFIG_ESP32P4_SELECTS_REV_LESS_V3"])
+            with self.assertRaises(ValueError):
+                packager.validate_idf_profile(build, "rev3_x")
 
     def test_arduino_requires_one_unambiguous_flash_layout_and_safe_fqbn(self) -> None:
         fqbn = "esp32:esp32:esp32p4:FlashSize=32M,ChipVariant=prev3,EraseFlash=none"
@@ -107,9 +132,10 @@ class CiFirmwarePackageTests(unittest.TestCase):
             for name in ("HelloWorld.ino.merged.bin", "another-merged.bin"): (build / name).write_bytes(b"x")
             old = Path.cwd(); os.chdir(root)
             try:
-                with self.assertRaises(ValueError): packager.package_arduino(project, build, "3.3.11", root / "bad.zip", fqbn)
-                with self.assertRaises(ValueError): packager.package_arduino(project, build, "3.3.11", root / "bad2.zip", "FlashSize=16M")
+                with self.assertRaises(ValueError): packager.package_arduino(project, build, "3.3.11", root / "bad.zip", fqbn, "rev1_3")
+                with self.assertRaises(ValueError): packager.package_arduino(project, build, "3.3.11", root / "bad2.zip", "FlashSize=16M", "rev1_3")
                 with self.assertRaises(ValueError): packager.parse_arduino_fqbn("esp32:esp32:esp32p4:FlashSize=32M,FlashSize=32M,ChipVariant=prev3,EraseFlash=none")
+                with self.assertRaises(ValueError): packager.package_arduino(project, build, "3.3.11", root / "bad3.zip", fqbn, "rev3_x")
             finally:
                 os.chdir(old)
 
@@ -120,12 +146,13 @@ class CiFirmwarePackageTests(unittest.TestCase):
             (build / "HelloWorld.ino.merged.bin").write_bytes(b"merged")
             old = Path.cwd(); os.chdir(root)
             try:
-                output = packager.package_arduino(project, build, "3.3.11", root / "arduino.zip", fqbn)
+                output = packager.package_arduino(project, build, "3.3.11", root / "arduino.zip", fqbn, "rev1_3")
             finally:
                 os.chdir(old)
             with zipfile.ZipFile(output) as archive:
                 document = json.loads(archive.read("manifest.json"))
             self.assertEqual(fqbn, document["fqbn"])
+            self.assertEqual("rev1_3", document["board_profile"])
             self.assertEqual(["0x0"], [entry["offset"] for entry in document["files"]])
             self.assertEqual(460800, document["flash"]["baud"])
             self.assertIn("write_flash", document["flash"]["command"])
@@ -150,19 +177,20 @@ class CiFirmwarePackageTests(unittest.TestCase):
         arduino_workflow = (ROOT / ".github/workflows/arduino.yml").read_text(encoding="utf-8")
         self.assertIn("--export-binaries", arduino_workflow)
         flasher = (ROOT / "scripts" / "Flash-CI-Firmware.ps1").read_text(encoding="utf-8")
-        self.assertIn("$Items.Count -ne 32", flasher)
+        self.assertIn("$Items.Count -ne 33", flasher)
         self.assertIn("Hash of data verified", flasher)
         self.assertIn("c6_firmware_included", flasher)
         self.assertIn("chip_id", flasher)
         self.assertIn("Test-ArduinoFqbn", flasher)
         self.assertIn("$manifest.flash.baud -ne 460800", flasher)
         self.assertNotIn("erase_flash", flasher)
+        self.assertIn("state-v4=profile-isolated", flasher)
 
     def test_list_only_matches_selector_inventory_and_artifact_contract(self) -> None:
         import subprocess
 
         expected = self.expected_list_only_items()
-        self.assertEqual(32, len(expected))
+        self.assertEqual(33, len(expected))
         powershell = self.list_only_powershell()
         if powershell:
             completed = subprocess.run(
@@ -170,9 +198,9 @@ class CiFirmwarePackageTests(unittest.TestCase):
                 check=True, capture_output=True, text=True, encoding="utf-8",
             )
             lines = [line for line in completed.stdout.splitlines() if line[:1].isdigit()]
-            self.assertEqual(32, len(lines))
+            self.assertEqual(33, len(lines))
             actual = [
-                (line.split(" artifact=", 1)[1].split(" source=", 1)[0], line.rsplit(" source=", 1)[1])
+                (line.split(" artifact=", 1)[1].split(" profile=", 1)[0], line.rsplit(" source=", 1)[1])
                 for line in lines
             ]
             self.assertEqual(expected, actual)

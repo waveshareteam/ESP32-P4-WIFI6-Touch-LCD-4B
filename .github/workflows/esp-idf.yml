@@ -94,10 +94,11 @@ jobs:
             --project "${{ matrix.project }}" \
             --build-dir "${{ matrix.project }}/build" \
             --framework-version "${{ matrix.idf_version }}" \
-            --output "release-artifacts/firmware-esp-idf-${{ matrix.name }}-${{ matrix.idf_version }}.zip"
+            --board-profile rev1_3 \
+            --output "release-artifacts/firmware-esp-idf-${{ matrix.name }}-${{ matrix.idf_version }}-rev1_3.zip"
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: firmware-esp-idf-${{ matrix.name }}-${{ matrix.idf_version }}
-          path: release-artifacts/firmware-esp-idf-${{ matrix.name }}-${{ matrix.idf_version }}.zip
+          name: firmware-esp-idf-${{ matrix.name }}-${{ matrix.idf_version }}-rev1_3
+          path: release-artifacts/firmware-esp-idf-${{ matrix.name }}-${{ matrix.idf_version }}-rev1_3.zip
           if-no-files-found: error
           retention-days: 14

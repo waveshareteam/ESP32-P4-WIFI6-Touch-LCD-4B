@@ -25,10 +25,10 @@ CI 将首方示例、受维护源码固件和仓库策略划分为明确的独�
 | 13 个 ESP-IDF 示例 | [ESP-IDF v5.5.5](https://github.com/espressif/esp-idf/releases/tag/v5.5.5) | `esp32p4` | 13 |
 | 13 个 ESP-IDF 示例 | [ESP-IDF v6.0.2](https://github.com/espressif/esp-idf/releases/tag/v6.0.2) | `esp32p4` | 13 |
 | 5 个 Arduino 草图 | [Arduino-ESP32 3.3.11](https://github.com/espressif/arduino-esp32/releases/tag/3.3.11) | `esp32:esp32:esp32p4` | 5 |
-| Brookesia 固件 | ESP-IDF v5.5.5 | `esp32p4` | 独立工作流 |
+| Brookesia 固件 | ESP-IDF v5.5.5 | `esp32p4` | 两个隔离 profile：`rev1_3`、`rev3_x` |
 
 因此，影响完整构建范围的变更会生成 26 个默认 ESP-IDF 构建和 5 个 Arduino 编译。
-Brookesia 的源码、资源或工作流变更通过独立的 `Firmware Build` 验证，也可手动
+Brookesia 的源码、资源或工作流变更通过独立 `Firmware Build` 中两个隔离作业验证，也可手动
 选择；该受维护固件的 IDF v6 支持仍处于待办状态，不能从示例矩阵推断。
 
 更新固定版本前，维护者必须重新核验上游稳定版本。默认矩阵不得使用 Beta、RC、
@@ -59,6 +59,13 @@ Alpha 或 Preview 版本。
 通过自己的固件工作流选择，不能通过示例选择器选择。
 
 ## 🧱 ESP-IDF 环境
+
+共享默认配置使所有示例默认面向 `rev1_3` pre-v3：
+`CONFIG_ESP32P4_SELECTS_REV_LESS_V3=y` 与 `CONFIG_ESP32P4_REV_MIN_100=y`。
+ESP-IDF 没有“仅 1.3”Kconfig 符号。Arduino 保持 `ChipVariant=prev3`。示例仍保持
+26/5 矩阵，不会翻倍。只有 Brookesia 使用 `rev1_3`（200 MHz PSRAM）和 `rev3_x`
+（250 MHz PSRAM）profile，且各自拥有 build 目录和生成的 sdkconfig。这两个 profile
+软件不兼容；v3.x 需要 ESP-IDF 5.5.3+ 或 6.0+。
 
 每个矩阵作业在对应固定版本的官方 IDF 容器中运行，加载
 `$IDF_PATH/export.sh`，选择 `esp32p4`，在干净检出中解析托管组件，然后构建所选
@@ -121,10 +128,12 @@ LVGL 草图仅使用公开的 LVGL 核心 API，不依赖上游仓库中未随 A
 ## 📦 固件软件包
 
 每个成功构建后的矩阵作业都会打包并上传一个保留 14 天的 CI ZIP：
-`firmware-esp-idf-<name>-<idf-version>`、`firmware-arduino-<name>-3.3.11` 或
-`firmware-brookesia-v5.5.5`。包使用最终 PR SHA（或推送 SHA）；ZIP 不存在时工作流失败。
+`firmware-esp-idf-<name>-<idf-version>-rev1_3`、`firmware-arduino-<name>-3.3.11-rev1_3`、
+`firmware-brookesia-v5.5.5-rev1_3` 或 `firmware-brookesia-v5.5.5-rev3_x`。包使用最终 PR SHA（或推送 SHA）；ZIP 不存在时工作流失败。
 ESP-IDF 打包从 `flasher_args.json` 获取所有镜像和偏移，因此 Brookesia 也包含模型和文件系统镜像。
 Arduino 打包只接受一个合并镜像，或针对已选 32 MiB pre-v3 FQBN 的唯一引导加载程序/分区/OTA/应用布局。
+烧录前会校验清单 profile 与芯片 major revision：低于 3 只允许 `rev1_3`，3 或更高只允许
+`rev3_x`；v3.x 还必须匹配 PCB/电气版本。
 
 `Flash-CI-Firmware.cmd` 是 Windows 上按顺序进行人工测试的入口。它不会使用过期 SHA 构件、脏或
 分离的检出、草稿/缺失 PR 或未验证的软件包。编译/打包成功均不证明已经烧录或通过人工运行测试；

@@ -30,6 +30,14 @@ custom partition table with an application, ESP-SR model image, and SPIFFS
 storage image. A complete first installation must use the project-generated
 flash arguments so every required image is written at the correct offset.
 
+Brookesia has two incompatible board profiles: `rev1_3` is the default/pre-v3
+profile (minimum silicon revision 1.0, maximum exclusive 3.0, 200 MHz PSRAM),
+while `rev3_x` has a 3.0 minimum, no claimed validated upper hardware bound, and
+the existing 250 MHz PSRAM setting. They use separate SDKCONFIG and build
+directories in CI and must never share a binary. The v3.x profile requires
+ESP-IDF 5.5.3+ or 6.0+; v5.5.5 meets that software prerequisite but does not
+prove hardware compatibility. Confirm the matching PCB/electrical revision too.
+
 ```sh
 idf.py -C firmware/brookesia -p PORT flash monitor
 ```
@@ -83,7 +91,8 @@ result.
 
 Successful CI builds package a schema-1 ZIP for every matrix item. The package
 records the exact full source SHA, board `ESP32-P4-WIFI6-Touch-LCD-4B`,
-`esp32p4`, pre-v3 board profile, 32 MiB flash bound, source project, offsets,
+`esp32p4`, explicit `rev1_3` or `rev3_x` board profile and auditable chip-revision
+bounds, 32 MiB flash bound, source project, offsets,
 sizes, and SHA-256 values. It contains no ESP32-C6 coprocessor image and the
 Windows flasher rejects a manifest that says otherwise.
 
@@ -96,8 +105,14 @@ the manifest and requires `Hash of data verified`. With automatic discovery,
 exactly one explicitly named CH343 or ESP32-P4 serial device is required;
 otherwise provide `-Port COMx`.
 
-The dialog orders all 32 packages: 26 ESP-IDF example/version combinations,
-five Arduino sketches, then Brookesia. It resumes only for the same final SHA.
+`-ListOnly` lists all 33 packages for audit: 26 ESP-IDF example/version
+combinations, five Arduino sketches, then two Brookesia profiles. Normal GUI
+use first detects the P4 profile and shows and processes only the 32 `rev1_3`
+items or the one `rev3_x` item. Progress is isolated in a separate
+`state-v4-<profile>.json` file for each profile and resumes only for the same
+final SHA and state schema version. Chip major revision below 3 selects
+`rev1_3`; major revision 3 or higher selects `rev3_x`. A v3.x chip result alone
+does not prove a matching PCB/electrical revision.
 After a verified write, the operator must perform the relevant runtime test and
 explicitly mark PASS before the next item is flashed.
 

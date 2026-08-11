@@ -50,6 +50,23 @@ class RepositoryPolicyTests(unittest.TestCase):
     def test_ci_boundaries(self) -> None:
         self.assertEqual([], policy.check_ci_contract(ROOT))
 
+    def test_revision_profile_policy_keeps_examples_single_profile_and_firmware_dual_profile(self) -> None:
+        self.assertEqual([], policy.check_revision_profile_contract(ROOT))
+        shared = (ROOT / "config/sdkconfig.defaults").read_text(encoding="utf-8")
+        self.assertIn("CONFIG_ESP32P4_SELECTS_REV_LESS_V3=y", shared)
+        self.assertIn("CONFIG_ESP32P4_REV_MIN_100=y", shared)
+        firmware = (ROOT / ".github/workflows/firmware.yml").read_text(encoding="utf-8")
+        self.assertIn("profile: rev1_3", firmware)
+        self.assertIn("profile: rev3_x", firmware)
+        self.assertIn("build-${{ matrix.profile }}", firmware)
+        self.assertIn("$GITHUB_WORKSPACE/firmware/brookesia/build-${{ matrix.profile }}", firmware)
+        self.assertIn("$RUNNER_TEMP/brookesia-${{ matrix.profile }}.sdkconfig", firmware)
+        base_defaults = (ROOT / "firmware/brookesia/sdkconfig.defaults").read_text(encoding="utf-8")
+        self.assertIn("CONFIG_ESP32P4_SELECTS_REV_LESS_V3=y", base_defaults)
+        self.assertIn("CONFIG_ESP32P4_REV_MIN_100=y", base_defaults)
+        self.assertIn("CONFIG_SPIRAM_SPEED_200M=y", base_defaults)
+        self.assertNotIn("CONFIG_SPIRAM_SPEED_250M=y", base_defaults)
+
     def test_ci_artifact_contract_has_final_sha_and_non_erasing_flasher(self) -> None:
         expected = "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a"
         for name in ("esp-idf.yml", "arduino.yml", "firmware.yml"):

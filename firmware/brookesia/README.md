@@ -46,6 +46,18 @@ Hardware pin details and the P4/C6 compatibility notes live in
 [`docs/board.md`](../../docs/board.md) and
 [`docs/p4-c6-hosted-wifi.md`](../../docs/p4-c6-hosted-wifi.md).
 
+## Hardware revision profiles
+
+The default profile is `rev1_3`: pre-v3 ESP32-P4 with
+`CONFIG_ESP32P4_SELECTS_REV_LESS_V3=y`, `CONFIG_ESP32P4_REV_MIN_100=y`, and the
+200 MHz PSRAM baseline. `rev3_x` explicitly selects
+`CONFIG_ESP32P4_SELECTS_REV_LESS_V3=n`, has a 3.0 minimum, and retains 250 MHz
+PSRAM. They are separate, incompatible binaries; do not flash either profile to
+the other silicon range. CI uses `sdkconfig.defaults.rev1_3` or
+`sdkconfig.defaults.rev3_x` with independent SDKCONFIG/build paths. The v3.x
+profile needs ESP-IDF 5.5.3+ or 6.0+, but a successful compile does not prove
+the matching PCB/electrical revision or hardware operation.
+
 ## Applications
 
 The launcher installs the following applications. The PNGs below are the same
@@ -340,7 +352,8 @@ alone is insufficient.
 | `spiffs/` | Source files staged into the `storage` partition image |
 | `archive/` | Inactive historical implementation retained for reference; not installed |
 | `partitions.csv` | Factory firmware flash layout |
-| `sdkconfig.defaults` | Maintained project defaults |
+| `sdkconfig.defaults` | Shared maintained project defaults |
+| `sdkconfig.defaults.rev1_3` / `.rev3_x` | Mutually exclusive silicon/PSRAM overlays |
 | `managed_components/` | Generated Component Manager checkout; do not edit directly |
 | `build/` | Generated output; never treat as source |
 

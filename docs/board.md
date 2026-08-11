@@ -17,7 +17,8 @@ on physical hardware.
 | --- | --- |
 | Product | ESP32-P4-WIFI6-Touch-LCD-4B |
 | ESP-IDF target | `esp32p4` |
-| Maintained firmware baseline | ESP32-P4 silicon earlier than v3; confirm the actual production lot |
+| Default example baseline | ESP32-P4 rev 1.3 / pre-v3 (`SELECTS_REV_LESS_V3=y`, 1.x minimum) |
+| Maintained firmware profiles | Separate `rev1_3` and `rev3_x` Brookesia binaries; confirm silicon and PCB/electrical revision |
 | Flash | 32 MB |
 | PSRAM | 32 MB, Hex mode in the maintained Brookesia defaults |
 | Display | 4-inch, 720 x 720, two-lane MIPI DSI, ST7703 |
@@ -155,6 +156,14 @@ before describing a build as a BSP 3.0.0 build. Keep only product-specific
 `bsp_extra` code locally.
 
 ## Validation status
+
+ESP32-P4 rev 1.3/pre-v3 and v3.x use incompatible software profiles. Do not
+flash one binary across those profiles. The default ESP-IDF examples and Arduino
+sketches are only `rev1_3`/pre-v3 targets; they are not doubled into a second
+matrix. Brookesia is the sole maintained product firmware with both profiles.
+Its v3.x profile requires ESP-IDF 5.5.3 or newer (or 6.0 or newer), but this
+repository's maintained firmware workflow currently pins v5.5.5. A chip probe
+does not prove matching PCB/electrical compatibility.
 
 ### Supported by source material
 

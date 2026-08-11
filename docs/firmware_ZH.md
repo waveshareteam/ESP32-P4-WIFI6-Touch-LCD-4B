@@ -26,6 +26,12 @@ Brookesia 项目当前面向 ESP-IDF v5.5.5 与 ESP32-P4。它使用包含应用
 SPIFFS 存储镜像的自定义分区表。完整的首次安装必须使用项目生成的烧录参数，以便将每个必需镜像写入
 正确偏移量。
 
+Brookesia 有两个不兼容的开发板 profile：`rev1_3` 是默认/pre-v3 profile（最低芯片版本
+1.0、最高排他版本 3.0、200 MHz PSRAM）；`rev3_x` 最低为 3.0，不宣称已经验证的硬件
+最高上限，并使用现有 250 MHz PSRAM 设置。CI 为二者使用独立 SDKCONFIG 和 build 目录，
+不能共用二进制。v3.x profile 需要 ESP-IDF 5.5.3+ 或 6.0+；v5.5.5 满足软件前提但不能
+证明硬件兼容性。还必须确认匹配的 PCB/电气版本。
+
 ```sh
 idf.py -C firmware/brookesia -p PORT flash monitor
 ```
@@ -68,7 +74,8 @@ SHA 的 Actions 包检查后才可烧录。仅编译本身不是软件包、烧�
 ## CI 固件包与 Windows 烧录
 
 每个成功的 CI 构建都会生成一个 schema-1 ZIP 包。该包记录完整源 SHA、开发板
-`ESP32-P4-WIFI6-Touch-LCD-4B`、`esp32p4`、pre-v3 开发板配置、32 MiB Flash 上限、
+`ESP32-P4-WIFI6-Touch-LCD-4B`、`esp32p4`、明确的 `rev1_3` 或 `rev3_x` 开发板 profile
+及可审计的芯片版本范围、32 MiB Flash 上限、
 源工程、偏移量、大小与 SHA-256。包中不包含 ESP32-C6 协处理器镜像，Windows 烧录器也会拒绝
 声明包含该镜像的清单。
 
@@ -78,9 +85,12 @@ SHA 上成功的工作流。它只下载匹配的 CI 构件，绝不擦除 Flash
 并要求出现 `Hash of data verified`。自动发现时必须恰好存在一个名称明确为 CH343 或 ESP32-P4 的
 串口设备；否则传入 `-Port COMx`。
 
-对话框固定顺序处理全部 32 项：26 个 ESP-IDF 示例/版本组合、5 个 Arduino 草图，最后是
-Brookesia。仅当最终 SHA 相同才恢复进度。每次写入验证后，操作员必须完成对应运行测试并明确标记
-PASS，才会烧录下一项。
+`-ListOnly` 会按固定顺序列出全部 33 项供审计：26 个 ESP-IDF 示例/版本组合、5 个 Arduino
+草图，以及两个 Brookesia profile。正常 GUI 使用时会先探测 P4 profile，只显示和处理 32 项
+`rev1_3` 或 1 项 `rev3_x`。每个 profile 的进度均隔离在独立的
+`state-v4-<profile>.json` 文件中，且仅当最终 SHA 与状态 schema 版本相同时才恢复。芯片 major
+revision 低于 3 会选择 `rev1_3`，3 或更高会选择 `rev3_x`。v3.x 芯片探测不代表 PCB/电气
+版本兼容。每次写入验证后，操作员必须完成对应运行测试并明确标记 PASS，才会烧录下一项。
 
 ## 工厂与恢复镜像
 

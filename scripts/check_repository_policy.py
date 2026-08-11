@@ -438,9 +438,9 @@ def check_ci_contract(root: Path) -> list[str]:
     artifact_sha = "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a"
     final_ref = "ref: ${{ github.event.pull_request.head.sha || github.sha }}"
     for workflow_name, text, artifact in (
-        ("esp-idf.yml", idf, "firmware-esp-idf-${{ matrix.name }}-${{ matrix.idf_version }}"),
-        ("arduino.yml", arduino, "firmware-arduino-${{ matrix.name }}-3.3.11"),
-        ("firmware.yml", firmware, "firmware-brookesia-v5.5.5"),
+        ("esp-idf.yml", idf, "firmware-esp-idf-${{ matrix.name }}-${{ matrix.idf_version }}-rev1_3"),
+        ("arduino.yml", arduino, "firmware-arduino-${{ matrix.name }}-3.3.11-rev1_3"),
+        ("firmware.yml", firmware, "firmware-brookesia-v5.5.5-${{ matrix.profile }}"),
     ):
         if final_ref not in text:
             errors.append(f"{workflow_name}: build checkout is not pinned to the event final SHA")
@@ -454,6 +454,43 @@ def check_ci_contract(root: Path) -> list[str]:
         for reference in re.findall(r"\buses:\s+[^@\s]+@([^\s#]+)", text):
             if not re.fullmatch(r"[0-9a-f]{40}", reference):
                 errors.append(f"{workflow_name}: Action is not pinned to a full commit SHA")
+    return errors
+
+
+def check_revision_profile_contract(root: Path) -> list[str]:
+    """Keep the revision split explicit without multiplying the example matrices."""
+    errors: list[str] = []
+    shared = (root / "config/sdkconfig.defaults").read_text(encoding="utf-8")
+    if not re.search(r"^CONFIG_ESP32P4_SELECTS_REV_LESS_V3=y$", shared, re.MULTILINE) or not re.search(r"^CONFIG_ESP32P4_REV_MIN_100=y$", shared, re.MULTILINE):
+        errors.append("config/sdkconfig.defaults: shared ESP-IDF default must be pre-v3 with a 1.x minimum")
+    usb = (root / "examples/esp-idf/usb-extended-screen/sdkconfig.defaults.esp32p4").read_text(encoding="utf-8")
+    if "CONFIG_ESP32P4_REV_MIN_1=" in usb:
+        errors.append("usb-extended-screen: obsolete local revision default conflicts with the shared contract")
+    arduino = (root / ".github/workflows/arduino.yml").read_text(encoding="utf-8")
+    if "ChipVariant=prev3" not in arduino:
+        errors.append("arduino.yml: Arduino default must remain ChipVariant=prev3")
+    firmware = (root / ".github/workflows/firmware.yml").read_text(encoding="utf-8")
+    for required in ("profile: rev1_3", "profile: rev3_x", "$GITHUB_WORKSPACE/firmware/brookesia/build-${{ matrix.profile }}", "$RUNNER_TEMP/brookesia-${{ matrix.profile }}.sdkconfig", "$GITHUB_WORKSPACE/firmware/brookesia/sdkconfig.defaults;$GITHUB_WORKSPACE/firmware/brookesia/${{ matrix.defaults }}", "firmware-brookesia-v5.5.5-${{ matrix.profile }}"):
+        if required not in firmware:
+            errors.append(f"firmware.yml: missing isolated dual-profile contract {required}")
+    base_defaults = (root / "firmware/brookesia/sdkconfig.defaults").read_text(encoding="utf-8")
+    if any(symbol not in base_defaults for symbol in ("CONFIG_ESP32P4_SELECTS_REV_LESS_V3=y", "CONFIG_ESP32P4_REV_MIN_100=y", "CONFIG_SPIRAM_SPEED_200M=y", "CONFIG_SPIRAM_SPEED=200")) or "CONFIG_SPIRAM_SPEED_250M=y" in base_defaults or "CONFIG_SPIRAM_SPEED=250" in base_defaults:
+        errors.append("firmware/brookesia/sdkconfig.defaults: base default must be rev1.3 with only 200 MHz PSRAM")
+    for profile, symbols in {
+        "rev1_3": ("CONFIG_ESP32P4_SELECTS_REV_LESS_V3=y", "CONFIG_ESP32P4_REV_MIN_100=y", "CONFIG_SPIRAM_SPEED_200M=y"),
+        "rev3_x": ("CONFIG_ESP32P4_SELECTS_REV_LESS_V3=n", "CONFIG_ESP32P4_REV_MIN_300=y", "CONFIG_SPIRAM_SPEED_250M=y"),
+    }.items():
+        defaults = (root / f"firmware/brookesia/sdkconfig.defaults.{profile}").read_text(encoding="utf-8")
+        if any(symbol not in defaults for symbol in symbols):
+            errors.append(f"firmware/brookesia/sdkconfig.defaults.{profile}: profile symbols are incomplete")
+    packager = (root / "scripts/package_ci_firmware.py").read_text(encoding="utf-8")
+    flasher = (root / "scripts/Flash-CI-Firmware.ps1").read_text(encoding="utf-8")
+    for required in ("BOARD_PROFILES", '"rev1_3"', '"rev3_x"', "validate_idf_profile", "--board-profile"):
+        if required not in packager:
+            errors.append(f"package_ci_firmware.py: missing profile contract {required}")
+    for required in ("$Items.Count -ne 33", "rev1_3=32", "Get-ProfileForMajor", "Test-ManifestRevisionRange", "$StateVersion = 4", "Get-StatePath $StateRoot $DetectedProfile", "state-v4-$Profile.json", "$DetectedProfile=Get-ProfileForMajor $DetectedMajor", "state-v4=profile-isolated", "cross-profile=blocked", "PCB/electrical revision"):
+        if required not in flasher:
+            errors.append(f"Flash-CI-Firmware.ps1: missing profile safety contract {required}")
     return errors
 
 
@@ -481,6 +518,7 @@ def run_checks(root: Path) -> list[str]:
     errors.extend(check_homepage_contract(root))
     errors.extend(check_public_text(root, markdown_files))
     errors.extend(check_ci_contract(root))
+    errors.extend(check_revision_profile_contract(root))
     errors.extend(check_idf_partition_contract(root))
     if (root / "SECURITY.md").exists():
         errors.append("SECURITY.md exists although no verified private vulnerability-reporting endpoint is configured")

@@ -41,6 +41,16 @@ ESP-IDF v5.5.5 活动依赖图。生成的 `dependencies.lock` 因本地组件�
 [`docs/board_ZH.md`](../../docs/board_ZH.md) 与
 [`docs/p4-c6-hosted-wifi_ZH.md`](../../docs/p4-c6-hosted-wifi_ZH.md)。
 
+## 硬件修订 profile
+
+默认 profile 是 `rev1_3`：pre-v3 ESP32-P4，使用
+`CONFIG_ESP32P4_SELECTS_REV_LESS_V3=y`、`CONFIG_ESP32P4_REV_MIN_100=y` 和
+200 MHz PSRAM 基线。`rev3_x` 明确使用 `CONFIG_ESP32P4_SELECTS_REV_LESS_V3=n`，
+最低版本为 3.0，并保留 250 MHz PSRAM。二者是独立且不兼容的二进制，不能交叉烧录。
+CI 使用 `sdkconfig.defaults.rev1_3` 或 `sdkconfig.defaults.rev3_x`，各自拥有独立
+SDKCONFIG/build 路径。v3.x profile 需要 ESP-IDF 5.5.3+ 或 6.0+，但编译成功不能证明
+PCB/电气版本匹配或硬件运行正常。
+
 ## 应用列表
 
 启动器会安装以下应用。下表直接引用生成 LVGL 资源时使用的源 PNG 图标。
@@ -302,7 +312,8 @@ MusicPlayer 枚举 `/spiffs/music` 中最多五首由集成方提供的 MP3，UI
 | `spiffs/` | 生成 `storage` 分区镜像的源资源 |
 | `archive/` | 不参与当前安装的历史实现，仅供参考 |
 | `partitions.csv` | 出厂固件分区表 |
-| `sdkconfig.defaults` | 维护中的工程默认配置 |
+| `sdkconfig.defaults` | 共用的维护工程默认配置 |
+| `sdkconfig.defaults.rev1_3` / `.rev3_x` | 互斥的芯片/PSRAM 覆盖配置 |
 | `managed_components/` | Component Manager 生成目录，不要直接编辑 |
 | `build/` | 构建产物，不属于源码 |
 

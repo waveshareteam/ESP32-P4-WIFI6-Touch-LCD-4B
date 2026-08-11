@@ -15,7 +15,8 @@
 | --- | --- |
 | 产品 | ESP32-P4-WIFI6-Touch-LCD-4B |
 | ESP-IDF 目标 | `esp32p4` |
-| 维护的固件基线 | 早于 v3 的 ESP32-P4 芯片；请确认实际生产批次 |
+| 默认示例基线 | ESP32-P4 rev 1.3 / pre-v3（`SELECTS_REV_LESS_V3=y`，最低 1.x） |
+| 维护固件 profile | 独立的 `rev1_3` 与 `rev3_x` Brookesia 二进制；请确认芯片及 PCB/电气版本 |
 | Flash | 32 MB |
 | PSRAM | 32 MB；维护的 Brookesia 默认配置中为 Hex 模式 |
 | 显示屏 | 4 英寸、720 x 720、双通道 MIPI DSI、ST7703 |
@@ -137,6 +138,12 @@ C6 的 SDIO/控制连接。信号级映射与时序由 Hosted 配置和匹配的
 在将构建描述为 BSP 3.0.0 构建之前，请验证托管组件解析。仅将产品专用的 `bsp_extra` 代码保留在本地。
 
 ## 验证状态
+
+ESP32-P4 rev 1.3/pre-v3 与 v3.x 使用不兼容的软件 profile，不能共用或交叉烧录二进制。
+默认 ESP-IDF 示例和 Arduino 草图仅面向 `rev1_3`/pre-v3，不会扩展为双矩阵；只有
+Brookesia 作为受维护产品固件提供两份 profile。v3.x profile 需要 ESP-IDF 5.5.3 或
+更高版本（或 6.0 及更高版本），本仓库的受维护固件工作流当前固定为 v5.5.5。芯片
+探测本身不能证明 PCB/电气兼容性。
 
 ### 由源材料支持
 

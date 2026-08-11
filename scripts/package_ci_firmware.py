@@ -18,6 +18,18 @@ CHIP = "esp32p4"
 FLASH_SIZE = 32 * 1024 * 1024
 DEFAULT_BAUD = 460800
 ARDUINO_FQBN_OPTIONS = {"FlashSize": "32M", "ChipVariant": "prev3", "EraseFlash": "none"}
+BOARD_PROFILES = {
+    "rev1_3": {
+        "minimum": "1.0",
+        "maximum_exclusive": "3.0",
+        "symbols": {"CONFIG_ESP32P4_SELECTS_REV_LESS_V3": "y", "CONFIG_ESP32P4_REV_MIN_100": "y"},
+    },
+    "rev3_x": {
+        "minimum": "3.0",
+        "maximum_exclusive": None,
+        "symbols": {"CONFIG_ESP32P4_SELECTS_REV_LESS_V3": "n", "CONFIG_ESP32P4_REV_MIN_300": "y"},
+    },
+}
 
 
 def sha256(path: Path) -> str:
@@ -91,6 +103,42 @@ def parse_arduino_fqbn(fqbn: str) -> dict[str, str]:
     return options
 
 
+def board_profile(value: str) -> str:
+    if value not in BOARD_PROFILES:
+        raise ValueError(f"Unsupported board profile: {value}")
+    return value
+
+
+def sdkconfig_values(build: Path) -> dict[str, str]:
+    """Read the generated IDF configuration from its documented build locations."""
+    json_path = build / "config" / "sdkconfig.json"
+    if json_path.is_file():
+        raw = json.loads(json_path.read_text(encoding="utf-8"))
+        if isinstance(raw, dict):
+            return {
+                str(key) if str(key).startswith("CONFIG_") else f"CONFIG_{key}": "y" if value is True else "n" if value is False else str(value)
+                for key, value in raw.items()
+            }
+    for candidate in (build / "sdkconfig", build / "config" / "sdkconfig"):
+        if candidate.is_file():
+            values: dict[str, str] = {}
+            for line in candidate.read_text(encoding="utf-8").splitlines():
+                if line.startswith("# CONFIG_") and line.endswith(" is not set"):
+                    values[line[2:-11]] = "n"
+                elif line.startswith("CONFIG_") and "=" in line:
+                    key, value = line.split("=", 1)
+                    values[key] = value
+            return values
+    raise ValueError("ESP-IDF build configuration is missing (expected config/sdkconfig.json or sdkconfig)")
+
+
+def validate_idf_profile(build: Path, profile: str) -> None:
+    values = sdkconfig_values(build)
+    for symbol, expected in BOARD_PROFILES[profile]["symbols"].items():
+        if values.get(symbol) != expected:
+            raise ValueError(f"ESP-IDF build configuration does not match {profile}: {symbol}={expected}")
+
+
 def validate_idf_write_flash_args(raw: object) -> list[str]:
     if raw is None:
         return []
@@ -124,8 +172,9 @@ def flash_helpers(records: list[dict[str, object]]) -> tuple[str, str, str]:
     return command, shell, batch
 
 
-def manifest(framework: str, version: str, project: Path, records: list[dict[str, object]], command: str, fqbn: str | None = None) -> dict[str, object]:
-    document: dict[str, object] = {"schema_version": 1, "board": BOARD, "chip": CHIP, "board_profile": "pre-v3", "c6_firmware_included": False, "framework": framework, "framework_version": version, "source_project": repository_relative(project), "git_sha": git_sha(), "generated_at_utc": datetime.now(timezone.utc).isoformat(), "flash": {"baud": DEFAULT_BAUD, "size_bytes": FLASH_SIZE, "command": command}, "files": records}
+def manifest(framework: str, version: str, project: Path, records: list[dict[str, object]], command: str, profile: str, fqbn: str | None = None) -> dict[str, object]:
+    contract = BOARD_PROFILES[profile]
+    document: dict[str, object] = {"schema_version": 1, "board": BOARD, "chip": CHIP, "board_profile": profile, "chip_revision": {"minimum": contract["minimum"], "maximum_exclusive": contract["maximum_exclusive"], "maximum_note": "No validated hardware upper bound is claimed." if contract["maximum_exclusive"] is None else None}, "c6_firmware_included": False, "framework": framework, "framework_version": version, "source_project": repository_relative(project), "git_sha": git_sha(), "generated_at_utc": datetime.now(timezone.utc).isoformat(), "flash": {"baud": DEFAULT_BAUD, "size_bytes": FLASH_SIZE, "command": command}, "files": records}
     if fqbn:
         document["fqbn"] = fqbn
     return document
@@ -145,8 +194,9 @@ def write_bundle(output: Path, records: list[dict[str, object]], sources: list[P
     return output
 
 
-def package_idf(project: Path, build: Path, version: str, output: Path) -> Path:
+def package_idf(project: Path, build: Path, version: str, output: Path, profile: str) -> Path:
     project, build = project.resolve(), build.resolve()
+    validate_idf_profile(build, board_profile(profile))
     args_path = contained(build, build / "flasher_args.json", "ESP-IDF flasher metadata")
     data = json.loads(args_path.read_text(encoding="utf-8"))
     flash_files = data.get("flash_files")
@@ -162,12 +212,14 @@ def package_idf(project: Path, build: Path, version: str, output: Path) -> Path:
         records.append({"offset": f"0x{offset(raw_offset):x}", "archive_path": archive_name(source, used), "size": source.stat().st_size, "sha256": sha256(source)})
         sources.append(source)
     validate_plan(records); command, _, _ = flash_helpers(records)
-    document = manifest("esp-idf", version, project, records, command)
+    document = manifest("esp-idf", version, project, records, command, profile)
     document["idf_write_flash_args"] = write_flash_args
     return write_bundle(output, records, sources, document, [(args_path, "metadata/flasher_args.json")])
 
 
-def package_arduino(project: Path, build: Path, version: str, output: Path, fqbn: str) -> Path:
+def package_arduino(project: Path, build: Path, version: str, output: Path, fqbn: str, profile: str) -> Path:
+    if board_profile(profile) != "rev1_3":
+        raise ValueError("Arduino ChipVariant=prev3 packages must use board profile rev1_3")
     parse_arduino_fqbn(fqbn)
     project, build = project.resolve(), build.resolve()
     binaries = [contained(build, path, "Arduino binary") for path in sorted(build.rglob("*.bin"))]
@@ -189,16 +241,16 @@ def package_arduino(project: Path, build: Path, version: str, output: Path, fqbn
     for source, raw_offset in selected:
         records.append({"offset": raw_offset, "archive_path": archive_name(source, used), "size": source.stat().st_size, "sha256": sha256(source)})
     validate_plan(records); command, _, _ = flash_helpers(records)
-    return write_bundle(output, records, [source for source, _ in selected], manifest("arduino-esp32", version, project, records, command, fqbn))
+    return write_bundle(output, records, [source for source, _ in selected], manifest("arduino-esp32", version, project, records, command, profile, fqbn))
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(); subs = parser.add_subparsers(dest="kind", required=True)
     for kind in ("esp-idf", "arduino"):
-        sub = subs.add_parser(kind); sub.add_argument("--project", type=Path, required=True); sub.add_argument("--build-dir", type=Path, required=True); sub.add_argument("--framework-version", required=True); sub.add_argument("--output", type=Path, required=True)
+        sub = subs.add_parser(kind); sub.add_argument("--project", type=Path, required=True); sub.add_argument("--build-dir", type=Path, required=True); sub.add_argument("--framework-version", required=True); sub.add_argument("--board-profile", choices=tuple(BOARD_PROFILES), required=True); sub.add_argument("--output", type=Path, required=True)
         if kind == "arduino": sub.add_argument("--fqbn", required=True)
     args = parser.parse_args()
-    output = package_idf(args.project, args.build_dir, args.framework_version, args.output) if args.kind == "esp-idf" else package_arduino(args.project, args.build_dir, args.framework_version, args.output, args.fqbn)
+    output = package_idf(args.project, args.build_dir, args.framework_version, args.output, args.board_profile) if args.kind == "esp-idf" else package_arduino(args.project, args.build_dir, args.framework_version, args.output, args.fqbn, args.board_profile)
     print(output.as_posix()); return 0
 
 

@@ -29,10 +29,10 @@ referenced through moving aliases:
 | 13 ESP-IDF examples | [ESP-IDF v5.5.5](https://github.com/espressif/esp-idf/releases/tag/v5.5.5) | `esp32p4` | 13 |
 | 13 ESP-IDF examples | [ESP-IDF v6.0.2](https://github.com/espressif/esp-idf/releases/tag/v6.0.2) | `esp32p4` | 13 |
 | 5 Arduino sketches | [Arduino-ESP32 3.3.11](https://github.com/espressif/arduino-esp32/releases/tag/3.3.11) | `esp32:esp32:esp32p4` | 5 |
-| Brookesia firmware | ESP-IDF v5.5.5 | `esp32p4` | Separate workflow |
+| Brookesia firmware | ESP-IDF v5.5.5 | `esp32p4` | 2 isolated profiles: `rev1_3`, `rev3_x` |
 
 A complete build-impacting change therefore produces 26 default ESP-IDF builds
-and 5 Arduino compiles. Brookesia runs through the separate `Firmware Build`
+and 5 Arduino compiles. Brookesia runs through two isolated jobs in the separate `Firmware Build`
 workflow when its source/resources or workflow change, and can also be selected
 manually. IDF v6 support for that maintained firmware remains pending and must
 not be inferred from the example matrix.
@@ -68,6 +68,14 @@ fails rather than creating an empty green run. Brookesia is selected through
 its own firmware workflow, not through an example selector.
 
 ## 🧱 ESP-IDF environment
+
+The shared defaults make every example a `rev1_3` pre-v3 target with
+`CONFIG_ESP32P4_SELECTS_REV_LESS_V3=y` and `CONFIG_ESP32P4_REV_MIN_100=y`.
+There is no ESP-IDF “1.3-only” Kconfig symbol. Arduino remains
+`ChipVariant=prev3`. Examples retain the 26/5 matrix rather than being doubled.
+Only Brookesia has `rev1_3` (200 MHz PSRAM) and `rev3_x` (250 MHz PSRAM)
+profiles, each with its own build directory and generated sdkconfig. The
+profiles are software-incompatible; v3.x needs ESP-IDF 5.5.3+ or 6.0+.
 
 Each matrix job runs the official container for its pinned IDF version, sources
 `$IDF_PATH/export.sh`, selects `esp32p4`, resolves managed components in a clean
@@ -142,13 +150,17 @@ are not validation evidence.
 ## 📦 Firmware packages
 
 After a successful build, each matrix job packages and uploads one CI ZIP for
-14 days: `firmware-esp-idf-<name>-<idf-version>`,
-`firmware-arduino-<name>-3.3.11`, or `firmware-brookesia-v5.5.5`. The package
+14 days: `firmware-esp-idf-<name>-<idf-version>-rev1_3`,
+`firmware-arduino-<name>-3.3.11-rev1_3`, or
+`firmware-brookesia-v5.5.5-rev1_3` / `firmware-brookesia-v5.5.5-rev3_x`. The package
 uses the final pull-request SHA (or push SHA), and the workflow fails if the ZIP
 is absent. ESP-IDF packaging derives every image and offset from
 `flasher_args.json`; Brookesia therefore includes its model and filesystem
 images. Arduino packaging accepts exactly one merged image or one unambiguous
 bootloader/partition/OTA/application layout for the selected 32 MiB pre-v3 FQBN.
+Manifest profile and chip-revision bounds are checked before flashing; a chip
+major revision below 3 accepts only `rev1_3`, and major revision 3 or later only
+accepts `rev3_x`. For v3.x, matching PCB/electrical revision remains mandatory.
 
 `Flash-CI-Firmware.cmd` is the Windows sequential manual-test entry point. It
 will not use stale SHA artifacts, a dirty/detached checkout, a draft/missing PR,
