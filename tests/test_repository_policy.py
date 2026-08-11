@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib.util
+import re
 import subprocess
 import sys
 import tempfile
@@ -66,6 +67,14 @@ class RepositoryPolicyTests(unittest.TestCase):
         self.assertIn("CONFIG_ESP32P4_REV_MIN_100=y", base_defaults)
         self.assertIn("CONFIG_SPIRAM_SPEED_200M=y", base_defaults)
         self.assertNotIn("CONFIG_SPIRAM_SPEED_250M=y", base_defaults)
+        self.assertIn("CONFIG_PARTITION_TABLE_OFFSET=0x8000", base_defaults)
+        rev3_defaults = (ROOT / "firmware/brookesia/sdkconfig.defaults.rev3_x").read_text(encoding="utf-8")
+        self.assertIn("CONFIG_BOOTLOADER_LOG_LEVEL_ERROR=y", rev3_defaults)
+        self.assertIn("CONFIG_BOOTLOADER_LOG_LEVEL=1", rev3_defaults)
+        partitions = (ROOT / "firmware/brookesia/partitions.csv").read_text(encoding="utf-8")
+        self.assertIn("factory,  app,  factory,        0x00200000,     8M,", partitions)
+        for name, size in (("nvsfactory", "200K"), ("nvs", "840K"), ("otadata", "0x2000"), ("phy_init", "0x1000"), ("model", "0xF0000"), ("storage", "6M")):
+            self.assertRegex(partitions, rf"(?m)^{name},[^\n]*,\s*,\s*{re.escape(size)},")
 
     def test_ci_artifact_contract_has_final_sha_and_non_erasing_flasher(self) -> None:
         expected = "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a"

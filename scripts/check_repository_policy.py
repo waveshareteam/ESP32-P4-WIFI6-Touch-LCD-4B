@@ -476,13 +476,33 @@ def check_revision_profile_contract(root: Path) -> list[str]:
     base_defaults = (root / "firmware/brookesia/sdkconfig.defaults").read_text(encoding="utf-8")
     if any(symbol not in base_defaults for symbol in ("CONFIG_ESP32P4_SELECTS_REV_LESS_V3=y", "CONFIG_ESP32P4_REV_MIN_100=y", "CONFIG_SPIRAM_SPEED_200M=y", "CONFIG_SPIRAM_SPEED=200")) or "CONFIG_SPIRAM_SPEED_250M=y" in base_defaults or "CONFIG_SPIRAM_SPEED=250" in base_defaults:
         errors.append("firmware/brookesia/sdkconfig.defaults: base default must be rev1.3 with only 200 MHz PSRAM")
+    if not re.search(r"^CONFIG_PARTITION_TABLE_OFFSET=0x8000$", base_defaults, re.MULTILINE):
+        errors.append("firmware/brookesia/sdkconfig.defaults: base default must keep the 0x8000 partition-table offset")
     for profile, symbols in {
         "rev1_3": ("CONFIG_ESP32P4_SELECTS_REV_LESS_V3=y", "CONFIG_ESP32P4_REV_MIN_100=y", "CONFIG_SPIRAM_SPEED_200M=y"),
-        "rev3_x": ("CONFIG_ESP32P4_SELECTS_REV_LESS_V3=n", "CONFIG_ESP32P4_REV_MIN_300=y", "CONFIG_SPIRAM_SPEED_250M=y"),
+        "rev3_x": ("CONFIG_ESP32P4_SELECTS_REV_LESS_V3=n", "CONFIG_ESP32P4_REV_MIN_300=y", "CONFIG_SPIRAM_SPEED_250M=y", "CONFIG_BOOTLOADER_LOG_LEVEL_ERROR=y", "CONFIG_BOOTLOADER_LOG_LEVEL=1"),
     }.items():
         defaults = (root / f"firmware/brookesia/sdkconfig.defaults.{profile}").read_text(encoding="utf-8")
         if any(symbol not in defaults for symbol in symbols):
             errors.append(f"firmware/brookesia/sdkconfig.defaults.{profile}: profile symbols are incomplete")
+    partitions = root / "firmware/brookesia/partitions.csv"
+    expected_layout = {
+        "nvsfactory": ("data", "nvs", "", "200K"),
+        "nvs": ("data", "nvs", "", "840K"),
+        "otadata": ("data", "ota", "", "0x2000"),
+        "phy_init": ("data", "phy", "", "0x1000"),
+        "model": ("data", "spiffs", "", "0xF0000"),
+        "factory": ("app", "factory", "0x00200000", "8M"),
+        "storage": ("data", "spiffs", "", "6M"),
+    }
+    actual_layout: dict[str, tuple[str, str, str, str]] = {}
+    for row in csv.reader(partitions.read_text(encoding="utf-8").splitlines(), skipinitialspace=True):
+        if not row or row[0].strip().startswith("#"):
+            continue
+        if len(row) >= 5:
+            actual_layout[row[0].strip()] = tuple(field.strip() for field in row[1:5])
+    if actual_layout != expected_layout:
+        errors.append("firmware/brookesia/partitions.csv: factory offset and implicit-layout sizes must remain unchanged")
     packager = (root / "scripts/package_ci_firmware.py").read_text(encoding="utf-8")
     flasher = (root / "scripts/Flash-CI-Firmware.ps1").read_text(encoding="utf-8")
     for required in ("BOARD_PROFILES", '"rev1_3"', '"rev3_x"', "validate_idf_profile", "--board-profile"):
