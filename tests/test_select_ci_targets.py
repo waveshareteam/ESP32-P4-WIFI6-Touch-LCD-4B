@@ -72,10 +72,26 @@ class SelectorTests(unittest.TestCase):
         self.assertEqual(26, len(self.route("esp-idf", "scripts/select_ci_targets.py").builds))
         self.assertEqual(5, len(self.route("arduino", "scripts/select_ci_targets.py").builds))
 
+    def test_ci_flasher_packager_and_tests_are_global_build_inputs(self) -> None:
+        for path in (
+            "Flash-CI-Firmware.cmd",
+            "scripts/Flash-CI-Firmware.ps1",
+            "scripts/package_ci_firmware.py",
+            "scripts/check_repository_policy.py",
+            "tests/test_ci_firmware.py",
+        ):
+            self.assertEqual(26, len(self.route("esp-idf", path).builds), path)
+            self.assertEqual(5, len(self.route("arduino", path).builds), path)
+
+    def test_matrix_uses_safe_immediate_target_names(self) -> None:
+        idf = self.route("esp-idf", "examples/esp-idf/hello_world/main/hello_world_main.c")
+        arduino = self.route("arduino", "examples/arduino/HelloWorld/HelloWorld.ino")
+        self.assertEqual("hello_world", idf.builds[0]["name"])
+        self.assertEqual("HelloWorld", arduino.builds[0]["name"])
+
     def test_policy_and_manual_firmware_workflows_do_not_build_examples(self) -> None:
         paths = (
             "config/markdown-audit.json",
-            "scripts/check_repository_policy.py",
             ".github/workflows/repository-policy.yml",
             ".github/workflows/firmware.yml",
         )

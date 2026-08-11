@@ -74,10 +74,32 @@ archives are not replaced unless `--overwrite` is provided, and unknown
 incomplete flash command.
 
 
-Arduino is currently a compile-validation surface. Do not advertise an Arduino
-archive as independently flashable until its bootloader, partition table,
-application, and exact offsets are captured and verified for the selected
-FQBN/options.
+Arduino CI packages are flashable only when the exact ESP32-P4 FQBN, one accepted
+binary layout, every offset, and every hash pass the package gates on an exact-SHA
+Actions run. A compile alone is not a package, flash, or runtime-validation
+result.
+
+## CI firmware packages and Windows flashing
+
+Successful CI builds package a schema-1 ZIP for every matrix item. The package
+records the exact full source SHA, board `ESP32-P4-WIFI6-Touch-LCD-4B`,
+`esp32p4`, pre-v3 board profile, 32 MiB flash bound, source project, offsets,
+sizes, and SHA-256 values. It contains no ESP32-C6 coprocessor image and the
+Windows flasher rejects a manifest that says otherwise.
+
+On Windows, start `Flash-CI-Firmware.cmd` from a clean checkout on a
+non-detached branch. It requires GitHub CLI authentication, Python with
+`esptool`, exactly one ready, non-draft pull request at the complete local HEAD,
+and successful runs for that same SHA. It downloads only the matching CI
+artifact, never erases flash, probes the selected P4 before each write, verifies
+the manifest and requires `Hash of data verified`. With automatic discovery,
+exactly one explicitly named CH343 or ESP32-P4 serial device is required;
+otherwise provide `-Port COMx`.
+
+The dialog orders all 32 packages: 26 ESP-IDF example/version combinations,
+five Arduino sketches, then Brookesia. It resumes only for the same final SHA.
+After a verified write, the operator must perform the relevant runtime test and
+explicitly mark PASS before the next item is flashed.
 
 ## Factory and recovery images
 
@@ -94,11 +116,10 @@ If authorized vendor images are added later:
 
 ## Validation state
 
-No complete firmware package was generated or verified for this repository
-state, and no on-board flash or hardware test was performed. Ignored exploratory
-build output is not release evidence. Package format documentation is a contract
-for generated outputs, not evidence that an archive has been produced or verified
-for the current commit.
+This source change and its static checks do not themselves prove that Actions
+produced a package, that it was flashed, or that hardware ran correctly. Use the
+exact committed SHA's Actions evidence and a named board test record for those
+claims. Ignored exploratory build output is not release evidence.
 
 A release record should distinguish:
 

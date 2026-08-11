@@ -50,6 +50,18 @@ class RepositoryPolicyTests(unittest.TestCase):
     def test_ci_boundaries(self) -> None:
         self.assertEqual([], policy.check_ci_contract(ROOT))
 
+    def test_ci_artifact_contract_has_final_sha_and_non_erasing_flasher(self) -> None:
+        expected = "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a"
+        for name in ("esp-idf.yml", "arduino.yml", "firmware.yml"):
+            text = (ROOT / ".github/workflows" / name).read_text(encoding="utf-8")
+            self.assertIn(expected, text)
+            self.assertIn("retention-days: 14", text)
+            self.assertIn("PACKAGE_GIT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}", text)
+        flasher = (ROOT / "scripts/Flash-CI-Firmware.ps1").read_text(encoding="utf-8")
+        self.assertIn("Hash of data verified", flasher)
+        self.assertIn("c6_firmware_included", flasher)
+        self.assertNotIn("erase_flash", flasher)
+
     def test_idf_partition_contract(self) -> None:
         self.assertEqual([], policy.check_idf_partition_contract(ROOT))
 

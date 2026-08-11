@@ -54,7 +54,7 @@ applies these rules:
 | `config/` shared defaults | All 13 projects on both versions | No build |
 | Product Arduino helper library | No build | All 5 sketches |
 | Framework workflow definition | Complete affected framework matrix | Complete affected framework matrix |
-| Selector or cross-framework policy input | All 26 builds | All 5 compiles |
+| Selector, CI flasher, packager, or their tests | All 26 builds | All 5 compiles |
 | `firmware/` source, media, archive, or binary | Report firmware touched; no example build | Report firmware touched; no example build |
 | Unknown non-documentation input | All 26 builds | All 5 compiles |
 
@@ -141,16 +141,24 @@ are not validation evidence.
 
 ## 📦 Firmware packages
 
-The default workflows validate source compilation and do not publish firmware
-artifacts. Packaging is a separate release boundary. When a release package is
-needed, `scripts/package_esp_idf_firmware.py` derives file names and offsets
-from `flasher_args.json`; Brookesia packages must also include every referenced
-model or filesystem image.
+After a successful build, each matrix job packages and uploads one CI ZIP for
+14 days: `firmware-esp-idf-<name>-<idf-version>`,
+`firmware-arduino-<name>-3.3.11`, or `firmware-brookesia-v5.5.5`. The package
+uses the final pull-request SHA (or push SHA), and the workflow fails if the ZIP
+is absent. ESP-IDF packaging derives every image and offset from
+`flasher_args.json`; Brookesia therefore includes its model and filesystem
+images. Arduino packaging accepts exactly one merged image or one unambiguous
+bootloader/partition/OTA/application layout for the selected 32 MiB pre-v3 FQBN.
 
-CI-built packages are not factory or recovery images. Hardware PDFs, drawings,
-and imported resource archives must never be included in a firmware artifact.
-Generated packages remain under ignored paths such as `release-artifacts/` or
-`releases/dist/`.
+`Flash-CI-Firmware.cmd` is the Windows sequential manual-test entry point. It
+will not use stale SHA artifacts, a dirty/detached checkout, a draft/missing PR,
+or an unverified package. Compile/package success proves neither a flash nor a
+manual runtime result; the operator records PASS only after the post-flash test.
+
+CI-built packages are not factory or recovery images and never contain or flash
+an ESP32-C6 coprocessor image. Hardware PDFs, drawings, and imported resource
+archives must never be included in a firmware artifact. Generated packages remain
+under ignored paths such as `release-artifacts/` or `releases/dist/`.
 
 ## 🧰 Manual dispatch and reproduction
 

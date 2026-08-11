@@ -6,6 +6,11 @@ on:
       - "firmware/brookesia/**"
       - "!firmware/brookesia/**/*.md"
       - ".github/workflows/firmware.yml"
+      - "Flash-CI-Firmware.cmd"
+      - "scripts/Flash-CI-Firmware.ps1"
+      - "scripts/package_ci_firmware.py"
+      - "tests/test_ci_firmware.py"
+      - "scripts/check_repository_policy.py"
   workflow_dispatch:
     inputs:
       firmware:
@@ -32,9 +37,29 @@ jobs:
     name: firmware/${{ inputs.firmware || 'brookesia' }} (v5.5.5)
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - name: Build maintained firmware for ESP32-P4
         shell: bash
         run: |
           . "$IDF_PATH/export.sh"
           idf.py -C "firmware/${{ inputs.firmware || 'brookesia' }}" set-target esp32p4
           idf.py -C "firmware/${{ inputs.firmware || 'brookesia' }}" build
+      - name: Package CI firmware
+        env:
+          CI: "true"
+          PACKAGE_GIT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        shell: bash
+        run: |
+          mkdir -p release-artifacts
+          python scripts/package_ci_firmware.py esp-idf \
+            --project "firmware/${{ inputs.firmware || 'brookesia' }}" \
+            --build-dir "firmware/${{ inputs.firmware || 'brookesia' }}/build" \
+            --framework-version v5.5.5 \
+            --output release-artifacts/firmware-brookesia-v5.5.5.zip
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: firmware-brookesia-v5.5.5
+          path: release-artifacts/firmware-brookesia-v5.5.5.zip
+          if-no-files-found: error
+          retention-days: 14

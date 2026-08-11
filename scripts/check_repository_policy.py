@@ -69,17 +69,17 @@ PRIVATE_TEXT_PATTERNS = (
 
 def tracked_markdown(root: Path) -> tuple[Path, ...]:
     """Return checked-in and untracked Markdown without scanning ignored build trees."""
-    completed = subprocess.run(
-        ["git", "-C", str(root), "ls-files", "--cached", "--others", "--exclude-standard", "-z", "--", "*.md"],
-        check=True,
-        capture_output=True,
-    )
+    try:
+        completed = subprocess.run(
+            ["git", "-C", str(root), "ls-files", "--cached", "--others", "--exclude-standard", "-z", "--", "*.md"],
+            check=True,
+            capture_output=True,
+        )
+    except FileNotFoundError:
+        ignored_generated = {".git", "build", "managed_components", "release-artifacts"}
+        return tuple(path for path in root.rglob("*.md") if not ignored_generated.intersection(path.parts))
     paths = [item for item in completed.stdout.split(b"\0") if item]
-    return tuple(
-        candidate
-        for item in paths
-        if (candidate := root / item.decode("utf-8", errors="surrogateescape")).is_file()
-    )
+    return tuple(candidate for item in paths if (candidate := root / item.decode("utf-8", errors="surrogateescape")).is_file())
 
 
 def _is_chinese(path: Path) -> bool:
@@ -421,6 +421,35 @@ def check_ci_contract(root: Path) -> list[str]:
         errors.append("firmware.yml: maintained firmware must remain separate, PR source-impact gated, and manually dispatchable")
     if '. "$IDF_PATH/export.sh"' not in firmware:
         errors.append("firmware.yml: IDF container environment is not activated")
+    package_script = root / "scripts/package_ci_firmware.py"
+    flasher_script = root / "scripts/Flash-CI-Firmware.ps1"
+    flasher_cmd = root / "Flash-CI-Firmware.cmd"
+    if not package_script.is_file() or not flasher_script.is_file() or not flasher_cmd.is_file():
+        errors.append("CI firmware packaging: required packager or Windows flasher is missing")
+    else:
+        packager_text = package_script.read_text(encoding="utf-8")
+        flasher_text = flasher_script.read_text(encoding="utf-8")
+        if "schema_version\": 1" not in packager_text or "c6_firmware_included" not in packager_text:
+            errors.append("package_ci_firmware.py: schema-1 P4/C6 manifest contract is missing")
+        if "Hash of data verified" not in flasher_text or "write_flash" not in flasher_text or "erase_flash" in flasher_text:
+            errors.append("Flash-CI-Firmware.ps1: direct verified non-erasing flash contract is missing")
+        if "-STA -File" not in flasher_cmd.read_text(encoding="utf-8"):
+            errors.append("Flash-CI-Firmware.cmd: STA PowerShell forwarding contract is missing")
+    artifact_sha = "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a"
+    final_ref = "ref: ${{ github.event.pull_request.head.sha || github.sha }}"
+    for workflow_name, text, artifact in (
+        ("esp-idf.yml", idf, "firmware-esp-idf-${{ matrix.name }}-${{ matrix.idf_version }}"),
+        ("arduino.yml", arduino, "firmware-arduino-${{ matrix.name }}-3.3.11"),
+        ("firmware.yml", firmware, "firmware-brookesia-v5.5.5"),
+    ):
+        if final_ref not in text:
+            errors.append(f"{workflow_name}: build checkout is not pinned to the event final SHA")
+        if artifact_sha not in text or artifact not in text or "retention-days: 14" not in text or "if-no-files-found: error" not in text:
+            errors.append(f"{workflow_name}: CI firmware artifact upload contract is incomplete")
+        if "PACKAGE_GIT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}" not in text:
+            errors.append(f"{workflow_name}: package SHA is not bound to the final checkout SHA")
+    if "--export-binaries" not in arduino:
+        errors.append("arduino.yml: compile must export deterministic package binaries")
     for workflow_name, text in (("esp-idf.yml", idf), ("arduino.yml", arduino), ("firmware.yml", firmware), ("repository-policy.yml", policy)):
         for reference in re.findall(r"\buses:\s+[^@\s]+@([^\s#]+)", text):
             if not re.fullmatch(r"[0-9a-f]{40}", reference):

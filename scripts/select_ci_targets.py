@@ -56,6 +56,14 @@ TOP_LEVEL_GOVERNANCE = {
     "config/markdown-audit.json",
     "scripts/check_repository_policy.py",
 }
+GLOBAL_CI_INPUTS = {
+    "Flash-CI-Firmware.cmd",
+    "scripts/Flash-CI-Firmware.ps1",
+    "scripts/package_ci_firmware.py",
+    "scripts/check_repository_policy.py",
+    "tests/test_ci_firmware.py",
+    "tests/test_repository_policy.py",
+}
 
 
 class RoutingError(RuntimeError):
@@ -201,6 +209,8 @@ def _project_for_path(path: str, projects: Sequence[str]) -> str | None:
 def _route_path(path: str, framework: str, inventory: Inventory) -> tuple[str, ...]:
     """Return selected project paths for one changed path and framework."""
 
+    if path in GLOBAL_CI_INPUTS:
+        return inventory.idf_projects if framework == "esp-idf" else inventory.arduino_sketches
     if is_documentation_or_governance(path):
         return ()
     if path == "firmware" or path.startswith("firmware/"):
@@ -248,6 +258,7 @@ def _build_matrix(framework: str, selected: Iterable[str]) -> tuple[dict[str, st
     if framework == "esp-idf":
         return tuple(
             {
+                "name": PurePosixPath(project).name,
                 "project": project,
                 "idf_version": version,
                 "idf_image": IDF_IMAGES[version],
@@ -255,7 +266,7 @@ def _build_matrix(framework: str, selected: Iterable[str]) -> tuple[dict[str, st
             for project in ordered
             for version in IDF_VERSIONS
         )
-    return tuple({"sketch": sketch} for sketch in ordered)
+    return tuple({"name": PurePosixPath(sketch).name, "sketch": sketch} for sketch in ordered)
 
 
 def select_from_changes(

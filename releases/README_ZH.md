@@ -7,6 +7,8 @@
 
 当前仓库状态没有记录任何发布包生成、烧录或硬件测试。已有被忽略的本机构建目录不是发布证据。
 
+成功的 CI 作业现在会创建保留 14 天的可下载包。它们是可追溯的 CI 构件，不是已发布的工厂或恢复镜像。
+
 ## ESP-IDF 包创建
 
 在成功完成 ESP-IDF 构建后，对该构建目录运行仓库辅助工具：
@@ -85,7 +87,10 @@ Brookesia 软件包必须包含其生成的烧录参数所引用的每个镜像�
 
 ## 获取 CI 构件
 
-当前工作流仅执行编译验证，不会自动上传固件包。
+ESP-IDF、Arduino 和 Brookesia 工作流会在构建成功后打包并上传一个 ZIP，使用
+`if-no-files-found: error` 和 14 天保留期。构件名称为
+`firmware-esp-idf-<name>-<idf-version>`、`firmware-arduino-<name>-3.3.11` 和
+`firmware-brookesia-v5.5.5`。清单必须包含完整的最终 PR/推送 SHA；它不能作为另一版本的证据。
 
 当工作流上传软件包后，可通过 GitHub Web 界面或 GitHub CLI 下载：
 
@@ -97,16 +102,26 @@ gh run download RUN_ID --name ARTIFACT_NAME --dir releases/downloads
 
 ## Arduino 边界
 
-Arduino 草图目前是编译验证目标。除非 Arduino ZIP 包含与精确 FQBN 和开发板选项相匹配的
-正确引导加载程序、分区表、应用程序和偏移量，否则不要将其标记为可烧录。
+Arduino 包要求精确的 32 MiB pre-v3 FQBN，并包含 `FlashSize=32M`、`ChipVariant=prev3` 与
+`EraseFlash=none`。打包器只接受位于偏移零的一个合并二进制文件，或唯一的引导加载程序、分区表、
+OTA 数据和应用程序二进制文件布局。任何歧义均为错误。
+
+## Windows CI 烧录器
+
+仅在干净、未分离的检出目录中运行顶层 `Flash-CI-Firmware.cmd`，并确保 GitHub CLI 已认证、Python
+具备 `esptool`、恰好一个指向完整本地 HEAD 的已就绪非草稿 PR，以及匹配的成功工作流运行。它固定处理
+32 项顺序，仅在 SHA 相同的情况下恢复，验证 32 MiB 范围内的哈希/大小/区间，只使用
+`esptool write_flash`，并且只有在出现 `Hash of data verified` 后才允许操作员人工标记 PASS。
+自动端口选择要求恰好一个明确命名为 CH343 或 ESP32-P4 的串口设备；否则指定 `-Port COMx`。
+编译或打包不是烧录结果，经过验证的写入也不是运行 PASS。
 
 ## 工厂和 C6 固件
 
 CI 构建的软件包不是工厂/恢复镜像。经授权并在以后添加的供应商工厂/恢复构件需要各自的
 源代码/版本/哈希记录，且不应由 CI 重建。
 
-ESP32-C6 协处理器固件是独立镜像，且不在为本仓库审阅的官方示例归档中。不要将猜测的 C6
-镜像与 P4 软件包一起包含或烧录。参见 `../docs/p4-c6-hosted-wifi_ZH.md`。
+ESP32-C6 协处理器固件是独立镜像，不在任何 P4 CI 软件包中。不要将猜测的 C6 镜像与 P4
+软件包一起包含或烧录。参见 `../docs/p4-c6-hosted-wifi_ZH.md`。
 
 ## 发布验收
 

@@ -10,6 +10,9 @@ No release-package generation, flash, or hardware test is recorded for this
 repository state. Existing ignored local build directories are not release
 evidence.
 
+Successful CI jobs now create temporary downloadable packages for 14 days. They
+are traceable CI artifacts, not released factory or recovery images.
+
 ## ESP-IDF package creation
 
 After a successful ESP-IDF build, run the repository helper against that
@@ -98,8 +101,12 @@ not a complete first-install package.
 
 ## Retrieve a CI artifact
 
-The current workflows perform compile validation only and do not upload
-firmware packages automatically.
+The ESP-IDF, Arduino, and Brookesia workflows package after a successful build
+and upload one ZIP with `if-no-files-found: error` and 14-day retention. Artifact
+names are `firmware-esp-idf-<name>-<idf-version>`,
+`firmware-arduino-<name>-3.3.11`, and `firmware-brookesia-v5.5.5`. The manifest
+must carry the complete final PR/push SHA; it is not valid evidence for another
+revision.
 
 When the workflow uploads a package, it can be downloaded with the GitHub web
 interface or GitHub CLI:
@@ -113,9 +120,22 @@ when promoting a CI artifact to a release.
 
 ## Arduino boundary
 
-Arduino sketches are currently compile-validation targets. Do not label an
-Arduino ZIP as flashable unless it contains the correct bootloader, partition
-table, application, and offsets for the exact FQBN and board options.
+Arduino packages require the exact 32 MiB pre-v3 FQBN with `FlashSize=32M`,
+`ChipVariant=prev3`, and `EraseFlash=none`. The packager accepts one merged
+binary at offset zero, or exactly one bootloader, partition table, OTA data, and
+application binary at their defined offsets. Any ambiguity is an error.
+
+## Windows CI flasher
+
+Run top-level `Flash-CI-Firmware.cmd` only from a clean, non-detached checkout
+with GitHub CLI authentication, Python `esptool`, one ready non-draft PR matching
+the complete local HEAD, and successful matching workflow runs. It processes the
+fixed 32-item order, resumes only for the same SHA, validates hashes/sizes/ranges
+inside the 32 MiB bound, writes with `esptool write_flash` only, and requires
+`Hash of data verified` before enabling an operator's manual PASS decision.
+Automatic port selection requires exactly one explicitly named CH343 or ESP32-P4
+serial device; otherwise specify `-Port COMx`. A compile or package is not a
+flash result, and a verified write is not a runtime PASS.
 
 ## Factory and C6 firmware
 
@@ -123,9 +143,9 @@ CI-built packages are not factory/recovery images. Vendor factory/recovery
 artifacts, if authorized and added later, need their own source/version/hash
 record and should not be rebuilt by CI.
 
-The ESP32-C6 coprocessor firmware is a separate image and is not present in the
-official example archive reviewed for this repository. Do not include or flash
-a guessed C6 image with a P4 package. See `../docs/p4-c6-hosted-wifi.md`.
+The ESP32-C6 coprocessor firmware is a separate image and is not present in any
+P4 CI package. Do not include or flash a guessed C6 image with a P4 package. See
+`../docs/p4-c6-hosted-wifi.md`.
 
 ## Release acceptance
 

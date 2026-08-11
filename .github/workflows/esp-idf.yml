@@ -31,6 +31,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - id: projects
         name: Route changed files to first-party projects
         env:
@@ -74,9 +75,29 @@ jobs:
     name: ${{ matrix.project }} (${{ matrix.idf_version }})
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - name: Build for ESP32-P4
         shell: bash
         run: |
           . "$IDF_PATH/export.sh"
           idf.py -C "${{ matrix.project }}" set-target esp32p4
           idf.py -C "${{ matrix.project }}" build
+      - name: Package CI firmware
+        env:
+          CI: "true"
+          PACKAGE_GIT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        shell: bash
+        run: |
+          mkdir -p release-artifacts
+          python scripts/package_ci_firmware.py esp-idf \
+            --project "${{ matrix.project }}" \
+            --build-dir "${{ matrix.project }}/build" \
+            --framework-version "${{ matrix.idf_version }}" \
+            --output "release-artifacts/firmware-esp-idf-${{ matrix.name }}-${{ matrix.idf_version }}.zip"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: firmware-esp-idf-${{ matrix.name }}-${{ matrix.idf_version }}
+          path: release-artifacts/firmware-esp-idf-${{ matrix.name }}-${{ matrix.idf_version }}.zip
+          if-no-files-found: error
+          retention-days: 14
