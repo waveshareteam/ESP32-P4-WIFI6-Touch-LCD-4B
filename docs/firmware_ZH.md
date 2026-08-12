@@ -71,7 +71,7 @@ python scripts/package_esp_idf_firmware.py \
 Arduino CI 包只有在精确 ESP32-P4 FQBN、一个可接受的二进制布局、每个偏移量和每个哈希均通过精确
 SHA 的 Actions 包检查后才可烧录。仅编译本身不是软件包、烧录或运行验证结果。
 
-## CI 固件包与 Windows 烧录
+## CI 固件包与跨平台烧录
 
 每个成功的 CI 构建都会生成一个 schema-1 ZIP 包。该包记录完整源 SHA、开发板
 `ESP32-P4-WIFI6-Touch-LCD-4B`、`esp32p4`、明确的 `rev1_3` 或 `rev3_x` 开发板 profile
@@ -79,18 +79,40 @@ SHA 的 Actions 包检查后才可烧录。仅编译本身不是软件包、烧�
 源工程、偏移量、大小与 SHA-256。包中不包含 ESP32-C6 协处理器镜像，Windows 烧录器也会拒绝
 声明包含该镜像的清单。
 
-在 Windows 上，请从干净且未分离 HEAD 的检出目录启动 `Flash-CI-Firmware.cmd`。它要求 GitHub
-CLI 已认证、Python 具备 `esptool`、恰好一个指向完整本地 HEAD 的已就绪非草稿拉取请求，以及该
-SHA 上成功的工作流。它只下载匹配的 CI 构件，绝不擦除 Flash；每次写入前探测所选 P4，验证清单，
-并要求出现 `Hash of data verified`。自动发现时必须恰好存在一个名称明确为 CH343 或 ESP32-P4 的
-串口设备；否则传入 `-Port COMx`。
+请从干净、未分离 HEAD 的检出目录使用仓库顶层包装器。Windows 使用
+`Flash-CI-Firmware.cmd`（经 PowerShell 转发），Linux 使用 `./Flash-CI-Firmware.sh`。需要 Git、
+带 `esptool` 的 Python，以及已认证的 GitHub CLI 或 `GH_TOKEN`/`GITHUB_TOKEN`。仓库 owner/name
+从 `origin` 自动识别，不会复制到命令中。
 
-`-ListOnly` 会按固定顺序列出全部 33 项供审计：26 个 ESP-IDF 示例/版本组合、5 个 Arduino
-草图，以及两个 Brookesia profile。正常 GUI 使用时会先探测 P4 profile，只显示和处理 32 项
-`rev1_3` 或 1 项 `rev3_x`。每个 profile 的进度均隔离在独立的
-`state-v4-<profile>.json` 文件中，且仅当最终 SHA 与状态 schema 版本相同时才恢复。芯片 major
-revision 低于 3 会选择 `rev1_3`，3 或更高会选择 `rev3_x`。v3.x 芯片探测不代表 PCB/电气
-版本兼容。每次写入验证后，操作员必须完成对应运行测试并明确标记 PASS，才会烧录下一项。
+```text
+Flash-CI-Firmware.cmd -SelfTest
+Flash-CI-Firmware.cmd -List
+Flash-CI-Firmware.cmd -Preflight
+Flash-CI-Firmware.cmd -Item 1 -Port COMx
+./Flash-CI-Firmware.sh --self-test
+./Flash-CI-Firmware.sh --list
+./Flash-CI-Firmware.sh --preflight
+./Flash-CI-Firmware.sh --item 1 --port /dev/ttyUSB0
+```
+
+`SelfTest` 为离线测试。`List` 会认证并只列出当前分支精确本地 HEAD 对应的完整成功工作流产物。
+`Preflight` 会检查 Git/origin/认证、Python `esptool`、精确 HEAD 运行记录及未过期且非空的构件元数据，
+不会下载构件，也不会打开串口。两种模式都会拒绝不完整运行或旧 SHA 的运行。
+对于每个 workflow，最新的 completed/successful 且 exact-HEAD 的运行是唯一候选；如果其构件集合不完整、
+过期、为空、缺失或重复，命令会失败，绝不会回退到较旧运行。
+
+普通使用先执行同样的预检，随后可以自由选择动态推导出的 33 个产物（26 个 ESP-IDF、5 个 Arduino、
+2 个 Brookesia profile）。程序下载到操作系统用户缓存，并验证 schema-1 清单、路径、哈希、偏移量、
+容量及规范的非擦除命令，再探测所选端口。芯片 major revision 小于 3 时必须使用 `rev1_3`，3 或更高
+时必须使用 `rev3_x`；后者仍需独立确认 PCB/电气版本。操作员必须精确输入 `FLASH`；单项写入必须输出
+`Hash of data verified` 后程序即退出，绝不会自动前进。
+
+对于 ESP-IDF 包，每个通过验证的清单文件还带有其原始 `flasher_args.json` 元数据路径。烧录器要求该
+映射与包内的 `metadata/flasher_args.json` 完全一致，因此缺少模型、存储、bootloader、分区表或应用程序
+镜像均会被拒绝。Arduino 包必须包含仓库 CI 的精确 FQBN，并且只能使用偏移零的单一 merged 镜像，或完整
+的四镜像布局。
+
+本地 `package_esp_idf_firmware.py` 的包格式及历史本地打包示例与以上 CI schema-1 构件契约相互独立。
 
 ## 工厂与恢复镜像
 

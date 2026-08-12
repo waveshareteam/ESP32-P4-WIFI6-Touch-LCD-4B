@@ -83,10 +83,11 @@ class RepositoryPolicyTests(unittest.TestCase):
             self.assertIn(expected, text)
             self.assertIn("retention-days: 14", text)
             self.assertIn("PACKAGE_GIT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}", text)
-        flasher = (ROOT / "scripts/Flash-CI-Firmware.ps1").read_text(encoding="utf-8")
+        flasher = (ROOT / "scripts/ci_firmware.py").read_text(encoding="utf-8")
         self.assertIn("Hash of data verified", flasher)
         self.assertIn("c6_firmware_included", flasher)
         self.assertNotIn("erase_flash", flasher)
+        self.assertIn("ci_firmware.py", (ROOT / "scripts/Flash-CI-Firmware.ps1").read_text(encoding="utf-8"))
 
     def test_idf_partition_contract(self) -> None:
         self.assertEqual([], policy.check_idf_partition_contract(ROOT))

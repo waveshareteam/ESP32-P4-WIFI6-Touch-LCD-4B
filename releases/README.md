@@ -136,20 +136,31 @@ Arduino packages require the exact 32 MiB pre-v3 FQBN with `FlashSize=32M`,
 binary at offset zero, or exactly one bootloader, partition table, OTA data, and
 application binary at their defined offsets. Any ambiguity is an error.
 
-## Windows CI flasher
+## Cross-platform CI flasher
 
-Run top-level `Flash-CI-Firmware.cmd` only from a clean, non-detached checkout
-with GitHub CLI authentication, Python `esptool`, one ready non-draft PR matching
-the complete local HEAD, and successful matching workflow runs. `-ListOnly`
-lists the fixed 33-item audit order (32 `rev1_3`, one `rev3_x`). Normal GUI use
-first detects the P4 profile and shows and processes only its 32 `rev1_3` items
-or its one `rev3_x` item, with state isolated in `state-v4-<profile>.json` and
-resumed only for the same SHA and state schema. It validates hashes/sizes/ranges
-inside the 32 MiB bound, writes with `esptool write_flash` only, and requires
-`Hash of data verified` before enabling an operator's manual PASS decision.
-Automatic port selection requires exactly one explicitly named CH343 or ESP32-P4
-serial device; otherwise specify `-Port COMx`. A compile or package is not a
-flash result, and a verified write is not a runtime PASS.
+Use `Flash-CI-Firmware.cmd` on Windows or `./Flash-CI-Firmware.sh` on Linux.
+Both forward to the same Python core and require Git, Python `esptool`, plus
+authenticated GitHub CLI or `GH_TOKEN`/`GITHUB_TOKEN`. `origin` identifies the
+repository. `--self-test` is offline; `--list` and `--preflight` require
+complete, successful, non-expired artifacts from the exact local HEAD but do not
+download or probe hardware. `--preflight` also verifies the local `esptool`
+import. Windows accepts equivalent `-SelfTest`, `-List`/`-ListOnly`,
+`-Preflight`, `-Item`, and `-Port` parameters.
+For each workflow only its newest completed/successful exact-HEAD run is
+accepted; an incomplete, expired, empty, missing, or duplicate artifact set
+fails closed without an older-run fallback.
+
+Default interactive use lets an operator choose any dynamically derived item,
+checks one exact-SHA schema-1 package, probes a selected port, and requires exact
+`FLASH` before one non-erasing `write_flash`. The write must report `Hash of data
+verified`; the program exits after that one item and never auto-advances. A v3.x
+chip still requires independent PCB/electrical confirmation. A compile, package,
+or verified write is not a runtime PASS.
+
+ESP-IDF package acceptance also compares every verified manifest file's original
+metadata path with bundled `metadata/flasher_args.json`; missing referenced
+images are rejected. Arduino acceptance requires the exact repository CI FQBN
+and a merged-at-zero or complete four-image layout.
 
 ## Factory and C6 firmware
 

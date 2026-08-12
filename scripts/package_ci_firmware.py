@@ -17,6 +17,7 @@ BOARD = "ESP32-P4-WIFI6-Touch-LCD-4B"
 CHIP = "esp32p4"
 FLASH_SIZE = 32 * 1024 * 1024
 DEFAULT_BAUD = 460800
+ARDUINO_FQBN = "esp32:esp32:esp32p4:UploadSpeed=921600,USBMode=default,CDCOnBoot=default,MSCOnBoot=default,DFUOnBoot=default,UploadMode=default,FlashFreq=80,FlashMode=qio,FlashSize=32M,PartitionScheme=app13M_data7M_32MB,DebugLevel=none,PSRAM=enabled,EraseFlash=none,JTAGAdapter=default,ChipVariant=prev3"
 ARDUINO_FQBN_OPTIONS = {"FlashSize": "32M", "ChipVariant": "prev3", "EraseFlash": "none"}
 BOARD_PROFILES = {
     "rev1_3": {
@@ -88,6 +89,8 @@ def repository_relative(project: Path) -> str:
 
 
 def parse_arduino_fqbn(fqbn: str) -> dict[str, str]:
+    if fqbn != ARDUINO_FQBN:
+        raise ValueError("Arduino FQBN must exactly match the repository CI contract")
     parts = fqbn.split(":", 3)
     if len(parts) != 4 or parts[:3] != ["esp32", "esp32", "esp32p4"]:
         raise ValueError("Arduino FQBN must select esp32:esp32:esp32p4")
@@ -209,7 +212,7 @@ def package_idf(project: Path, build: Path, version: str, output: Path, profile:
         relative = PurePosixPath(raw_path.replace("\\", "/"))
         if relative.is_absolute() or ".." in relative.parts: raise ValueError("Unsafe ESP-IDF flash file path")
         source = contained(build, build.joinpath(*relative.parts), "ESP-IDF flash binary")
-        records.append({"offset": f"0x{offset(raw_offset):x}", "archive_path": archive_name(source, used), "size": source.stat().st_size, "sha256": sha256(source)})
+        records.append({"offset": f"0x{offset(raw_offset):x}", "archive_path": archive_name(source, used), "metadata_path": relative.as_posix(), "size": source.stat().st_size, "sha256": sha256(source)})
         sources.append(source)
     validate_plan(records); command, _, _ = flash_helpers(records)
     document = manifest("esp-idf", version, project, records, command, profile)

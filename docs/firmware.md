@@ -87,7 +87,7 @@ binary layout, every offset, and every hash pass the package gates on an exact-S
 Actions run. A compile alone is not a package, flash, or runtime-validation
 result.
 
-## CI firmware packages and Windows flashing
+## CI firmware packages and cross-platform flashing
 
 Successful CI builds package a schema-1 ZIP for every matrix item. The package
 records the exact full source SHA, board `ESP32-P4-WIFI6-Touch-LCD-4B`,
@@ -96,25 +96,50 @@ bounds, 32 MiB flash bound, source project, offsets,
 sizes, and SHA-256 values. It contains no ESP32-C6 coprocessor image and the
 Windows flasher rejects a manifest that says otherwise.
 
-On Windows, start `Flash-CI-Firmware.cmd` from a clean checkout on a
-non-detached branch. It requires GitHub CLI authentication, Python with
-`esptool`, exactly one ready, non-draft pull request at the complete local HEAD,
-and successful runs for that same SHA. It downloads only the matching CI
-artifact, never erases flash, probes the selected P4 before each write, verifies
-the manifest and requires `Hash of data verified`. With automatic discovery,
-exactly one explicitly named CH343 or ESP32-P4 serial device is required;
-otherwise provide `-Port COMx`.
+Use the repository-level wrapper from a clean, non-detached checkout. Windows
+uses `Flash-CI-Firmware.cmd` (which forwards through PowerShell); Linux uses
+`./Flash-CI-Firmware.sh`. Git, Python with `esptool`, and either authenticated
+GitHub CLI or `GH_TOKEN`/`GITHUB_TOKEN` are required. The repository owner/name
+is discovered from `origin`, never copied into the command.
 
-`-ListOnly` lists all 33 packages for audit: 26 ESP-IDF example/version
-combinations, five Arduino sketches, then two Brookesia profiles. Normal GUI
-use first detects the P4 profile and shows and processes only the 32 `rev1_3`
-items or the one `rev3_x` item. Progress is isolated in a separate
-`state-v4-<profile>.json` file for each profile and resumes only for the same
-final SHA and state schema version. Chip major revision below 3 selects
-`rev1_3`; major revision 3 or higher selects `rev3_x`. A v3.x chip result alone
-does not prove a matching PCB/electrical revision.
-After a verified write, the operator must perform the relevant runtime test and
-explicitly mark PASS before the next item is flashed.
+```text
+Flash-CI-Firmware.cmd -SelfTest
+Flash-CI-Firmware.cmd -List
+Flash-CI-Firmware.cmd -Preflight
+Flash-CI-Firmware.cmd -Item 1 -Port COMx
+./Flash-CI-Firmware.sh --self-test
+./Flash-CI-Firmware.sh --list
+./Flash-CI-Firmware.sh --preflight
+./Flash-CI-Firmware.sh --item 1 --port /dev/ttyUSB0
+```
+
+`SelfTest` is offline. `List` authenticates and lists only packages available
+from complete successful workflow runs at the current branch's exact local HEAD.
+`Preflight` checks Git/origin/authentication, Python `esptool`, exact-HEAD runs,
+and non-expired non-empty artifact metadata without downloading an artifact or
+opening a serial port. Both modes reject incomplete or old-SHA runs.
+For each workflow the newest completed/successful exact-HEAD run is the only
+candidate: if its artifact set is partial, expired, empty, missing, or duplicate,
+the command fails and never falls back to an older run.
+
+Normal use first performs the same preflight, then lets the operator select any
+of the dynamically derived 33 artifacts (26 ESP-IDF, five Arduino, two
+Brookesia profiles). It downloads into an OS-user cache, verifies the schema-1
+manifest, paths, hashes, offsets, capacity, and canonical non-erasing command,
+then probes the selected port. Chip major revision below 3 requires `rev1_3`;
+3 or above requires `rev3_x`, which still requires an independent PCB/electrical
+confirmation. The operator must type exact `FLASH`; one write runs, must report
+`Hash of data verified`, and then the program exits. It never auto-advances.
+
+For ESP-IDF packages, each verified manifest file also carries its original
+`flasher_args.json` metadata path. The flasher requires that mapping to match
+the package's bundled `metadata/flasher_args.json` exactly, so a missing model,
+storage, bootloader, partition, or application image is rejected. Arduino
+packages must carry the repository CI's exact FQBN and either one merged image
+at offset zero or the complete four-image layout.
+
+The local `package_esp_idf_firmware.py` package format and historical local
+package examples are separate from the CI schema-1 artifact contract above.
 
 ## Factory and recovery images
 

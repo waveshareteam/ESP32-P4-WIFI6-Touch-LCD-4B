@@ -75,7 +75,9 @@ class SelectorTests(unittest.TestCase):
     def test_ci_flasher_packager_and_tests_are_global_build_inputs(self) -> None:
         for path in (
             "Flash-CI-Firmware.cmd",
+            "Flash-CI-Firmware.sh",
             "scripts/Flash-CI-Firmware.ps1",
+            "scripts/ci_firmware.py",
             "scripts/package_ci_firmware.py",
             "scripts/check_repository_policy.py",
             "tests/test_ci_firmware.py",

@@ -114,17 +114,25 @@ Arduino 包要求精确的 32 MiB pre-v3 FQBN，并包含 `FlashSize=32M`、`Chi
 `EraseFlash=none`。打包器只接受位于偏移零的一个合并二进制文件，或唯一的引导加载程序、分区表、
 OTA 数据和应用程序二进制文件布局。任何歧义均为错误。
 
-## Windows CI 烧录器
+## 跨平台 CI 烧录器
 
-仅在干净、未分离的检出目录中运行顶层 `Flash-CI-Firmware.cmd`，并确保 GitHub CLI 已认证、Python
-具备 `esptool`、恰好一个指向完整本地 HEAD 的已就绪非草稿 PR，以及匹配的成功工作流运行。`-ListOnly`
-会列出固定的 33 项审计顺序（32 项 `rev1_3`、1 项 `rev3_x`）。正常 GUI 使用时会先探测 P4
-profile，只显示和处理对应的 32 项 `rev1_3` 或 1 项 `rev3_x`；状态隔离在
-`state-v4-<profile>.json` 中，且仅在 SHA 和状态 schema 相同时恢复。它验证 32 MiB 范围内的
-哈希/大小/区间，只使用 `esptool write_flash`，并且只有在出现 `Hash of data verified` 后才允许
-操作员人工标记 PASS。
-自动端口选择要求恰好一个明确命名为 CH343 或 ESP32-P4 的串口设备；否则指定 `-Port COMx`。
-编译或打包不是烧录结果，经过验证的写入也不是运行 PASS。
+Windows 使用 `Flash-CI-Firmware.cmd`，Linux 使用 `./Flash-CI-Firmware.sh`。两者均转发至同一
+Python 核心，需要 Git、带 `esptool` 的 Python，以及已认证的 GitHub CLI 或
+`GH_TOKEN`/`GITHUB_TOKEN`。仓库由 `origin` 识别。`--self-test` 为离线测试；`--list` 和
+`--preflight` 要求精确本地 HEAD 上完整、成功且未过期的构件，但不会下载或探测硬件。`--preflight`
+还会验证本地 `esptool` 导入。Windows 提供等效的 `-SelfTest`、`-List`/`-ListOnly`、
+`-Preflight`、`-Item` 与 `-Port` 参数。
+每个 workflow 只接受其最新 completed/successful 且 exact-HEAD 的运行；构件集合不完整、过期、为空、
+缺失或重复时会 fail closed，不会回退到旧运行。
+
+默认交互模式可自由选择动态推导的任一项，校验一个精确 SHA 的 schema-1 包，探测所选端口，并要求
+精确输入 `FLASH` 后才执行一次非擦除 `write_flash`。写入必须出现 `Hash of data verified`；完成
+该单项后程序立即退出，绝不会自动前进。v3.x 芯片仍需独立确认 PCB/电气版本。编译、打包或已验证的
+写入都不是运行 PASS。
+
+ESP-IDF 包验收还会将每个已验证清单文件的原始元数据路径与包内 `metadata/flasher_args.json` 比对；任何
+缺失的引用镜像都会被拒绝。Arduino 验收要求仓库 CI 的精确 FQBN，以及 offset 0 的 merged 镜像或完整
+四镜像布局。
 
 ## 工厂和 C6 固件
 

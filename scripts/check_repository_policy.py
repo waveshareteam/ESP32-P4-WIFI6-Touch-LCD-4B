@@ -424,17 +424,23 @@ def check_ci_contract(root: Path) -> list[str]:
     package_script = root / "scripts/package_ci_firmware.py"
     flasher_script = root / "scripts/Flash-CI-Firmware.ps1"
     flasher_cmd = root / "Flash-CI-Firmware.cmd"
-    if not package_script.is_file() or not flasher_script.is_file() or not flasher_cmd.is_file():
-        errors.append("CI firmware packaging: required packager or Windows flasher is missing")
+    flasher_core = root / "scripts/ci_firmware.py"
+    flasher_sh = root / "Flash-CI-Firmware.sh"
+    if not package_script.is_file() or not flasher_script.is_file() or not flasher_cmd.is_file() or not flasher_core.is_file() or not flasher_sh.is_file():
+        errors.append("CI firmware packaging: required packager, shared core, or platform wrapper is missing")
     else:
         packager_text = package_script.read_text(encoding="utf-8")
-        flasher_text = flasher_script.read_text(encoding="utf-8")
-        if "schema_version\": 1" not in packager_text or "c6_firmware_included" not in packager_text:
+        flasher_text = flasher_core.read_text(encoding="utf-8")
+        if "schema_version\": 1" not in packager_text or "c6_firmware_included" not in packager_text or "metadata_path" not in packager_text or "ARDUINO_FQBN" not in packager_text:
             errors.append("package_ci_firmware.py: schema-1 P4/C6 manifest contract is missing")
-        if "Hash of data verified" not in flasher_text or "write_flash" not in flasher_text or "erase_flash" in flasher_text:
-            errors.append("Flash-CI-Firmware.ps1: direct verified non-erasing flash contract is missing")
+        if "Hash of data verified" not in flasher_text or "write_flash" not in flasher_text or "erase_flash" in flasher_text or "safe_extract" not in flasher_text or "assert_repository_unchanged" not in flasher_text or "validate_idf_metadata" not in flasher_text:
+            errors.append("ci_firmware.py: direct verified non-erasing flash contract is missing")
         if "-STA -File" not in flasher_cmd.read_text(encoding="utf-8"):
             errors.append("Flash-CI-Firmware.cmd: STA PowerShell forwarding contract is missing")
+        if "ci_firmware.py" not in flasher_script.read_text(encoding="utf-8") or "ci_firmware.py" not in flasher_sh.read_text(encoding="utf-8"):
+            errors.append("platform wrappers must forward to the shared CI firmware core")
+        if "run-id" in flasher_text or "RunId" in flasher_script.read_text(encoding="utf-8"):
+            errors.append("CI firmware flasher must not allow manual workflow-run selection")
     artifact_sha = "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a"
     final_ref = "ref: ${{ github.event.pull_request.head.sha || github.sha }}"
     for workflow_name, text, artifact in (
@@ -504,13 +510,13 @@ def check_revision_profile_contract(root: Path) -> list[str]:
     if actual_layout != expected_layout:
         errors.append("firmware/brookesia/partitions.csv: factory offset and implicit-layout sizes must remain unchanged")
     packager = (root / "scripts/package_ci_firmware.py").read_text(encoding="utf-8")
-    flasher = (root / "scripts/Flash-CI-Firmware.ps1").read_text(encoding="utf-8")
+    flasher = (root / "scripts/ci_firmware.py").read_text(encoding="utf-8")
     for required in ("BOARD_PROFILES", '"rev1_3"', '"rev3_x"', "validate_idf_profile", "--board-profile"):
         if required not in packager:
             errors.append(f"package_ci_firmware.py: missing profile contract {required}")
-    for required in ("$Items.Count -ne 33", "rev1_3=32", "Get-ProfileForMajor", "Test-ManifestRevisionRange", "$StateVersion = 4", "Get-StatePath $StateRoot $DetectedProfile", "state-v4-$Profile.json", "$DetectedProfile=Get-ProfileForMajor $DetectedMajor", "state-v4=profile-isolated", "cross-profile=blocked", "PCB/electrical revision"):
+    for required in ("expected_items", "profile_for_major", "validate_manifest", "safe_extract", "Hash of data verified", "PCB/electrical revision", "no-auto-next=ok"):
         if required not in flasher:
-            errors.append(f"Flash-CI-Firmware.ps1: missing profile safety contract {required}")
+            errors.append(f"ci_firmware.py: missing profile safety contract {required}")
     return errors
 
 
