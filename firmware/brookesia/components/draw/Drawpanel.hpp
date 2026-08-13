@@ -11,13 +11,13 @@ namespace esp_brookesia::apps {
 
 /**
  * @brief Drawpanel application for touch-based drawing on the device screen
- * 
+ *
  */
 class Drawpanel: public systems::phone::App {
 public:
     /**
      * @brief Get the singleton instance of Drawpanel
-     * 
+     *
      * @param use_status_bar Show status bar
      * @param use_navigation_bar Show navigation bar
      * @return Drawpanel* Singleton instance pointer
@@ -26,7 +26,7 @@ public:
 
     /**
      * @brief Destroy the Drawpanel object
-     * 
+     *
      */
     ~Drawpanel();
 
@@ -36,7 +36,7 @@ public:
 protected:
     /**
      * @brief Construct a new Drawpanel object (private to enforce singleton)
-     * 
+     *
      * @param use_status_bar Show status bar
      * @param use_navigation_bar Show navigation bar
      */
@@ -54,10 +54,10 @@ protected:
 
 private:
     static Drawpanel *_instance;
-    
+
     /**
      * @brief Touch event callback for drawing dots on screen
-     * 
+     *
      * @param e LVGL event data
      */
 
@@ -66,7 +66,7 @@ private:
     const int _max_points;
     void clearAllPoints();
     static void touch_event_cb(lv_event_t *e);
-    
+
     lv_point_t prev_point;
 };
 

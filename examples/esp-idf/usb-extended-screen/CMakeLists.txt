@@ -10,4 +10,3 @@ set(SDKCONFIG_DEFAULTS
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 add_compile_options(-Wno-ignored-qualifiers)
 project(usb_touch_screen)
-

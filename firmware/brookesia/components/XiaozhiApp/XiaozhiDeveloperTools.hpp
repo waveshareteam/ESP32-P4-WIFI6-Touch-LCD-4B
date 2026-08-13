@@ -24,4 +24,3 @@ namespace esp_brookesia::apps {
 esp_err_t registerXiaozhiDeveloperTools(esp_mcp_t *mcp);
 
 } // namespace esp_brookesia::apps
-

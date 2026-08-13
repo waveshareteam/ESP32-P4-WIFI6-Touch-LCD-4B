@@ -427,7 +427,7 @@ void lv_demo_music_pause(void)
     lv_image_set_scale(album_image_obj, LV_SCALE_NONE);
     if(sec_counter_timer) lv_timer_pause(sec_counter_timer);
     lv_obj_remove_state(play_obj, LV_STATE_CHECKED);
-    
+
     audio_player_pause();
 }
 

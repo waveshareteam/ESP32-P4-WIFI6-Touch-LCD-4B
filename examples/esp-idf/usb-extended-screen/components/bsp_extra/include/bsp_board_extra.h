@@ -55,9 +55,9 @@ esp_err_t bsp_extra_codec_mute_set(bool enable);
  */
 esp_err_t bsp_extra_codec_volume_set(int volume, int *volume_set);
 
-/** 
+/**
  * @brief Player get volume.
- * 
+ *
  * @return
  *   - volume: volume get
  */

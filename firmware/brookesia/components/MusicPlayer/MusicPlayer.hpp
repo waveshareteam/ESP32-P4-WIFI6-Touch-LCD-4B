@@ -11,13 +11,13 @@ namespace esp_brookesia::apps {
 
 /**
  * @brief MusicPlayer application for displaying the app name on the device screen
- * 
+ *
  */
 class MusicPlayer: public systems::phone::App {
 public:
     /**
      * @brief Get the singleton instance of MusicPlayer
-     * 
+     *
      * @param use_status_bar Show status bar
      * @param use_navigation_bar Show navigation bar
      * @return MusicPlayer* Singleton instance pointer
@@ -26,14 +26,14 @@ public:
 
     /**
      * @brief Destroy the MusicPlayer object
-     * 
+     *
      */
     ~MusicPlayer();
 
 protected:
     /**
      * @brief Construct a new MusicPlayer object (private to enforce singleton)
-     * 
+     *
      * @param use_status_bar Show status bar
      * @param use_navigation_bar Show navigation bar
      */

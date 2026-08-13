@@ -69,7 +69,7 @@ namespace esp_brookesia::apps
         // Restore the persisted Wi-Fi switch state after the UI exists.
         if (_nvs_param_map[NVS_KEY_WIFI_ENABLE]) {
             OpenWifi();
-        } 
+        }
 
         // The background task owns blocking scan/connect calls and posts UI work
         // back to LVGL with lv_async_call.
@@ -90,7 +90,7 @@ namespace esp_brookesia::apps
     bool WlanPage::back()
     {
         ESP_UTILS_LOGI("WlanPage Back");
-        
+
         Settings::requestInstance()->showRootPage();
         return true;
     }
@@ -161,7 +161,7 @@ namespace esp_brookesia::apps
         wlan_switch = lv_switch_create(wlan_btn);
         lv_obj_set_size(wlan_switch, 64, 36);
         lv_obj_remove_state(wlan_switch, LV_STATE_CHECKED);
-        
+
         lv_obj_add_event_cb(wlan_switch, [](lv_event_t *e)
         {
             lv_obj_t *sw = static_cast<lv_obj_t *>(lv_event_get_target(e));
@@ -170,7 +170,7 @@ namespace esp_brookesia::apps
 
             if (checked) page->toggleWifiUI(WIFIOPEN);
             else page->toggleWifiUI(WIFICLOSE);
-        }, 
+        },
         LV_EVENT_VALUE_CHANGED, nullptr);
 
         lv_obj_add_state(wlan_btn, LV_STATE_DISABLED);
@@ -259,9 +259,9 @@ namespace esp_brookesia::apps
         if (list1) {
             lv_obj_add_flag(list1, LV_OBJ_FLAG_HIDDEN);
         }
-        
+
         Wifi_state = WIFIOPEN;
-        
+
         return true;
     }
 
@@ -270,8 +270,8 @@ namespace esp_brookesia::apps
         ESP_UTILS_LOGI("WlanPage CloseWifi");
         Wifi_state = WIFICLOSE;
 
-        esp_wifi_disconnect();   
-        
+        esp_wifi_disconnect();
+
         if (connected_text)
             lv_obj_add_flag(connected_text, LV_OBJ_FLAG_HIDDEN);
         if (conn_btn)
@@ -289,7 +289,7 @@ namespace esp_brookesia::apps
 
     void WlanPage::toggleWifiUI(WifiState visible)
     {
-        if (visible == WIFIOPEN) 
+        if (visible == WIFIOPEN)
         {
             _nvs_param_map[NVS_KEY_WIFI_ENABLE] = true;
             setNvsParam(NVS_KEY_WIFI_ENABLE, true);
@@ -329,7 +329,7 @@ namespace esp_brookesia::apps
         if (self->status_btn) {
             lv_obj_remove_state(self->status_btn, LV_STATE_DISABLED);
         }
-        
+
 
         lv_timer_t *t = lv_timer_create(self->wifi_sta_cb, 100, self);
         if (t) {
@@ -380,7 +380,7 @@ namespace esp_brookesia::apps
 
     // Rebuilds the connected/available AP list after a background scan completes.
     void WlanPage::wifi_scan_cb(lv_timer_t * timer) {
-        
+
         WlanPage *self = static_cast<WlanPage *>(timer->user_data);
         if (!self || !self->page_active || !self->list1) {
             return;
@@ -446,7 +446,7 @@ namespace esp_brookesia::apps
                     lv_obj_add_flag(page->conn_btn, LV_OBJ_FLAG_HIDDEN);
                 }
             }
-        }, 
+        },
         LV_EVENT_SHORT_CLICKED, nullptr);
 
         self->wifi_icon = lv_label_create(self->conn_btn);
@@ -534,13 +534,13 @@ namespace esp_brookesia::apps
                 }
             } else {
                 printf("Wi-Fi ssid empty\n");
-            }   
-        } 
+            }
+        }
     }
 
     // One-shot UI refresh after a connect attempt completes or times out.
     void WlanPage::wifi_sta_cb(lv_timer_t * timer) {
-        
+
         WlanPage *self = static_cast<WlanPage *>(timer->user_data);
         if (!self || !self->page_active || !self->list1 || !self->connected_text || !self->conn_btn || !self->wifi_icon) {
             return;
@@ -553,14 +553,14 @@ namespace esp_brookesia::apps
 
         lv_obj_remove_flag(self->connected_text, LV_OBJ_FLAG_HIDDEN);
         lv_list_set_button_text(self->list1, self->conn_btn, (const char*)self->wifi_ssid);
-        if (self->Wifi_state == CONNECTED) 
+        if (self->Wifi_state == CONNECTED)
         {
             lv_label_set_text(self->wifi_icon, LV_SYMBOL_OK);
             lv_obj_remove_flag(self->conn_btn, LV_OBJ_FLAG_CLICKABLE);
             lv_obj_remove_flag(self->conn_btn, LV_OBJ_FLAG_HIDDEN);
-            
+
         }
-        else 
+        else
         {
             lv_label_set_text(self->wifi_icon, LV_SYMBOL_CLOSE);
             lv_obj_add_flag(self->conn_btn, LV_OBJ_FLAG_CLICKABLE);
@@ -586,7 +586,7 @@ namespace esp_brookesia::apps
         }
 
         if (code == LV_EVENT_READY) {
-            
+
             strlcpy(self->wifi_pwd, lv_textarea_get_text(ta), sizeof(self->wifi_pwd));
             ESP_UTILS_LOGI("Wi-Fi password length: %u", static_cast<unsigned>(strlen(self->wifi_pwd)));
             if (strlen(self->wifi_pwd) >= 8)
@@ -606,12 +606,12 @@ namespace esp_brookesia::apps
             lv_obj_remove_flag(self->spinner, LV_OBJ_FLAG_HIDDEN);
             lv_obj_add_state(self->wlan_switch, LV_STATE_DISABLED);
             lv_obj_add_flag(self->list1, LV_OBJ_FLAG_HIDDEN);
-  
+
         }
     }
 
     // Textarea focus controls keyboard visibility.
-    void WlanPage::ta_event_cb(lv_event_t * e) 
+    void WlanPage::ta_event_cb(lv_event_t * e)
     {
         WlanPage *self = (WlanPage *)lv_event_get_user_data(e);
         lv_obj_t * ta = (lv_obj_t*)lv_event_get_target(e);
@@ -661,7 +661,7 @@ namespace esp_brookesia::apps
                 lv_async_call(wifi_state_cb, self);
             }
             self->connection_num++;
-            
+
 
         } else if (event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP) {
             // ESP_UTILS_LOGI("IP_EVENT_STA_GOT_IP");
@@ -699,7 +699,7 @@ namespace esp_brookesia::apps
             return;
         }
 
-        wifi_events_registered = true;                                                                                              
+        wifi_events_registered = true;
         ESP_UTILS_LOGI("Wi-Fi event handler registered.\n");
     }
 
@@ -710,12 +710,12 @@ namespace esp_brookesia::apps
         if (ret != ESP_OK)
             ESP_UTILS_LOGI("Wi-Fi event handler unregistered Faile.\n");
 
-            
+
         ret = esp_event_handler_unregister(IP_EVENT,
                                                     IP_EVENT_STA_GOT_IP,
                                                     &wifi_event_handler);
         if (ret != ESP_OK)
-            ESP_UTILS_LOGI("IP event handler unregistered Faile.\n");                                            
+            ESP_UTILS_LOGI("IP event handler unregistered Faile.\n");
 
         wifi_events_registered = false;
         ESP_UTILS_LOGI("Wi-Fi event handler unregistered.\n");
@@ -780,7 +780,7 @@ namespace esp_brookesia::apps
                     }, self);
                 }
             }
-            
+
             if (self->Wifi_state == CONNECTING)
             {
                 ESP_UTILS_LOGI("ssid:%s", self->wifi_ssid);
@@ -793,7 +793,7 @@ namespace esp_brookesia::apps
                 strlcpy((char *)wifi_config.sta.ssid, (const char *)self->wifi_ssid, sizeof(wifi_config.sta.ssid));
                 strlcpy((char *)wifi_config.sta.password, self->wifi_pwd, sizeof(wifi_config.sta.password));
                 wifi_config.sta.threshold.authmode = self->ap_info[self->wifi_index].authmode;
-                
+
                 // Set WiFi configuration
                 esp_err_t ret = esp_wifi_set_config(WIFI_IF_STA, &wifi_config);
                 if (ret == ESP_OK) {

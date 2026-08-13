@@ -43,4 +43,3 @@ set_source_files_properties(
     PROPERTIES
         COMPILE_FLAGS "-Wno-missing-field-initializers"
 )
-

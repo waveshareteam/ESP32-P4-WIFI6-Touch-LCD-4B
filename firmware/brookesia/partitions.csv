@@ -8,4 +8,3 @@ phy_init,   data,   phy,        ,     0x1000,
 model,    data, spiffs,         ,     0xF0000,
 factory,  app,  factory,        0x00200000,     8M,
 storage,  data, spiffs,         ,     6M,
-

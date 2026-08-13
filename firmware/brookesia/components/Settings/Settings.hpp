@@ -63,7 +63,7 @@ namespace esp_brookesia::apps
         void close_active_page();
 
         esp_err_t initWifi();
-        
+
     private:
         static Settings *_instance;
         lv_obj_t *page_root;

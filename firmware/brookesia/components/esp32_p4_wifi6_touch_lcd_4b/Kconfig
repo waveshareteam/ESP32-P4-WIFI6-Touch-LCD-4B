@@ -5,7 +5,7 @@ menu "Board Support Package(ESP32-P4)"
         default y
         help
             Error check assert the application before returning the error code.
-            
+
     menu "I2C"
         config BSP_I2C_NUM
             int "I2C peripheral index"
@@ -102,8 +102,8 @@ menu "Board Support Package(ESP32-P4)"
                 bool "RGB565"
             config BSP_LCD_COLOR_FORMAT_RGB888
                 bool "RGB888"
-        endchoice   
-            
+        endchoice
+
         choice BSP_LCD_TYPE
             prompt "Select LCD type"
             default BSP_LCD_TYPE_800_800_3_4_INCH
@@ -117,7 +117,7 @@ menu "Board Support Package(ESP32-P4)"
 
         endchoice
 
-        
+
     endmenu
-    
+
 endmenu

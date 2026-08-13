@@ -64,7 +64,7 @@ private:
     lv_obj_t *password_title;
     static lv_obj_t *ta;
     static lv_obj_t *kb;
-    
+
 
     // UI controls that are updated from scan/connect callbacks.
     lv_obj_t *connected_text;
@@ -107,10 +107,10 @@ private:
     static void wifi_event_handler(void *arg, esp_event_base_t event_base,\
                                 int32_t event_id, void *event_data);
 
-    bool wifi_events_registered = false;                            
+    bool wifi_events_registered = false;
     void start_wifi_events();
     void stop_wifi_events();
-    
+
     bool OpenWifi();
     bool CloseWifi();
     bool ConnWifi();

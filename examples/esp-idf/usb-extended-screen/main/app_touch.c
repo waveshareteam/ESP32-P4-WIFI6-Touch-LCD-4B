@@ -22,12 +22,12 @@ static esp_lcd_touch_handle_t tp = NULL;
 
 static void app_touch_task(void *arg)
 {
-    
+
     (void)arg;
     uint8_t touchpad_cnt = 0;
     bool send_press = false;
     while (1) {
-        
+
         esp_err_t result = esp_lcd_touch_read_data(tp);
         if (result != ESP_OK) {
             ESP_LOGW(TAG, "touch read failed: %s", esp_err_to_name(result));
@@ -75,7 +75,7 @@ static void app_touch_task(void *arg)
 #endif
             ESP_LOGD(TAG, "send release %d", touchpad_cnt);
         }
-            
+
         // Reading from the GT911 at a time shorter than this may result in false reports.
         vTaskDelay(pdMS_TO_TICKS(20));
     }

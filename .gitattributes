@@ -1,0 +1,13 @@
+# Preserve generated image arrays exactly as emitted by their asset tooling.
+firmware/brookesia/components/**/assets/** whitespace=-trailing-space
+firmware/brookesia/archive/components/**/assets/** whitespace=-trailing-space
+
+# Keep embedded xiaozhi_esp32 sources byte-for-byte compatible with their upstream copy.
+firmware/**/xiaozhi_esp32/** whitespace=-trailing-space
+
+# This SquareLine Studio output is regenerated from its UI project.
+firmware/brookesia/components/brookesia_core/systems/speaker/widgets/quick_settings/ui/ui_comp_quicksettings.c whitespace=-trailing-space
+
+# Bundled Arduino libraries and this upstream-derived LVGL configuration retain upstream whitespace.
+examples/arduino/libraries/** whitespace=-trailing-space
+examples/arduino/LVGLV9_Arduino/lv_conf.h whitespace=-trailing-space

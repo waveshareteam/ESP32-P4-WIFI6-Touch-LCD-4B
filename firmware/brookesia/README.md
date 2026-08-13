@@ -454,4 +454,3 @@ Before publishing a release:
   then retain all component license files, SPDX headers, and required
   third-party notices. Until that license is added, do not assume the entire
   repository is covered by any one component's license.
-
