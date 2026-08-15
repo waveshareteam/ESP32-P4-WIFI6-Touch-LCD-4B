@@ -82,18 +82,19 @@ unknown ESP-IDF global esptool fields instead of silently dropping them.
 On a POSIX shell:
 
 ```sh
-./flash.sh
+sh flash.sh --port PORT
 ```
 
 On Windows:
 
 ```bat
-flash.cmd
+flash.cmd --port PORT
 ```
 
-The generated scripts use the default port discovery behavior of esptool. Add
-an explicit port only through a reviewed copy or an equivalent esptool command
-when multiple devices are attached.
+The generated scripts accept exactly one `--port PORT` pair and reject missing,
+extra, or option-shaped arguments. The package validator regenerates both
+helpers from the verified metadata plan and compares their bytes, including the
+port parser, write options, ordered offsets, quoted filenames, and command.
 
 A Brookesia package must include every image referenced by its generated flash
 arguments, including model and SPIFFS images. An application-only binary is
@@ -132,9 +133,28 @@ PCB/electrical revision as well as the chip revision.
 ## Arduino boundary
 
 Arduino packages require the exact 32 MiB pre-v3 FQBN with `FlashSize=32M`,
-`ChipVariant=prev3`, and `EraseFlash=none`. The packager accepts one merged
-binary at offset zero, or exactly one bootloader, partition table, OTA data, and
-application binary at their defined offsets. Any ambiguity is an error.
+`ChipVariant=prev3`, and `EraseFlash=none`. Compilation uses `--build-path` so
+Arduino-ESP32 3.3.11 leaves both `build.options.json` and `flash_args`. The
+packager checks the former's exact FQBN and core path, but excludes it because it
+contains host paths. The workflow/local command dynamically maps repository,
+Arduino data/user, and temporary roots for C, C++, and assembly without
+overriding board flags; every packaged segment is then scanned for private
+paths. A canonical whitelisted identity records the raw build-options
+filename/size/SHA-256 and is bound by its own manifest hash. Only `flash_args`
+supplies safe flash options, offsets, and filenames. The release ZIP contains each referenced bootloader, partition table,
+optional `boot_app0`, application, and other toolchain segment; it never ships a
+16/32 MiB merged or whole-flash primary image.
+
+Each segment records its source metadata path, role, size, SHA-256, target,
+FQBN, framework version, product Git SHA, and exact BSP version/source-commit/
+component-tree evidence. `metadata/flash_args` is bundled with its own size and
+hash. The package gate checks path safety, symlinks, duplicate offsets,
+non-overlap, capacity, archived bytes, metadata identity, and that total segment
+bytes are no more than half of the full 32 MiB flash. Manifest
+`segmented_bytes` and `segmented_payload_total` both equal that exact sum.
+Offsets are never inferred from a
+chip family; a real bootloader offset of zero remains valid when generated
+metadata declares it.
 
 ## Cross-platform CI flasher
 
@@ -159,8 +179,9 @@ or verified write is not a runtime PASS.
 
 ESP-IDF package acceptance also compares every verified manifest file's original
 metadata path with bundled `metadata/flasher_args.json`; missing referenced
-images are rejected. Arduino acceptance requires the exact repository CI FQBN
-and a merged-at-zero or complete four-image layout.
+images are rejected. Arduino acceptance compares the manifest, command, and
+every verified segment exactly with bundled `metadata/flash_args`, preserves
+its validated flash geometry flags, and rejects any merged/whole-flash path.
 
 ## Factory and C6 firmware
 
@@ -177,11 +198,14 @@ P4 CI package. Do not include or flash a guessed C6 image with a P4 package. See
 Before publishing a package:
 
 1. Build from a clean source revision with exact framework versions.
-2. Compare packaged files and offsets with `flasher_args.json`.
+2. Compare ESP-IDF files with `flasher_args.json`, or Arduino segments and safe
+   write options with `flash_args`.
 3. Verify all package hashes and both flash scripts.
 4. Flash the complete package on a named board revision.
-5. Test the peripherals the package claims to support.
-6. Record C6 compatibility when Wi-Fi is included.
-7. Review licensing, credentials, host-local paths, and user data.
+5. For Arduino, cold-start with the serial monitor disconnected; after normal
+   application entry, attach the CH343P UART monitor and confirm no reset/hang.
+6. Test the peripherals the package claims to support.
+7. Record C6 compatibility when Wi-Fi is included.
+8. Review licensing, credentials, host-local paths, and user data.
 
 Compile or package success alone is not hardware validation.

@@ -112,14 +112,27 @@ Arduino jobs use:
 - Core `esp32:esp32@3.3.11` and FQBN `esp32:esp32:esp32p4`.
 - `FlashMode=qio`, `FlashSize=32M`, `PSRAM=enabled`,
   `PartitionScheme=app13M_data7M_32MB`, and `ChipVariant=prev3`.
-- Default USB, CDC-on-boot, and upload-mode values so the separate CH343P debug
-  UART is not replaced by native USB CDC.
+- `USBMode=default` and `CDCOnBoot=default`. Under Arduino-ESP32 3.3.11 both
+  resolve to `0`, so global `Serial` is UART0 through the schematic's U6 CH343P
+  debug bridge, not native USB CDC.
 - The product helper under `examples/arduino/libraries/`.
 - GFX Library for Arduino 1.6.6 and LVGL 9.3.0 from Arduino Library Manager.
+
+Before compiling, the workflow dynamically resolves the repository root,
+Arduino data/user directories, and runner temporary root. It supplies
+`-ffile-prefix-map` and `-fmacro-prefix-map` through the C, C++, and assembly
+extra-flag properties only; it never overrides board `build.extra_flags`.
+Packaging scans every Arduino segment and public metadata member for private
+host/work/cache paths, so an unmapped build fails closed.
 
 The LVGL sketch uses only public core LVGL APIs; it does not depend on the
 upstream repository's non-library `demos/` directory. Arduino compilation does
 not validate the GT911, display timing, or ESP32-C6 Wi-Fi runtime.
+Repository policy strips C/C++ comments and literals, then rejects unbounded
+`Serial`/USB-CDC/DTR/`availableForWrite` readiness loops in all first-party
+sketches and the product helper. A short explicit `millis()` bound is allowed;
+fatal non-serial application halts are outside that rule. This static result
+does not replace a monitor-disconnected cold-start HIL test.
 
 ## ✅ Policy and evidence
 
@@ -156,16 +169,32 @@ After a successful build, each matrix job packages and uploads one CI ZIP for
 uses the final pull-request SHA (or push SHA), and the workflow fails if the ZIP
 is absent. ESP-IDF packaging derives every image and offset from
 `flasher_args.json`; Brookesia therefore includes its model and filesystem
-images. Arduino packaging accepts exactly one merged image or one unambiguous
-bootloader/partition/OTA/application layout for the selected 32 MiB pre-v3 FQBN.
+images. Arduino compiles into an isolated `--build-path`; packaging first
+cross-checks the requested FQBN and core 3.3.11 path against
+`build.options.json` without archiving that host-path-bearing file. A canonical
+whitelist-only build identity records the raw filename/size/SHA-256 and is
+itself bound by manifest size/SHA-256. It then
+derives safe write options, offsets, and segment filenames only from the
+core-generated `flash_args`. The ZIP includes that metadata plus bootloader,
+partition table, optional `boot_app0`, application, and any other referenced
+segment. A 16/32 MiB merged or other whole-flash image is never a primary
+artifact. Per-segment records bind product SHA, FQBN, target, BSP version,
+BSP source commit, and BSP component tree; hashes, sizes, safe paths,
+non-overlap, capacity, and total effective bytes are rechecked after ZIP write.
+`segmented_bytes` and `segmented_payload_total` both equal the exact sum of
+segment sizes and must be no more than half of the 32 MiB flash.
 Manifest profile and chip-revision bounds are checked before flashing; a chip
 major revision below 3 accepts only `rev1_3`, and major revision 3 or later only
 accepts `rev3_x`. For v3.x, matching PCB/electrical revision remains mandatory.
 
 `Flash-CI-Firmware.cmd` is the Windows sequential manual-test entry point. It
 will not use stale SHA artifacts, a dirty/detached checkout, a draft/missing PR,
-or an unverified package. Compile/package success proves neither a flash nor a
-manual runtime result; the operator records PASS only after the post-flash test.
+or an unverified package. The Arduino flash command preserves the validated
+`flash_args` geometry options and exact segments rather than using a hardcoded
+offset table. Compile/package success proves neither a flash nor a manual
+runtime result; the operator records PASS only after cold boot with the monitor
+closed, normal application entry, and later monitor attachment without reset or
+hang.
 
 CI-built packages are not factory or recovery images and never contain or flash
 an ESP32-C6 coprocessor image. Hardware PDFs, drawings, and imported resource

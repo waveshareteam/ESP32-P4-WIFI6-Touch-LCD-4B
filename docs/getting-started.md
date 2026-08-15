@@ -106,7 +106,8 @@ arduino-cli lib install "lvgl@9.3.0"
 ```sh
 arduino-cli compile \
   --fqbn "esp32:esp32:esp32p4:UploadSpeed=921600,USBMode=default,CDCOnBoot=default,MSCOnBoot=default,DFUOnBoot=default,UploadMode=default,FlashFreq=80,FlashMode=qio,FlashSize=32M,PartitionScheme=app13M_data7M_32MB,DebugLevel=none,PSRAM=enabled,EraseFlash=none,JTAGAdapter=default,ChipVariant=prev3" \
-  --libraries examples/arduino/libraries \
+  --build-path build/arduino/HelloWorld \
+  --library examples/arduino/libraries/Waveshare_ESP32_P4_4B_Display \
   examples/arduino/HelloWorld
 ```
 
@@ -118,6 +119,16 @@ arduino-cli upload \
   --fqbn "esp32:esp32:esp32p4:UploadSpeed=921600,USBMode=default,CDCOnBoot=default,MSCOnBoot=default,DFUOnBoot=default,UploadMode=default,FlashFreq=80,FlashMode=qio,FlashSize=32M,PartitionScheme=app13M_data7M_32MB,DebugLevel=none,PSRAM=enabled,EraseFlash=none,JTAGAdapter=default,ChipVariant=prev3" \
   examples/arduino/HelloWorld
 ```
+
+For a release candidate, do not publish the generated whole-flash image. Use
+the complete privacy-mapped compile and repository packager command in
+`examples/arduino/README.md`. It dynamically maps repository, Arduino data/user,
+and temporary roots for C, C++, and assembly without changing the FQBN. The
+packager reads actual core 3.3.11 `flash_args`, emits a hashed segmented manifest
+and `flash.sh`/`flash.cmd`, and never guesses offsets. After segmented flashing,
+cold-start once with the CH343P UART0 monitor disconnected, then attach it and
+confirm the application does not reset or hang. Compile/package evidence alone
+is not this HIL result.
 
 The Wi-Fi analyzer additionally depends on a compatible image already running
 on the C6 coprocessor. See `docs/p4-c6-hosted-wifi.md`.

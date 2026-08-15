@@ -68,8 +68,10 @@ python scripts/package_esp_idf_firmware.py \
 包目录名称包含简短的源版本标签。除非提供 `--overwrite`，否则不会替换现有归档；未知的
 `extra_esptool_args` 字段会使打包停止，而不是生成不完整的烧录命令。
 
-Arduino CI 包只有在精确 ESP32-P4 FQBN、一个可接受的二进制布局、每个偏移量和每个哈希均通过精确
-SHA 的 Actions 包检查后才可烧录。仅编译本身不是软件包、烧录或运行验证结果。
+Arduino CI 包只有在实际构建的 `build.options.json` 证明精确 ESP32-P4 FQBN 与 core 3.3.11，
+且每个安全选项、分段、偏移、大小和哈希均与 core 生成的 `flash_args` 一致并通过精确 SHA 的
+Actions 包检查后才可烧录。含主机路径的 build options 文件不会归档。仅编译本身不是软件包、
+烧录或运行验证结果。
 
 ## CI 固件包与跨平台烧录
 
@@ -109,8 +111,21 @@ Flash-CI-Firmware.cmd -Item 1 -Port COMx
 
 对于 ESP-IDF 包，每个通过验证的清单文件还带有其原始 `flasher_args.json` 元数据路径。烧录器要求该
 映射与包内的 `metadata/flasher_args.json` 完全一致，因此缺少模型、存储、bootloader、分区表或应用程序
-镜像均会被拒绝。Arduino 包必须包含仓库 CI 的精确 FQBN，并且只能使用偏移零的单一 merged 镜像，或完整
-的四镜像布局。
+镜像均会被拒绝。Arduino 包会先用实际构建的 `build.options.json` 证明精确 ESP32-P4 FQBN 与
+core 3.3.11，但不归档这个含主机路径的文件。包内 `metadata/flash_args` 以及其实际引用的
+bootloader、分区表、可选 `boot_app0`、应用程序和其他段必须完全匹配。烧录器会验证元数据/段哈希、
+安全路径、不重叠、容量、有效字节总数、产品 SHA、FQBN、target 与 BSP 版本/source/tree 绑定，
+并保留元数据导出的写入选项和偏移。merged/整片单文件路径会被拒绝；只有真实元数据如此声明时，
+bootloader 才可合法位于 offset 0。白名单 canonical identity 会携带原 build-options 文件名/大小/
+SHA-256 证据；动态 C/C++/汇编 file/macro prefix map 会移除构建根目录，且打包会扫描全部 Arduino
+member 中残留的私有主机路径。`segmented_bytes` 与 `segmented_payload_total` 均等于段大小总和，
+且不得超过 32 MiB Flash 的一半。
+ZIP 验证器还会从该已验证计划逐字节重新生成 `flash.sh` 和 `flash.cmd`。每个 helper 只接受
+`--port PORT`，拒绝其他参数形式，并保留全部选项及有序的 offset/file 对。
+
+Arduino 运行验收还要求独立的冷启动 HIL：关闭并断开监视器后重新上电，确认应用正常启动；随后连接
+开发板 CH343P UART0 监视器，确认不重启、不卡死且日志符合预期。固定 Arduino-ESP32 3.3.11 FQBN
+把 `USBMode=default`/`CDCOnBoot=default` 解析为禁用原生 CDC，因此该检查不能宣称覆盖原生 USB CDC。
 
 本地 `package_esp_idf_firmware.py` 的包格式及历史本地打包示例与以上 CI schema-1 构件契约相互独立。
 

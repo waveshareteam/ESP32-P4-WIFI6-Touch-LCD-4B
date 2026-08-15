@@ -70,17 +70,18 @@ SHA-256，然后在调用 esptool 前确认已验证的文件列表与命令匹�
 在 POSIX shell 上：
 
 ```sh
-./flash.sh
+sh flash.sh --port PORT
 ```
 
 在 Windows 上：
 
 ```bat
-flash.cmd
+flash.cmd --port PORT
 ```
 
-生成的脚本使用 esptool 的默认端口发现行为。当连接多个设备时，只能通过经过审阅的副本或等效
-esptool 命令添加显式端口。
+生成的脚本只接受一组 `--port PORT`，缺失参数、额外参数或形似选项的参数都会被拒绝。包验证器会从
+已验证的元数据计划重新生成两个 helper 并逐字节比较，包括端口解析、写入选项、顺序偏移、带引号的
+文件名与命令。
 
 Brookesia 软件包必须包含其生成的烧录参数所引用的每个镜像，包括模型和 SPIFFS 镜像。
 仅有应用程序二进制文件并不是完整的首次安装软件包。
@@ -111,8 +112,21 @@ PCB/电气版本。
 ## Arduino 边界
 
 Arduino 包要求精确的 32 MiB pre-v3 FQBN，并包含 `FlashSize=32M`、`ChipVariant=prev3` 与
-`EraseFlash=none`。打包器只接受位于偏移零的一个合并二进制文件，或唯一的引导加载程序、分区表、
-OTA 数据和应用程序二进制文件布局。任何歧义均为错误。
+`EraseFlash=none`。编译使用 `--build-path`，使 Arduino-ESP32 3.3.11 保留
+`build.options.json` 和 `flash_args`。打包器用前者核验精确 FQBN 与 core 路径，但因其包含
+主机路径而不归档。工作流/本地命令会对 repository、Arduino data/user 与临时根目录动态设置
+C、C++、汇编 prefix map，且不覆盖开发板 flags；随后扫描每个待打包段中的私有路径。白名单
+canonical identity 记录原 build-options 文件名/大小/SHA-256，其自身哈希也由清单绑定。安全烧录
+选项、偏移和文件名只能来自 `flash_args`。发布 ZIP 包含被引用的
+bootloader、分区表、可选 `boot_app0`、应用程序和其他工具链段，绝不发布 16/32 MiB merged
+或其他整片主镜像。
+
+每段记录源元数据路径、角色、大小、SHA-256、target、FQBN、框架版本、产品 Git SHA，以及
+精确的 BSP 版本/源提交/组件 tree 证据。`metadata/flash_args` 也连同自身大小和哈希入包。
+门禁会检查路径安全、符号链接、重复偏移、不重叠、容量、归档字节、元数据一致性，并证明
+总分段字节不超过完整 32 MiB Flash 的一半；`segmented_bytes` 与
+`segmented_payload_total` 都等于该精确总和。偏移绝不按芯片家族猜测；真实元数据声明 bootloader
+位于 offset 0 时仍属于合法情况。
 
 ## 跨平台 CI 烧录器
 
@@ -131,8 +145,8 @@ Python 核心，需要 Git、带 `esptool` 的 Python，以及已认证的 GitHu
 写入都不是运行 PASS。
 
 ESP-IDF 包验收还会将每个已验证清单文件的原始元数据路径与包内 `metadata/flasher_args.json` 比对；任何
-缺失的引用镜像都会被拒绝。Arduino 验收要求仓库 CI 的精确 FQBN，以及 offset 0 的 merged 镜像或完整
-四镜像布局。
+缺失的引用镜像都会被拒绝。Arduino 验收会将清单、命令和每个已验证段与包内
+`metadata/flash_args` 精确比对，保留其中已验证的 Flash 几何选项，并拒绝 merged/整片路径。
 
 ## 工厂和 C6 固件
 
@@ -147,11 +161,14 @@ ESP32-C6 协处理器固件是独立镜像，不在任何 P4 CI 软件包中。�
 发布软件包前：
 
 1. 使用精确框架版本从干净的源代码版本构建。
-2. 将打包文件和偏移量与 `flasher_args.json` 进行比较。
+2. 将 ESP-IDF 文件与 `flasher_args.json` 比对，或将 Arduino 分段和安全写入选项与
+   `flash_args` 比对。
 3. 验证所有软件包哈希和两个烧录脚本。
 4. 在指定开发板版本上烧录完整软件包。
-5. 测试软件包声称支持的外设。
-6. 包含 Wi-Fi 时记录 C6 兼容性。
-7. 审阅许可、凭据、主机本地路径和用户数据。
+5. Arduino 必须在断开串口监视器时冷启动；正常进入应用后再连接 CH343P UART 监视器，
+   确认系统不重启、不卡死。
+6. 测试软件包声称支持的外设。
+7. 包含 Wi-Fi 时记录 C6 兼容性。
+8. 审阅许可、凭据、主机本地路径和用户数据。
 
 仅编译或打包成功并不构成硬件验证。

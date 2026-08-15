@@ -96,13 +96,21 @@ Arduino 作业使用：
 - Core `esp32:esp32@3.3.11` 和 FQBN `esp32:esp32:esp32p4`。
 - `FlashMode=qio`、`FlashSize=32M`、`PSRAM=enabled`、
   `PartitionScheme=app13M_data7M_32MB` 和 `ChipVariant=prev3`。
-- 默认 USB、CDC-on-boot 和上传模式，以免独立 CH343P 调试串口被原生 USB CDC
-  替代。
+- `USBMode=default` 与 `CDCOnBoot=default`。在 Arduino-ESP32 3.3.11 中两者均解析为
+  `0`，所以全局 `Serial` 是经原理图 U6 CH343P 调试桥连接的 UART0，而不是原生 USB CDC。
 - `examples/arduino/libraries/` 下的产品辅助库。
 - Arduino Library Manager 中的 GFX Library for Arduino 1.6.6 和 LVGL 9.3.0。
 
+编译前，工作流会动态解析 repository root、Arduino data/user 目录和 runner 临时根目录，
+仅通过 C、C++、汇编 extra-flag 属性传入 `-ffile-prefix-map` 与 `-fmacro-prefix-map`，
+绝不覆盖开发板 `build.extra_flags`。打包会扫描每个 Arduino 分段和公开元数据 member 中的
+私有 host/work/cache 路径，因此未映射的构建会 fail closed。
+
 LVGL 草图仅使用公开的 LVGL 核心 API，不依赖上游仓库中未随 Arduino 库发布的
 `demos/` 目录。Arduino 编译不能验证 GT911、显示时序或 ESP32-C6 Wi-Fi 运行行为。
+仓库策略会先剥离 C/C++ 注释与字符串，再检查所有首方草图和产品辅助库，拒绝无界的
+`Serial`/USB CDC/DTR/`availableForWrite` 就绪等待。仅允许明确且较短的 `millis()` 超时；
+与串口无关的致命应用停止不属于此规则。静态检查不能代替断开监视器的冷启动 HIL。
 
 ## ✅ 策略与证据
 
@@ -131,13 +139,21 @@ LVGL 草图仅使用公开的 LVGL 核心 API，不依赖上游仓库中未随 A
 `firmware-esp-idf-<name>-<idf-version>-rev1_3`、`firmware-arduino-<name>-3.3.11-rev1_3`、
 `firmware-brookesia-v5.5.5-rev1_3` 或 `firmware-brookesia-v5.5.5-rev3_x`。包使用最终 PR SHA（或推送 SHA）；ZIP 不存在时工作流失败。
 ESP-IDF 打包从 `flasher_args.json` 获取所有镜像和偏移，因此 Brookesia 也包含模型和文件系统镜像。
-Arduino 打包只接受一个合并镜像，或针对已选 32 MiB pre-v3 FQBN 的唯一引导加载程序/分区/OTA/应用布局。
+Arduino 使用隔离的 `--build-path` 编译；打包先将请求的 FQBN 与 core 3.3.11 路径同
+`build.options.json` 交叉核验，但不会归档这个含主机路径的文件。只含白名单字段的 canonical
+build identity 会记录原始文件名/大小/SHA-256，其自身大小/SHA-256 也由清单绑定。随后仅从 core 生成的
+`flash_args` 推导安全写入选项、偏移和段文件。ZIP 包含该元数据，以及 bootloader、分区表、
+可选 `boot_app0`、应用程序和其他被引用段；16/32 MiB merged 或其他整片镜像绝不作为主制品。
+逐段记录绑定产品 SHA、FQBN、target、BSP 版本、BSP 源提交和 BSP 组件 tree；ZIP 写完后还会
+复核哈希、大小、安全路径、不重叠、容量和总有效字节。`segmented_bytes` 与
+`segmented_payload_total` 均等于实际段大小总和，且不得超过 32 MiB Flash 的一半。
 烧录前会校验清单 profile 与芯片 major revision：低于 3 只允许 `rev1_3`，3 或更高只允许
 `rev3_x`；v3.x 还必须匹配 PCB/电气版本。
 
 `Flash-CI-Firmware.cmd` 是 Windows 上按顺序进行人工测试的入口。它不会使用过期 SHA 构件、脏或
-分离的检出、草稿/缺失 PR 或未验证的软件包。编译/打包成功均不证明已经烧录或通过人工运行测试；
-操作员只有在烧录后的测试完成后才标记 PASS。
+分离的检出、草稿/缺失 PR 或未验证的软件包。Arduino 烧录命令保留已验证 `flash_args` 中的
+几何选项与精确分段，不使用硬编码偏移表。编译/打包成功均不证明已经烧录或通过人工运行测试；
+只有在关闭监视器冷启动进入正常应用、随后打开监视器且不重启不卡死后，操作员才标记 PASS。
 
 CI 构建包不等同于工厂或恢复镜像，且绝不包含或烧录 ESP32-C6 协处理器镜像。硬件 PDF、结构图和
 导入的资源归档绝不能混入固件制品。生成的软件包继续保存在 `release-artifacts/` 或

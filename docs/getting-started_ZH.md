@@ -97,7 +97,8 @@ arduino-cli lib install "lvgl@9.3.0"
 ```sh
 arduino-cli compile \
   --fqbn "esp32:esp32:esp32p4:UploadSpeed=921600,USBMode=default,CDCOnBoot=default,MSCOnBoot=default,DFUOnBoot=default,UploadMode=default,FlashFreq=80,FlashMode=qio,FlashSize=32M,PartitionScheme=app13M_data7M_32MB,DebugLevel=none,PSRAM=enabled,EraseFlash=none,JTAGAdapter=default,ChipVariant=prev3" \
-  --libraries examples/arduino/libraries \
+  --build-path build/arduino/HelloWorld \
+  --library examples/arduino/libraries/Waveshare_ESP32_P4_4B_Display \
   examples/arduino/HelloWorld
 ```
 
@@ -109,6 +110,13 @@ arduino-cli upload \
   --fqbn "esp32:esp32:esp32p4:UploadSpeed=921600,USBMode=default,CDCOnBoot=default,MSCOnBoot=default,DFUOnBoot=default,UploadMode=default,FlashFreq=80,FlashMode=qio,FlashSize=32M,PartitionScheme=app13M_data7M_32MB,DebugLevel=none,PSRAM=enabled,EraseFlash=none,JTAGAdapter=default,ChipVariant=prev3" \
   examples/arduino/HelloWorld
 ```
+
+制作发布候选时，不得发布生成的整片镜像。请使用 `examples/arduino/README_ZH.md` 所述的
+完整隐私映射编译命令与仓库打包器。该命令会动态映射 repository、Arduino data/user
+和临时根目录，并分别传入 C、C++ 与汇编编译，不改变 FQBN。打包器读取实际 core 3.3.11
+`flash_args`，生成带哈希的分段清单和
+`flash.sh`/`flash.cmd`，绝不猜测偏移。分段烧录后，先在断开 CH343P UART0 监视器时
+冷启动，再连接监视器并确认应用不重启、不卡死。编译/打包证据不等同于该 HIL 结果。
 
 Wi-Fi 分析器还依赖于已在 C6 协处理器上运行的兼容镜像。请参阅 `docs/p4-c6-hosted-wifi_ZH.md`。
 

@@ -23,6 +23,9 @@ env:
   ARDUINO_CORE_VERSION: "3.3.11"
   ARDUINO_GFX_VERSION: "1.6.6"
   LVGL_VERSION: "9.3.0"
+  WAVESHARE_BSP_VERSION: "3.0.0"
+  WAVESHARE_BSP_SOURCE_GIT_SHA: "32d86900af6916d5e6eb629741d57ee19a577740"
+  WAVESHARE_BSP_COMPONENT_TREE_SHA: "27a67ea44c29375d0309bb5e1dbef25a9c24d6c5"
   ESP32_PACKAGE_INDEX: "https://espressif.github.io/arduino-esp32/package_esp32_index.json"
   ARDUINO_FQBN: >-
     esp32:esp32:esp32p4:UploadSpeed=921600,USBMode=default,CDCOnBoot=default,MSCOnBoot=default,DFUOnBoot=default,UploadMode=default,FlashFreq=80,FlashMode=qio,FlashSize=32M,PartitionScheme=app13M_data7M_32MB,DebugLevel=none,PSRAM=enabled,EraseFlash=none,JTAGAdapter=default,ChipVariant=prev3
@@ -94,10 +97,31 @@ jobs:
       - name: Compile for ESP32-P4
         shell: bash
         run: |
+          repository_root="$(git rev-parse --show-toplevel)"
+          arduino_data_root="$(arduino-cli config get directories.data)"
+          arduino_user_root="$(arduino-cli config get directories.user)"
+          build_temp_root="${RUNNER_TEMP:?RUNNER_TEMP is required}"
+          prefix_map_flags=""
+          add_prefix_map() {
+            source_root="$1"
+            replacement="$2"
+            if [[ -z "$source_root" || "$source_root" != /* || "$source_root" == *" "* ]]; then
+              echo "Unsafe prefix-map source root" >&2
+              exit 2
+            fi
+            prefix_map_flags+=" -ffile-prefix-map=${source_root}=${replacement}"
+            prefix_map_flags+=" -fmacro-prefix-map=${source_root}=${replacement}"
+          }
+          add_prefix_map "$repository_root" REPOSITORY
+          add_prefix_map "$arduino_data_root" ARDUINO_DATA
+          add_prefix_map "$arduino_user_root" ARDUINO_USER
+          add_prefix_map "$build_temp_root" BUILD_TEMP
           arduino-cli compile \
             --fqbn "$ARDUINO_FQBN" \
-            --export-binaries \
-            --output-dir "build/arduino/${{ matrix.name }}" \
+            --build-path "build/arduino/${{ matrix.name }}" \
+            --build-property "compiler.c.extra_flags=${prefix_map_flags}" \
+            --build-property "compiler.cpp.extra_flags=${prefix_map_flags}" \
+            --build-property "compiler.S.extra_flags=${prefix_map_flags}" \
             --library examples/arduino/libraries/Waveshare_ESP32_P4_4B_Display \
             --warnings all \
             "${{ matrix.sketch }}"
@@ -114,6 +138,9 @@ jobs:
             --framework-version "$ARDUINO_CORE_VERSION" \
             --fqbn "$ARDUINO_FQBN" \
             --board-profile rev1_3 \
+            --bsp-version "$WAVESHARE_BSP_VERSION" \
+            --bsp-source-git-sha "$WAVESHARE_BSP_SOURCE_GIT_SHA" \
+            --bsp-component-tree-sha "$WAVESHARE_BSP_COMPONENT_TREE_SHA" \
             --output "release-artifacts/firmware-arduino-${{ matrix.name }}-3.3.11-rev1_3.zip"
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:

@@ -82,10 +82,14 @@ archives are not replaced unless `--overwrite` is provided, and unknown
 incomplete flash command.
 
 
-Arduino CI packages are flashable only when the exact ESP32-P4 FQBN, one accepted
-binary layout, every offset, and every hash pass the package gates on an exact-SHA
-Actions run. A compile alone is not a package, flash, or runtime-validation
-result.
+Arduino CI packages are flashable only when the actual build's
+`build.options.json` proves the exact ESP32-P4 FQBN and core 3.3.11, and every
+safe option, segment, offset, size, and hash matches core-generated `flash_args`
+on an exact-SHA Actions run. The host-path-bearing build options file is not
+archived; a canonical whitelisted identity carries its filename/size/SHA-256
+evidence. Dynamic C/C++/assembly file and macro prefix maps remove build roots,
+and packaging scans every Arduino member for remaining private host paths.
+A compile alone is not a package, flash, or runtime-validation result.
 
 ## CI firmware packages and cross-platform flashing
 
@@ -135,8 +139,25 @@ For ESP-IDF packages, each verified manifest file also carries its original
 `flasher_args.json` metadata path. The flasher requires that mapping to match
 the package's bundled `metadata/flasher_args.json` exactly, so a missing model,
 storage, bootloader, partition, or application image is rejected. Arduino
-packages must carry the repository CI's exact FQBN and either one merged image
-at offset zero or the complete four-image layout.
+packages bundle `metadata/flash_args` and exactly its referenced bootloader,
+partition table, optional `boot_app0`, application, and other segments. The
+flasher verifies metadata/segment hashes, safe paths, non-overlap, capacity,
+effective-byte totals, product SHA, FQBN, target, and BSP version/source/tree
+binding before preserving the metadata-derived write options and offsets. A
+merged or whole-flash single-file path is rejected; a bootloader at offset zero
+is legal only when the real metadata says so. `segmented_bytes` and
+`segmented_payload_total` both equal the sum of segment sizes and must not exceed
+half of the 32 MiB flash.
+The ZIP validator also regenerates `flash.sh` and `flash.cmd` byte-for-byte from
+that verified plan. Each helper accepts exactly `--port PORT`, rejects all other
+argument shapes, and preserves every option and ordered offset/file pair.
+
+Arduino runtime acceptance requires a separate cold-start HIL check. Close and
+disconnect the monitor, power-cycle, and confirm normal application entry.
+Then attach the board's CH343P UART0 monitor and confirm no reset or hang and the
+expected logs. The pinned Arduino-ESP32 3.3.11 FQBN resolves
+`USBMode=default`/`CDCOnBoot=default` to native-CDC disabled, so this check does
+not claim native USB CDC coverage.
 
 The local `package_esp_idf_firmware.py` package format and historical local
 package examples are separate from the CI schema-1 artifact contract above.
