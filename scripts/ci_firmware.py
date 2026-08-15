@@ -375,27 +375,236 @@ def validate_idf_metadata(package: Path, plan: list[tuple[int, int, Path, str]],
         raise CiFirmwareError("manifest verified files do not exactly match ESP-IDF flasher metadata")
 
 
-def validate_arduino_layout(item: Item, manifest: dict[str, Any], plan: list[tuple[int, int, Path, str]], packager: Any) -> None:
-    if item.profile != "rev1_3" or manifest.get("fqbn") != packager.ARDUINO_FQBN:
+def validate_arduino_layout(
+    package: Path,
+    item: Item,
+    manifest: dict[str, Any],
+    plan: list[tuple[int, int, Path, str]],
+    raw_files: list[Any],
+    packager: Any,
+) -> list[str]:
+    if (item.profile != "rev1_3" or manifest.get("fqbn") != packager.ARDUINO_FQBN
+            or manifest.get("target") != packager.CHIP):
         raise CiFirmwareError("Arduino manifest FQBN or profile does not match the packager contract")
-    names = [(offset, path.name.casefold()) for offset, _, path, _ in plan]
-    if len(names) == 1 and names[0][0] == 0 and "merged" in names[0][1]:
-        return
-    expected_app = {Path(item.source_project).name.casefold() + ".bin", Path(item.source_project).name.casefold() + ".ino.bin"}
-    expected = {0: "bootloader", 0x8000: "partitions", 0xe000: "boot_app0", 0x10000: "app"}
-    if len(names) != 4 or {offset for offset, _ in names} != set(expected):
-        raise CiFirmwareError("Arduino manifest must use a merged image or the complete four-image layout")
-    for offset, name in names:
-        if expected[offset] == "app":
-            if name not in expected_app:
-                raise CiFirmwareError("Arduino application image does not match its source project")
-        elif expected[offset] not in name:
-            raise CiFirmwareError("Arduino image layout does not match the packager contract")
+    build_identity = manifest.get("arduino_build_identity")
+    if (not isinstance(build_identity, dict)
+            or build_identity.get("path") != "metadata/arduino_build_identity.json"
+            or build_identity.get("raw_archived") is not False):
+        raise CiFirmwareError("Arduino manifest lacks the privacy-safe build.options.json FQBN proof")
+    canonical_path = package / "metadata" / "arduino_build_identity.json"
+    canonical_size = _integer(build_identity.get("size"), "Arduino build identity size")
+    canonical_hash = _string(build_identity.get("sha256"), "Arduino build identity SHA-256").lower()
+    if (canonical_size <= 0 or not re.fullmatch(r"[0-9a-f]{64}", canonical_hash)
+            or not canonical_path.is_file() or canonical_path.stat().st_size != canonical_size
+            or sha256(canonical_path) != canonical_hash):
+        raise CiFirmwareError("Arduino canonical build identity size or hash verification failed")
+    canonical = load_json_object(canonical_path)
+    expected_canonical_keys = {
+        "schema_version", "source_name", "source_size", "source_sha256", "fqbn", "core_version",
+        "sketch_path", "sketch_name", "application_metadata_path", "primary_source",
+    }
+    if set(canonical) != expected_canonical_keys:
+        raise CiFirmwareError("Arduino canonical build identity contains unknown or missing fields")
+    primary_source = canonical.get("primary_source")
+    primary_sha = _string(primary_source.get("sha256"), "primary source SHA-256") if isinstance(primary_source, dict) else ""
+    primary_blob = _string(primary_source.get("git_blob_sha"), "primary source Git blob SHA") if isinstance(primary_source, dict) else ""
+    if (
+        not isinstance(primary_source, dict)
+        or set(primary_source) != {"path", "size", "sha256", "git_blob_sha"}
+        or primary_source.get("path") != f"{item.source_project}/{Path(item.source_project).name}.ino"
+        or not isinstance(primary_source.get("size"), int)
+        or isinstance(primary_source.get("size"), bool)
+        or primary_source.get("size") <= 0
+        or primary_sha != primary_sha.lower()
+        or not re.fullmatch(r"[0-9a-f]{64}", primary_sha)
+        or primary_blob != primary_blob.lower()
+        or not re.fullmatch(r"[0-9a-f]{40}", primary_blob)
+    ):
+        raise CiFirmwareError("Arduino canonical primary-source identity is malformed or does not match the sketch")
+    source_size = _integer(canonical.get("source_size"), "raw build.options size")
+    source_hash = _string(canonical.get("source_sha256"), "raw build.options SHA-256").lower()
+    if (canonical.get("schema_version") != 1 or canonical.get("source_name") != "build.options.json"
+            or source_size <= 0 or not re.fullmatch(r"[0-9a-f]{64}", source_hash)
+            or canonical.get("fqbn") != packager.ARDUINO_FQBN
+            or canonical.get("core_version") != packager.ARDUINO_CORE_VERSION
+            or canonical.get("sketch_path") != item.source_project
+            or canonical.get("sketch_name") != Path(item.source_project).name):
+        raise CiFirmwareError("Arduino canonical build identity differs from the package contract")
+    try:
+        canonical_application_path = _safe_relative(
+            _string(
+                canonical.get("application_metadata_path"),
+                "Arduino canonical application metadata path",
+            ),
+            "Arduino canonical application metadata path",
+        ).as_posix()
+    except CiFirmwareError:
+        raise
+    if not packager._portable_helper_archive_path(canonical_application_path):
+        raise CiFirmwareError("Arduino canonical application metadata path is not portable")
+    manifest_source_name = _string(build_identity.get("source_name"), "manifest raw build source name")
+    manifest_source_size = _integer(build_identity.get("source_size"), "manifest raw build source size")
+    manifest_source_hash = _string(build_identity.get("source_sha256"), "manifest raw build source SHA-256").lower()
+    if (manifest_source_name != canonical["source_name"]
+            or manifest_source_size != canonical["source_size"]
+            or manifest_source_hash != canonical["source_sha256"]):
+        raise CiFirmwareError("Arduino manifest raw build identity evidence differs from canonical metadata")
+    metadata_contract = manifest.get("arduino_metadata")
+    if not isinstance(metadata_contract, dict) or metadata_contract.get("path") != "metadata/flash_args":
+        raise CiFirmwareError("Arduino manifest must identify its packaged flash_args metadata")
+    metadata_path = package / "metadata" / "flash_args"
+    metadata_size = _integer(metadata_contract.get("size"), "Arduino metadata size")
+    metadata_hash = _string(metadata_contract.get("sha256"), "Arduino metadata SHA-256").lower()
+    if (metadata_size <= 0 or not re.fullmatch(r"[0-9a-f]{64}", metadata_hash)
+            or not metadata_path.is_file() or metadata_path.stat().st_size != metadata_size
+            or sha256(metadata_path) != metadata_hash):
+        raise CiFirmwareError("Arduino flash_args metadata size or hash verification failed")
+    try:
+        metadata_options, metadata_entries = packager.parse_arduino_flash_args_text(
+            metadata_path.read_text(encoding="utf-8")
+        )
+        write_flash_args = packager.validate_arduino_write_flash_args(
+            manifest.get("arduino_write_flash_args")
+        )
+    except (OSError, UnicodeError, ValueError) as exc:
+        raise CiFirmwareError(f"Arduino flash_args metadata is invalid: {exc}") from exc
+    if write_flash_args != metadata_options:
+        raise CiFirmwareError("Arduino manifest write options differ from packaged flash_args")
+
+    bsp = manifest.get("bsp")
+    if (not isinstance(bsp, dict) or bsp.get("component") != packager.ARDUINO_BSP_COMPONENT
+            or bsp.get("applicable") is not False):
+        raise CiFirmwareError("Arduino BSP evidence binding is missing or falsely marked applicable")
+    try:
+        bsp_version, bsp_source_git_sha, bsp_component_tree_sha = packager.validate_bsp_binding(
+            _string(bsp.get("version"), "Arduino BSP version"),
+            _string(bsp.get("source_git_sha"), "Arduino BSP source Git SHA"),
+            _string(bsp.get("component_git_tree_sha"), "Arduino BSP component Git tree SHA"),
+        )
+    except ValueError as exc:
+        raise CiFirmwareError(str(exc)) from exc
+
+    actual_entries: list[tuple[int, str]] = []
+    roles: list[str] = []
+    seen_archive_paths: set[str] = set()
+    for record in raw_files:
+        if not isinstance(record, dict):
+            raise CiFirmwareError("Arduino manifest contains an invalid segment record")
+        metadata_relative = _safe_relative(
+            _string(record.get("metadata_path"), "Arduino metadata path"),
+            "Arduino metadata path",
+        ).as_posix()
+        archive_relative = _safe_relative(
+            _string(record.get("archive_path"), "Arduino archive path"),
+            "Arduino archive path",
+        ).as_posix()
+        if (not packager._portable_helper_archive_path(metadata_relative)
+                or not packager._portable_helper_archive_path(archive_relative)
+                or not archive_relative.startswith("bin/")
+                or archive_relative in seen_archive_paths
+                or packager._arduino_whole_flash_name(archive_relative)):
+            raise CiFirmwareError("Arduino manifest contains a duplicate or whole-flash archive path")
+        seen_archive_paths.add(archive_relative)
+        raw_offset = parse_offset(record.get("offset"))
+        actual_entries.append((raw_offset, metadata_relative))
+        try:
+            expected_role = packager.arduino_segment_role(
+                metadata_relative, Path(item.source_project).name
+            )
+        except ValueError as exc:
+            raise CiFirmwareError(str(exc)) from exc
+        role = _string(record.get("role"), "Arduino segment role")
+        roles.append(role)
+        per_segment = {
+            "metadata_source": "metadata/flash_args",
+            "role": expected_role,
+            "target": packager.CHIP,
+            "fqbn": packager.ARDUINO_FQBN,
+            "framework_version": item.version,
+            "product_git_sha": manifest.get("git_sha"),
+            "bsp_component": packager.ARDUINO_BSP_COMPONENT,
+            "bsp_version": bsp_version,
+            "bsp_source_git_sha": bsp_source_git_sha,
+            "bsp_component_git_tree_sha": bsp_component_tree_sha,
+            "bsp_applicable": False,
+        }
+        if any(record.get(key) != value for key, value in per_segment.items()):
+            raise CiFirmwareError("Arduino segment provenance differs from the package identity")
+    if actual_entries != metadata_entries:
+        raise CiFirmwareError("Arduino manifest segments do not exactly match packaged flash_args")
+    if any(roles.count(required) != 1 for required in ("bootloader", "partition_table", "application")):
+        raise CiFirmwareError("Arduino metadata must contain one bootloader, partition table, and application")
+    if roles.count("boot_app0") > 1:
+        raise CiFirmwareError("Arduino metadata contains duplicate boot_app0 segments")
+    application_metadata_paths = [
+        metadata_path
+        for (_, metadata_path), role in zip(actual_entries, roles)
+        if role == "application"
+    ]
+    if application_metadata_paths != [canonical_application_path]:
+        raise CiFirmwareError("Arduino application output differs from its canonical sketch identity")
+
+    flash = manifest.get("flash")
+    assert isinstance(flash, dict)
+    segmented_bytes = sum(size for _, size, _, _ in plan)
+    fraction = round(segmented_bytes / packager.FLASH_SIZE, 8)
+    if (_integer(flash.get("full_flash_bytes"), "Arduino full flash bytes") != packager.FLASH_SIZE
+            or _integer(flash.get("segmented_bytes"), "Arduino segmented bytes") != segmented_bytes
+            or _integer(flash.get("segmented_payload_total"), "Arduino segmented payload total") != segmented_bytes
+            or flash.get("segmented_fraction") != fraction
+            or segmented_bytes > packager.FLASH_SIZE // 2):
+        raise CiFirmwareError("Arduino segmented-byte evidence is missing or not smaller than full flash")
+
+    expected_inventory = {
+        "manifest.json", "flash.sh", "flash.cmd", "metadata/flash_args",
+        "metadata/arduino_build_identity.json",
+        *seen_archive_paths,
+    }
+    actual_inventory: set[str] = set()
+    for path in package.rglob("*"):
+        if path.is_symlink():
+            raise CiFirmwareError("Arduino package contains a symlink")
+        if path.is_file():
+            relative = path.relative_to(package).as_posix()
+            actual_inventory.add(relative)
+            if "build.options" in relative.casefold() or "expanded" in relative.casefold():
+                raise CiFirmwareError("Arduino package contains raw build properties")
+            if packager.is_binary_payload(relative):
+                continue
+            try:
+                packager.reject_private_artifact_bytes(path.read_bytes(), f"Arduino package member {relative}")
+            except ValueError as exc:
+                raise CiFirmwareError(str(exc)) from exc
+    if actual_inventory != expected_inventory:
+        raise CiFirmwareError("Arduino package extracted file inventory is not exact")
+    _, expected_shell, expected_batch = packager.flash_helpers(raw_files, write_flash_args)
+    try:
+        if ((package / "flash.sh").read_bytes() != expected_shell.encode("utf-8")
+                or (package / "flash.cmd").read_bytes() != expected_batch.encode("utf-8")):
+            raise CiFirmwareError("Arduino flash helpers differ from the verified metadata plan")
+    except OSError as exc:
+        raise CiFirmwareError("Arduino flash helpers are missing or unreadable") from exc
+    return write_flash_args
 
 
-def validate_manifest(package: Path, item: Item, repo: Repository) -> list[tuple[int, Path]]:
+def validate_manifest(package: Path, item: Item, repo: Repository) -> tuple[list[tuple[int, Path]], list[str]]:
     packager = _load_module("ci_firmware_manifest_packager", repo.root / "scripts" / "package_ci_firmware.py")
+    try:
+        trusted_root, trusted_head = packager.trusted_repository()
+    except ValueError as exc:
+        raise CiFirmwareError(f"trusted repository verification failed: {exc}") from exc
+    if (trusted_root != repo.root.resolve()
+            or trusted_head != repo.head
+            or repo.clean is not True):
+        raise CiFirmwareError("selected repository does not match its clean script-derived HEAD")
     manifest = load_json_object(package / "manifest.json")
+    if item.framework == "arduino-esp32":
+        try:
+            strict_manifest = packager.validate_arduino_extracted_bundle(package, trusted_head)
+        except (OSError, UnicodeError, ValueError) as exc:
+            raise CiFirmwareError(f"strict Arduino package validation failed: {exc}") from exc
+        if strict_manifest != manifest:
+            raise CiFirmwareError("Arduino manifest changed between independent validation passes")
     identity = {"schema_version": 1, "board": repo.name, "chip": packager.CHIP, "board_profile": item.profile, "framework": item.framework, "framework_version": item.version, "source_project": item.source_project, "git_sha": repo.head, "c6_firmware_included": False}
     for key in ("board", "chip", "board_profile", "framework", "framework_version", "source_project", "git_sha"):
         _string(manifest.get(key), f"manifest {key}")
@@ -413,7 +622,16 @@ def validate_manifest(package: Path, item: Item, repo: Repository) -> list[tuple
     if any(word in command.casefold() for word in UNSAFE_WORDS):
         raise CiFirmwareError("manifest flash command is unsafe")
     tokens = shlex.split(command)
-    prefix = ["python", "-m", "esptool", "--chip", packager.CHIP, "--baud", str(packager.DEFAULT_BAUD), "write_flash"]
+    base_prefix = ["python", "-m", "esptool", "--chip", packager.CHIP, "--baud", str(packager.DEFAULT_BAUD), "write_flash"]
+    write_flash_args: list[str] = []
+    if item.framework == "arduino-esp32":
+        try:
+            write_flash_args = packager.validate_arduino_write_flash_args(
+                manifest.get("arduino_write_flash_args")
+            )
+        except ValueError as exc:
+            raise CiFirmwareError(str(exc)) from exc
+    prefix = base_prefix + write_flash_args
     if tokens[:len(prefix)] != prefix or len(tokens) < len(prefix) + 2 or (len(tokens) - len(prefix)) % 2:
         raise CiFirmwareError("manifest flash command is not a canonical write_flash plan")
     raw_files = manifest.get("files")
@@ -453,10 +671,11 @@ def validate_manifest(package: Path, item: Item, repo: Repository) -> list[tuple
     if item.framework == "esp-idf":
         validate_idf_metadata(package, plan, raw_files)
     elif item.framework == "arduino-esp32":
-        validate_arduino_layout(item, manifest, plan, packager)
+        if validate_arduino_layout(package, item, manifest, plan, raw_files, packager) != write_flash_args:
+            raise CiFirmwareError("Arduino write options changed during metadata validation")
     else:
         raise CiFirmwareError("unsupported package framework")
-    return [(offset, path) for offset, _, path, _ in plan]
+    return [(offset, path) for offset, _, path, _ in plan], write_flash_args
 
 
 def profile_for_major(major: int) -> str:
@@ -590,7 +809,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             raise CiFirmwareError(f"refusing to overwrite existing cache directory: {target_cache}")
         assert_repository_unchanged(repo)
         package = unpack_artifact(api.download(str(artifact.get("archive_download_url", ""))), target_cache)
-        plan = validate_manifest(package, item, repo)
+        plan, write_flash_args = validate_manifest(package, item, repo)
         assert_repository_unchanged(repo)
         ports = list_ports()
         print("ports=" + (", ".join(ports) if ports else "none"))
@@ -606,11 +825,11 @@ def main(argv: Sequence[str] | None = None) -> int:
             raise CiFirmwareError("detected flash capacity is below the required 32 MiB")
         if item.profile == "rev3_x": print("WARNING: confirm matching rev3_x PCB/electrical revision before flashing.")
         print(f"run={runs[item.workflow].run_id} sha={repo.head} artifact={item.artifact} profile={item.profile} port={port} chip=ESP32-P4 revision={major} flash={capacity}")
-        print("plan=" + " ".join(f"0x{offset:x}:{path}" for offset, path in plan))
+        print("plan=" + " ".join([*write_flash_args, *(f"0x{offset:x}:{path}" for offset, path in plan)]))
         if input("Type FLASH to write this one item: ").strip() != "FLASH":
             raise CiFirmwareError("flash confirmation was not provided")
         assert_repository_unchanged(repo)
-        command = [sys.executable, "-m", "esptool", "--port", port, "--chip", packager.CHIP, "--baud", str(packager.DEFAULT_BAUD), "write_flash"] + [part for offset, path in plan for part in (f"0x{offset:x}", str(path))]
+        command = [sys.executable, "-m", "esptool", "--port", port, "--chip", packager.CHIP, "--baud", str(packager.DEFAULT_BAUD), "write_flash", *write_flash_args] + [part for offset, path in plan for part in (f"0x{offset:x}", str(path))]
         completed = subprocess.run(command, capture_output=True, text=True, encoding="utf-8")
         output = completed.stdout + completed.stderr
         print(output, end="")

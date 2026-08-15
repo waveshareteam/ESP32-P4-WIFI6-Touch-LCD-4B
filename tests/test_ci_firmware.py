@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import importlib.util
+import hashlib
 import json
 import os
 import shutil
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -34,6 +36,58 @@ CORE_SPEC.loader.exec_module(core)
 
 
 class CiFirmwarePackageTests(unittest.TestCase):
+    BSP_VERSION = "3.0.0"
+    BSP_SHA = "b" * 40
+    BSP_TREE_SHA = "c" * 40
+
+    def setUp(self) -> None:
+        self.original_repository_resolver = packager._repository_root_from_script
+        self.original_package_git_sha = os.environ.get("PACKAGE_GIT_SHA")
+
+    def tearDown(self) -> None:
+        packager._repository_root_from_script = self.original_repository_resolver
+        if self.original_package_git_sha is None:
+            os.environ.pop("PACKAGE_GIT_SHA", None)
+        else:
+            os.environ["PACKAGE_GIT_SHA"] = self.original_package_git_sha
+
+    @staticmethod
+    def git(root: Path, *arguments: str) -> str:
+        completed = subprocess.run(
+            ["git", "-C", str(root), *arguments],
+            check=True,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+        )
+        return completed.stdout.strip()
+
+    def commit_repository(self, root: Path) -> str:
+        if not (root / ".git").is_dir():
+            self.git(root, "init", "--quiet")
+            self.git(root, "config", "user.name", "Firmware Test")
+            self.git(root, "config", "user.email", "firmware-test@example.invalid")
+            (root / ".gitignore").write_text(
+                "build/\n**/build/\n*.zip\npackage/\nhelper-run/\nfake-bin/\n"
+                "captured-helper-args.txt\nrelease-artifacts/\n",
+                encoding="utf-8",
+            )
+        self.git(root, "add", "--all")
+        staged = subprocess.run(
+            ["git", "-C", str(root), "diff", "--cached", "--quiet"],
+            check=False,
+        ).returncode
+        if staged:
+            self.git(root, "commit", "--quiet", "-m", "test fixture")
+        return self.activate_repository(root)
+
+    def activate_repository(self, root: Path) -> str:
+        resolved = root.resolve()
+        head = self.git(resolved, "rev-parse", "HEAD").lower()
+        packager._repository_root_from_script = lambda: resolved
+        os.environ["PACKAGE_GIT_SHA"] = head
+        return head
+
     @staticmethod
     def expected_list_only_items() -> list[tuple[str, str]]:
         inventory = selector.discover_inventory(ROOT)
@@ -67,10 +121,48 @@ class CiFirmwarePackageTests(unittest.TestCase):
         build = project / "build"
         build.mkdir(parents=True)
         (build / "bootloader.bin").write_bytes(b"boot")
-        (build / "app.bin").write_bytes(b"application")
+        (build / "app.bin").write_bytes(b"application compiled from /tmp/external-component.c")
         (build / "config").mkdir()
         (build / "config" / "sdkconfig.json").write_text(json.dumps({"ESP32P4_SELECTS_REV_LESS_V3": True, "ESP32P4_REV_MIN_100": True}), encoding="utf-8")
         (build / "flasher_args.json").write_text(json.dumps({"flash_files": {"0x0": "bootloader.bin", "0x10000": "app.bin"}}), encoding="utf-8")
+        (project / "CMakeLists.txt").write_text("# test fixture\n", encoding="utf-8")
+        self.commit_repository(root)
+        return project, build
+
+    def arduino_fixture(self, root: Path, name: str = "HelloWorld", boot_offset: int = 0x2000) -> tuple[Path, Path]:
+        project = root / "examples" / "arduino" / name
+        build = root / "build" / name
+        project.mkdir(parents=True)
+        build.mkdir(parents=True)
+        (project / f"{name}.ino").write_text("void setup() {}\nvoid loop() {}\n", encoding="utf-8")
+        files = {
+            f"{name}.ino.bootloader.bin": b"bootloader",
+            f"{name}.ino.partitions.bin": b"partitions",
+            "boot_app0.bin": b"ota-data",
+            f"{name}.ino.bin": b"application",
+        }
+        for filename, content in files.items():
+            (build / filename).write_bytes(content)
+        (build / "build.options.json").write_text(
+            json.dumps({
+                "fqbn": packager.ARDUINO_FQBN,
+                "hardwareFolders": "/home/example/.arduino15/packages/esp32/hardware/esp32/3.3.11",
+                "sketchLocation": str(project),
+                "otherLibrariesFolders": "/Users/example/Arduino/libraries",
+                "customBuildProperties": "C:\\Users\\example\\cache",
+            }),
+            encoding="utf-8",
+        )
+        (build / f"{name}.ino.merged.bin").write_bytes(b"not-a-release-artifact")
+        (build / "flash_args").write_text(
+            "--flash-mode dio --flash-freq 80m --flash-size 32MB\n"
+            f"0x{boot_offset:x} {name}.ino.bootloader.bin\n"
+            f"0x8000 {name}.ino.partitions.bin\n"
+            "0xe000 boot_app0.bin\n"
+            f"0x10000 {name}.ino.bin\n",
+            encoding="utf-8",
+        )
+        self.commit_repository(root)
         return project, build
 
     def test_idf_bundle_has_schema_one_safe_relative_manifest_and_metadata(self) -> None:
@@ -118,38 +210,499 @@ class CiFirmwarePackageTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 packager.validate_idf_profile(build, "rev3_x")
 
-    def test_arduino_requires_one_unambiguous_flash_layout_and_safe_fqbn(self) -> None:
+    def test_arduino_requires_real_safe_metadata_fqbn_profile_and_bsp_binding(self) -> None:
         fqbn = packager.ARDUINO_FQBN
         with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory); project = root / "examples" / "arduino" / "HelloWorld"; build = root / "build"; project.mkdir(parents=True); build.mkdir()
-            for name in ("HelloWorld.ino.merged.bin", "another-merged.bin"): (build / name).write_bytes(b"x")
+            root = Path(directory); project, build = self.arduino_fixture(root)
             old = Path.cwd(); os.chdir(root)
             try:
-                with self.assertRaises(ValueError): packager.package_arduino(project, build, "3.3.11", root / "bad.zip", fqbn, "rev1_3")
-                with self.assertRaises(ValueError): packager.package_arduino(project, build, "3.3.11", root / "bad2.zip", "FlashSize=16M", "rev1_3")
+                (build / "flash_args").unlink()
+                with self.assertRaises((ValueError, FileNotFoundError)): packager.package_arduino(project, build, "3.3.11", root / "missing.zip", fqbn, "rev1_3", self.BSP_VERSION, self.BSP_SHA, self.BSP_TREE_SHA)
+                _, build = self.arduino_fixture(root, "Second")
+                with self.assertRaises(ValueError): packager.package_arduino(root / "examples/arduino/Second", build, "3.3.11", root / "bad-fqbn.zip", "FlashSize=16M", "rev1_3", self.BSP_VERSION, self.BSP_SHA, self.BSP_TREE_SHA)
+                (build / "build.options.json").write_text(json.dumps({"fqbn": "esp32:esp32:esp32s3"}), encoding="utf-8")
+                with self.assertRaises(ValueError): packager.package_arduino(root / "examples/arduino/Second", build, "3.3.11", root / "relabeled.zip", fqbn, "rev1_3", self.BSP_VERSION, self.BSP_SHA, self.BSP_TREE_SHA)
+                (build / "build.options.json").write_text(json.dumps({"fqbn": fqbn, "hardwareFolders": "/toolchain/esp32/3.3.11"}), encoding="utf-8")
+                (build / "build.options.json").write_text(json.dumps({"fqbn": fqbn, "hardwareFolders": "/toolchain/esp32/3.3.10"}), encoding="utf-8")
+                with self.assertRaises(ValueError):
+                    packager.package_arduino(root / "examples/arduino/Second", build, "3.3.11", root / "wrong-core.zip", fqbn, "rev1_3", self.BSP_VERSION, self.BSP_SHA, self.BSP_TREE_SHA)
+                (build / "build.options.json").write_text(json.dumps({"fqbn": fqbn, "hardwareFolders": "/toolchain/esp32/3.3.11"}), encoding="utf-8")
+                third_project, third_build = self.arduino_fixture(root, "Third")
+                (third_build / "build.options.json").unlink()
+                with self.assertRaises((ValueError, FileNotFoundError)):
+                    packager.package_arduino(third_project, third_build, "3.3.11", root / "missing-options.zip", fqbn, "rev1_3", self.BSP_VERSION, self.BSP_SHA, self.BSP_TREE_SHA)
+                (third_build / "build.options.json").write_text("{not-json", encoding="utf-8")
+                with self.assertRaises(ValueError):
+                    packager.package_arduino(third_project, third_build, "3.3.11", root / "malformed-options.zip", fqbn, "rev1_3", self.BSP_VERSION, self.BSP_SHA, self.BSP_TREE_SHA)
                 with self.assertRaises(ValueError): packager.parse_arduino_fqbn("esp32:esp32:esp32p4:FlashSize=32M,FlashSize=32M,ChipVariant=prev3,EraseFlash=none")
-                with self.assertRaises(ValueError): packager.package_arduino(project, build, "3.3.11", root / "bad3.zip", fqbn, "rev3_x")
+                with self.assertRaises(ValueError): packager.package_arduino(root / "examples/arduino/Second", build, "3.3.11", root / "bad-profile.zip", fqbn, "rev3_x", self.BSP_VERSION, self.BSP_SHA, self.BSP_TREE_SHA)
+                with self.assertRaises(ValueError): packager.package_arduino(root / "examples/arduino/Second", build, "3.3.11", root / "bad-bsp.zip", fqbn, "rev1_3", self.BSP_VERSION, "short", self.BSP_TREE_SHA)
+                with self.assertRaises(ValueError): packager.package_arduino(root / "examples/arduino/Second", build, "3.3.11", root / "bad-tree.zip", fqbn, "rev1_3", self.BSP_VERSION, self.BSP_SHA, "short")
             finally:
                 os.chdir(old)
 
-    def test_arduino_merged_bundle_has_exact_fqbn_and_offset_zero(self) -> None:
+    def test_arduino_segment_bundle_comes_only_from_flash_args_with_full_provenance(self) -> None:
         fqbn = packager.ARDUINO_FQBN
         with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory); project = root / "examples" / "arduino" / "HelloWorld"; build = root / "build"; project.mkdir(parents=True); build.mkdir()
-            (build / "HelloWorld.ino.merged.bin").write_bytes(b"merged")
+            root = Path(directory); project, build = self.arduino_fixture(root)
+            chunk = b"\0" * (1024 * 1024)
+            for size_mib in (16, 32):
+                with (build / f"legacy-{size_mib}MiB.merged.bin").open("wb") as merged:
+                    for _ in range(size_mib):
+                        merged.write(chunk)
             old = Path.cwd(); os.chdir(root)
             try:
-                output = packager.package_arduino(project, build, "3.3.11", root / "arduino.zip", fqbn, "rev1_3")
+                output = packager.package_arduino(project, build, "3.3.11", root / "arduino.zip", fqbn, "rev1_3", self.BSP_VERSION, self.BSP_SHA, self.BSP_TREE_SHA)
+            finally:
+                os.chdir(old)
+            trusted_head = self.git(root, "rev-parse", "HEAD").lower()
+            with zipfile.ZipFile(output) as archive:
+                document = json.loads(archive.read("manifest.json"))
+                names = archive.namelist()
+                metadata_payload = archive.read("metadata/flash_args")
+                canonical_identity_payload = archive.read("metadata/arduino_build_identity.json")
+                segment_payloads = {
+                    entry["archive_path"]: archive.read(entry["archive_path"])
+                    for entry in document["files"]
+                }
+            self.assertEqual(fqbn, document["fqbn"])
+            self.assertEqual("rev1_3", document["board_profile"])
+            self.assertEqual(["0x2000", "0x8000", "0xe000", "0x10000"], [entry["offset"] for entry in document["files"]])
+            self.assertEqual(["bootloader", "partition_table", "boot_app0", "application"], [entry["role"] for entry in document["files"]])
+            self.assertTrue(all(entry["metadata_source"] == "metadata/flash_args" for entry in document["files"]))
+            self.assertTrue(all(entry["product_git_sha"] == trusted_head for entry in document["files"]))
+            self.assertTrue(all(entry["bsp_source_git_sha"] == self.BSP_SHA for entry in document["files"]))
+            self.assertTrue(all(entry["bsp_component_git_tree_sha"] == self.BSP_TREE_SHA for entry in document["files"]))
+            self.assertTrue(all(entry["bsp_applicable"] is False for entry in document["files"]))
+            self.assertFalse(document["bsp"]["applicable"])
+            self.assertEqual(460800, document["flash"]["baud"])
+            self.assertEqual(32 * 1024 * 1024, document["flash"]["full_flash_bytes"])
+            self.assertEqual(sum(entry["size"] for entry in document["files"]), document["flash"]["segmented_bytes"])
+            self.assertEqual(document["flash"]["segmented_bytes"], document["flash"]["segmented_payload_total"])
+            self.assertLessEqual(document["flash"]["segmented_payload_total"], document["flash"]["full_flash_bytes"] // 2)
+            self.assertEqual(["--flash-mode", "dio", "--flash-freq", "80m", "--flash-size", "32MB"], document["arduino_write_flash_args"])
+            self.assertIn("metadata/flash_args", names)
+            self.assertEqual(document["arduino_metadata"]["size"], len(metadata_payload))
+            self.assertEqual(document["arduino_metadata"]["sha256"], hashlib.sha256(metadata_payload).hexdigest())
+            self.assertEqual(document["arduino_build_identity"]["size"], len(canonical_identity_payload))
+            self.assertEqual(document["arduino_build_identity"]["sha256"], hashlib.sha256(canonical_identity_payload).hexdigest())
+            canonical_identity = json.loads(canonical_identity_payload)
+            self.assertEqual("build.options.json", canonical_identity["source_name"])
+            self.assertEqual(packager.ARDUINO_FQBN, canonical_identity["fqbn"])
+            self.assertEqual("3.3.11", canonical_identity["core_version"])
+            self.assertEqual("examples/arduino/HelloWorld", canonical_identity["sketch_path"])
+            self.assertEqual("HelloWorld", canonical_identity["sketch_name"])
+            self.assertEqual("HelloWorld.ino.bin", canonical_identity["application_metadata_path"])
+            self.assertEqual(canonical_identity["source_name"], document["arduino_build_identity"]["source_name"])
+            self.assertEqual(canonical_identity["source_size"], document["arduino_build_identity"]["source_size"])
+            self.assertEqual(canonical_identity["source_sha256"], document["arduino_build_identity"]["source_sha256"])
+            for entry in document["files"]:
+                payload = segment_payloads[entry["archive_path"]]
+                self.assertEqual(entry["size"], len(payload))
+                self.assertEqual(entry["sha256"], hashlib.sha256(payload).hexdigest())
+            self.assertNotIn("build.options.json", names)
+            self.assertIn("metadata/arduino_build_identity.json", names)
+            self.assertFalse(document["arduino_build_identity"]["raw_archived"])
+            self.assertFalse(any("merged" in name.casefold() for name in names))
+            with zipfile.ZipFile(output) as archive:
+                public_payloads = [archive.read(name) for name in archive.namelist()]
+            for private_marker in (b"/home/example", b"/tmp/private-work", b"/Users/example", b"C:\\Users\\example"):
+                self.assertFalse(any(private_marker in payload for payload in public_payloads))
+            self.assertIn("write_flash", document["flash"]["command"])
+            self.assertIn("--flash-mode dio --flash-freq 80m --flash-size 32MB", document["flash"]["command"])
+            self.assertNotIn("erase", document["flash"]["command"].lower())
+            with zipfile.ZipFile(output) as archive:
+                shell = archive.read("flash.sh")
+                batch = archive.read("flash.cmd")
+            self.assertIn(b'--port "$PORT"', shell)
+            self.assertIn(b'--port "%PORT%"', batch)
+            self.assertNotIn(b'"$@"', shell)
+            self.assertNotIn(b"%*", batch)
+            self.assertIn(b'if not "%3"=="" goto usage', batch)
+            self.assertNotIn(b'if not "%~3"=="" goto usage', batch)
+            self.assertIn(b'if not "%PORT:#=%"=="%PORT%" goto usage', batch)
+            self.assertIn(b'for /f "eol=# delims=', batch)
+            self.assertNotIn(b"eol=;", batch)
+
+            helper_root = root / "helper-run"
+            with zipfile.ZipFile(output) as archive:
+                archive.extractall(helper_root)
+            fake_bin = root / "fake-bin"
+            fake_bin.mkdir()
+            fake_python = fake_bin / "python"
+            capture = root / "captured-helper-args.txt"
+            fake_python.write_text(
+                "#!/usr/bin/env sh\nprintf '%s\\n' \"$@\" > \"$CAPTURE\"\n",
+                encoding="utf-8",
+            )
+            fake_python.chmod(0o755)
+            helper_environment = dict(os.environ)
+            helper_environment.update({
+                "PATH": f"{fake_bin}{os.pathsep}{helper_environment.get('PATH', '')}",
+                "CAPTURE": str(capture),
+            })
+            shell_path = helper_root / "flash.sh"
+            for arguments in ((), ("--port", "--chip"), ("--port", "COM17", "--erase-all")):
+                completed = subprocess.run(
+                    ["sh", str(shell_path), *arguments],
+                    cwd=helper_root,
+                    env=helper_environment,
+                    text=True,
+                    capture_output=True,
+                    check=False,
+                )
+                self.assertEqual(2, completed.returncode, arguments)
+            completed = subprocess.run(
+                ["sh", str(shell_path), "--port", "COM17"],
+                cwd=helper_root,
+                env=helper_environment,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+            self.assertEqual(0, completed.returncode, completed.stderr)
+            captured = capture.read_text(encoding="utf-8").splitlines()
+            self.assertEqual(
+                ["-m", "esptool", "--port", "COM17", "--chip", "esp32p4", "--baud", "460800", "write_flash"],
+                captured[:9],
+            )
+            self.assertEqual(document["arduino_write_flash_args"], captured[9:15])
+
+    def test_arduino_build_identity_rejects_swapped_or_relabeled_sketches(self) -> None:
+        fqbn = packager.ARDUINO_FQBN
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            project_a, build_a = self.arduino_fixture(root, "Alpha")
+            project_b, build_b = self.arduino_fixture(root, "Beta")
+            old = Path.cwd(); os.chdir(root)
+            try:
+                with self.assertRaises(ValueError):
+                    packager.package_arduino(
+                        project_a, build_b, "3.3.11", root / "swapped.zip", fqbn,
+                        "rev1_3", self.BSP_VERSION, self.BSP_SHA, self.BSP_TREE_SHA,
+                    )
+
+                impersonator = root / "other" / "examples" / "arduino" / "Alpha"
+                impersonator.mkdir(parents=True)
+                (impersonator / "Alpha.ino").write_text("void setup() {}\n", encoding="utf-8")
+                options_path = build_a / "build.options.json"
+                options = json.loads(options_path.read_text(encoding="utf-8"))
+                options["sketchLocation"] = str(impersonator)
+                options_path.write_text(json.dumps(options), encoding="utf-8")
+                with self.assertRaises(ValueError):
+                    packager.package_arduino(
+                        project_a, build_a, "3.3.11", root / "impersonated.zip", fqbn,
+                        "rev1_3", self.BSP_VERSION, self.BSP_SHA, self.BSP_TREE_SHA,
+                    )
+
+                options["sketchLocation"] = str(project_a)
+                options_path.write_text(json.dumps(options), encoding="utf-8")
+                (build_a / "Relabeled.ino.bin").write_bytes(b"application")
+                (build_a / "flash_args").write_text(
+                    "--flash-mode dio --flash-freq 80m --flash-size 32MB\n"
+                    "0x2000 Alpha.ino.bootloader.bin\n0x8000 Alpha.ino.partitions.bin\n"
+                    "0xe000 boot_app0.bin\n0x10000 Relabeled.ino.bin\n",
+                    encoding="utf-8",
+                )
+                with self.assertRaises(ValueError):
+                    packager.package_arduino(
+                        project_a, build_a, "3.3.11", root / "relabeled.zip", fqbn,
+                        "rev1_3", self.BSP_VERSION, self.BSP_SHA, self.BSP_TREE_SHA,
+                    )
+            finally:
+                os.chdir(old)
+
+    def test_arduino_download_rejects_coordinated_source_project_resigning(self) -> None:
+        fqbn = packager.ARDUINO_FQBN
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            project, build = self.arduino_fixture(root)
+            self.arduino_fixture(root, "Drawing_board")
+            old = Path.cwd(); os.chdir(root)
+            try:
+                output = packager.package_arduino(
+                    project, build, "3.3.11", root / "base.zip", fqbn,
+                    "rev1_3", self.BSP_VERSION, self.BSP_SHA, self.BSP_TREE_SHA,
+                )
+            finally:
+                os.chdir(old)
+            trusted_root, trusted_head = packager.trusted_repository()
+            with zipfile.ZipFile(output) as archive:
+                members = {name: archive.read(name) for name in archive.namelist()}
+                document = json.loads(members["manifest.json"])
+                canonical = json.loads(members["metadata/arduino_build_identity.json"])
+            extras = ["metadata/flash_args", "metadata/arduino_build_identity.json"]
+
+            def resign(target_project: str, sketch_name: str, primary: dict[str, object]) -> tuple[Path, dict[str, object]]:
+                changed = json.loads(json.dumps(document))
+                changed["source_project"] = target_project
+                changed_canonical = json.loads(json.dumps(canonical))
+                changed_canonical["sketch_path"] = target_project
+                changed_canonical["sketch_name"] = sketch_name
+                changed_canonical["primary_source"] = primary
+                payload = (json.dumps(changed_canonical, sort_keys=True, separators=(",", ":")) + "\n").encode("utf-8")
+                changed["arduino_build_identity"]["size"] = len(payload)
+                changed["arduino_build_identity"]["sha256"] = hashlib.sha256(payload).hexdigest()
+                changed_members = dict(members)
+                changed_members["manifest.json"] = (json.dumps(changed, indent=2, sort_keys=True) + "\n").encode("utf-8")
+                changed_members["metadata/arduino_build_identity.json"] = payload
+                target = root / f"resigned-{sketch_name}.zip"
+                with zipfile.ZipFile(target, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+                    for name, payload in changed_members.items():
+                        archive.writestr(name, payload)
+                return target, changed
+
+            # Coordinated re-sign to a non-existent project path.
+            ghost = {"path": "examples/arduino/Ghost/Ghost.ino", "size": 32, "sha256": "e" * 64, "git_blob_sha": "f" * 40}
+            ghost_zip, ghost_doc = resign("examples/arduino/Ghost", "Ghost", ghost)
+            with self.assertRaises(ValueError):
+                packager.validate_written_bundle(ghost_zip, ghost_doc, extras, trusted_head, trusted_root)
+
+            # Coordinated re-sign to another real project, keeping a stale primary identity.
+            stale = dict(canonical["primary_source"])
+            board_zip, board_doc = resign("examples/arduino/Drawing_board", "Drawing_board", stale)
+            with self.assertRaises(ValueError):
+                packager.validate_written_bundle(board_zip, board_doc, extras, trusted_head, trusted_root)
+
+    def test_arduino_download_rejects_cross_checkout_package(self) -> None:
+        fqbn = packager.ARDUINO_FQBN
+        with tempfile.TemporaryDirectory() as dir_a, tempfile.TemporaryDirectory() as dir_b:
+            root_a, root_b = Path(dir_a), Path(dir_b)
+            project_a, build_a = self.arduino_fixture(root_a)
+            old = Path.cwd(); os.chdir(root_a)
+            try:
+                output = packager.package_arduino(
+                    project_a, build_a, "3.3.11", root_a / "base.zip", fqbn,
+                    "rev1_3", self.BSP_VERSION, self.BSP_SHA, self.BSP_TREE_SHA,
+                )
+            finally:
+                os.chdir(old)
+            # A second checkout with the same layout but a different tracked sketch.
+            self.arduino_fixture(root_b)
+            (root_b / "examples" / "arduino" / "HelloWorld" / "HelloWorld.ino").write_text(
+                "void setup() {}\nvoid loop() {}\n// checkout B\n", encoding="utf-8"
+            )
+            self.commit_repository(root_b)
+            head_b = self.git(root_b, "rev-parse", "HEAD").lower()
+            package = root_a / "extracted"
+            with zipfile.ZipFile(output) as archive:
+                archive.extractall(package)
+            packager._repository_root_from_script = lambda: root_b.resolve()
+            with self.assertRaises(ValueError):
+                packager.validate_arduino_extracted_bundle(package, head_b)
+
+    def test_private_path_scanner_rejects_drive_and_unc_roots_but_allows_upstream_paths(self) -> None:
+        for payload in (
+            b"/home/ubuntu",
+            b"/Users/alice",
+            b"/tmp",
+            b"/private/tmp",
+            b"/root/project",
+            b"/workspace/project",
+            b"/workspaces/project",
+            b"C:\\work\\artifact.bin",
+            b"d:/cache/tool.bin",
+            b"\\\\server\\share",
+            b"prefix \\\\server/share/folder suffix",
+            b"//server/share",
+            b"prefix //server/share/folder suffix",
+        ):
+            with self.assertRaises(ValueError, msg=payload):
+                packager.reject_private_artifact_bytes(payload, "fixture")
+        for payload in (
+            b"/IDF/components/freertos/file.c",
+            b"/builds/idf/crosstool-NG/source.c",
+            b"/dev/ttyUSB0",
+            b"C:relative-file.txt",
+        ):
+            packager.reject_private_artifact_bytes(payload, "fixture")
+
+    def test_arduino_parser_rejects_merged_unsafe_symlink_overlap_and_range_but_allows_bootloader_zero(self) -> None:
+        fqbn = packager.ARDUINO_FQBN
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory); project, build = self.arduino_fixture(root, boot_offset=0)
+            old = Path.cwd(); os.chdir(root)
+            try:
+                output = packager.package_arduino(project, build, "3.3.11", root / "zero.zip", fqbn, "rev1_3", self.BSP_VERSION, self.BSP_SHA, self.BSP_TREE_SHA)
+                self.assertTrue(output.is_file())
+                cases = {
+                    "merged": "--flash-mode dio --flash-freq 80m --flash-size 32MB\n0x0 HelloWorld.ino.merged.bin\n",
+                    "escape": "--flash-mode dio --flash-freq 80m --flash-size 32MB\n0x0 ../outside.bin\n",
+                    "drive": "--flash-mode dio --flash-freq 80m --flash-size 32MB\n0x0 C:/outside.bin\n",
+                    "unc": "--flash-mode dio --flash-freq 80m --flash-size 32MB\n0x0 //server/share.bin\n",
+                    "danger": "--flash-mode dio --flash-freq 80m --flash-size 32MB --erase-all\n0x0 HelloWorld.ino.bootloader.bin\n",
+                }
+                for label, text in cases.items():
+                    (build / "flash_args").write_text(text, encoding="utf-8")
+                    with self.assertRaises(ValueError, msg=label):
+                        packager.package_arduino(project, build, "3.3.11", root / f"{label}.zip", fqbn, "rev1_3", self.BSP_VERSION, self.BSP_SHA, self.BSP_TREE_SHA)
+                self.arduino_fixture(root, "Overlap")
+                overlap_project = root / "examples/arduino/Overlap"; overlap_build = root / "build/Overlap"
+                (overlap_build / "flash_args").write_text(
+                    "--flash-mode dio --flash-freq 80m --flash-size 32MB\n"
+                    "0x2000 Overlap.ino.bootloader.bin\n0x2004 Overlap.ino.partitions.bin\n"
+                    "0xe000 boot_app0.bin\n0x10000 Overlap.ino.bin\n", encoding="utf-8")
+                with self.assertRaises(ValueError):
+                    packager.package_arduino(overlap_project, overlap_build, "3.3.11", root / "overlap.zip", fqbn, "rev1_3", self.BSP_VERSION, self.BSP_SHA, self.BSP_TREE_SHA)
+                self.arduino_fixture(root, "Range", boot_offset=0x1FFFFFF)
+                with self.assertRaises(ValueError):
+                    packager.package_arduino(root / "examples/arduino/Range", root / "build/Range", "3.3.11", root / "range.zip", fqbn, "rev1_3", self.BSP_VERSION, self.BSP_SHA, self.BSP_TREE_SHA)
+                self.arduino_fixture(root, "Linked")
+                linked_project = root / "examples/arduino/Linked"; linked_build = root / "build/Linked"
+                target = linked_build / "real.bin"; target.write_bytes(b"boot")
+                (linked_build / "Linked.ino.bootloader.bin").unlink()
+                (linked_build / "Linked.ino.bootloader.bin").symlink_to(target)
+                with self.assertRaises(ValueError):
+                    packager.package_arduino(linked_project, linked_build, "3.3.11", root / "linked.zip", fqbn, "rev1_3", self.BSP_VERSION, self.BSP_SHA, self.BSP_TREE_SHA)
+                # Opaque compiled images are exempt from the text privacy scan, so a
+                # sanitized //IDF path inside a .bin payload still packages cleanly.
+                self.arduino_fixture(root, "Opaque")
+                (root / "build/Opaque/Opaque.ino.bin").write_bytes(b"//IDF/components/sanitized.c")
+                opaque_output = packager.package_arduino(root / "examples/arduino/Opaque", root / "build/Opaque", "3.3.11", root / "opaque.zip", fqbn, "rev1_3", self.BSP_VERSION, self.BSP_SHA, self.BSP_TREE_SHA)
+                self.assertTrue(opaque_output.is_file())
+            finally:
+                os.chdir(old)
+
+    def test_arduino_zip_readback_rejects_tampered_metadata_segment_totals_and_extra_raw_properties(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory); project, build = self.arduino_fixture(root)
+            old = Path.cwd(); os.chdir(root)
+            try:
+                output = packager.package_arduino(
+                    project, build, "3.3.11", root / "base.zip", packager.ARDUINO_FQBN,
+                    "rev1_3", self.BSP_VERSION, self.BSP_SHA, self.BSP_TREE_SHA,
+                )
             finally:
                 os.chdir(old)
             with zipfile.ZipFile(output) as archive:
-                document = json.loads(archive.read("manifest.json"))
-            self.assertEqual(fqbn, document["fqbn"])
-            self.assertEqual("rev1_3", document["board_profile"])
-            self.assertEqual(["0x0"], [entry["offset"] for entry in document["files"]])
-            self.assertEqual(460800, document["flash"]["baud"])
-            self.assertIn("write_flash", document["flash"]["command"])
-            self.assertNotIn("erase", document["flash"]["command"].lower())
+                base_members = {name: archive.read(name) for name in archive.namelist()}
+                document = json.loads(base_members["manifest.json"])
+
+            trusted_root, trusted_head = packager.trusted_repository()
+            extras = ["metadata/flash_args", "metadata/arduino_build_identity.json"]
+
+            def tampered(
+                name: str,
+                replacements: dict[str, bytes],
+                added: dict[str, bytes] | None = None,
+                deleted: set[str] | None = None,
+            ) -> Path:
+                target = root / name
+                with zipfile.ZipFile(target, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+                    for member_name, payload in base_members.items():
+                        if member_name in (deleted or set()):
+                            continue
+                        archive.writestr(member_name, replacements.get(member_name, payload))
+                    for member_name, payload in (added or {}).items():
+                        archive.writestr(member_name, payload)
+                return target
+
+            segment_name = document["files"][0]["archive_path"]
+            cases = (
+                ("flash-args.zip", {"metadata/flash_args": base_members["metadata/flash_args"] + b"\n"}, None, document),
+                ("canonical.zip", {"metadata/arduino_build_identity.json": b"{}\n"}, None, document),
+                ("segment.zip", {segment_name: base_members[segment_name] + b"x"}, None, document),
+                ("raw.zip", {}, {"metadata/build.options.json": b"/home/example/private"}, document),
+            )
+            for name, replacements, added, contract in cases:
+                with self.assertRaises(ValueError, msg=name):
+                    packager.validate_written_bundle(tampered(name, replacements, added), contract, extras, trusted_head, trusted_root)
+
+            last = document["files"][-1]
+            helper_contracts = {
+                "flash.sh": {
+                    "segment-delete": f'{last["offset"]} "$DIR/{last["archive_path"]}"'.encode(),
+                    "offset": str(last["offset"]).encode(),
+                    "filename": str(last["archive_path"]).encode(),
+                    "option": b"--flash-mode dio",
+                    "erase": b"write_flash",
+                },
+                "flash.cmd": {
+                    "segment-delete": (
+                        f'{last["offset"]} "%~dp0{str(last["archive_path"]).replace("/", chr(92))}"'
+                    ).encode(),
+                    "offset": str(last["offset"]).encode(),
+                    "filename": str(last["archive_path"]).replace("/", "\\").encode(),
+                    "option": b"--flash-mode dio",
+                    "erase": b"write_flash",
+                },
+            }
+            replacements_by_case = {
+                "segment-delete": b"",
+                "offset": b"0x11000",
+                "filename": b"bin/renamed.bin",
+                "option": b"--flash-mode qio",
+                "erase": b"erase_flash",
+            }
+            for helper_name, mutations in helper_contracts.items():
+                with self.assertRaises(ValueError, msg=f"delete-{helper_name}"):
+                    packager.validate_written_bundle(
+                        tampered(f"delete-{helper_name}.zip", {}, deleted={helper_name}),
+                        document,
+                        extras,
+                        trusted_head,
+                        trusted_root,
+                    )
+                for label, original in mutations.items():
+                    self.assertIn(original, base_members[helper_name], (helper_name, label))
+                    changed_helper = base_members[helper_name].replace(
+                        original, replacements_by_case[label], 1
+                    )
+                    with self.assertRaises(ValueError, msg=f"{helper_name}-{label}"):
+                        packager.validate_written_bundle(
+                            tampered(
+                                f"{helper_name.replace('.', '-')}-{label}.zip",
+                                {helper_name: changed_helper},
+                            ),
+                            document,
+                            extras,
+                            trusted_head,
+                            trusted_root,
+                        )
+
+            changed = json.loads(json.dumps(document))
+            changed["flash"]["segmented_payload_total"] += 1
+            changed_manifest = (json.dumps(changed, indent=2, sort_keys=True) + "\n").encode("utf-8")
+            with self.assertRaises(ValueError):
+                packager.validate_written_bundle(
+                    tampered("totals.zip", {"manifest.json": changed_manifest}), changed, extras, trusted_head, trusted_root
+                )
+
+            manifest_mutations = []
+            changed = json.loads(json.dumps(document)); changed["fqbn"] = "esp32:esp32:esp32p4:wrong"
+            manifest_mutations.append(("top-fqbn", changed))
+            changed = json.loads(json.dumps(document)); changed["bsp"]["source_git_sha"] = "d" * 40
+            manifest_mutations.append(("bsp-source", changed))
+            changed = json.loads(json.dumps(document)); changed["flash"]["command"] = "python -m esptool write_flash arbitrary.bin"
+            manifest_mutations.append(("command", changed))
+            changed = json.loads(json.dumps(document)); changed["files"][1]["offset"] = changed["files"][0]["offset"]
+            manifest_mutations.append(("overlap", changed))
+            changed = json.loads(json.dumps(document)); changed["files"][0]["metadata_path"] = "other.bin"
+            manifest_mutations.append(("metadata-drift", changed))
+            changed = json.loads(json.dumps(document)); changed["schema_version"] = 2
+            manifest_mutations.append(("schema", changed))
+            changed = json.loads(json.dumps(document)); changed["c6_firmware_included"] = True
+            manifest_mutations.append(("c6", changed))
+            changed = json.loads(json.dumps(document)); changed["chip_revision"]["minimum"] = "3.0"
+            manifest_mutations.append(("revision", changed))
+            changed = json.loads(json.dumps(document)); changed["generated_at_utc"] = "not-a-timestamp"
+            manifest_mutations.append(("generated-at", changed))
+            changed = json.loads(json.dumps(document)); changed["unexpected"] = "semantic-field"
+            manifest_mutations.append(("top-extra", changed))
+            changed = json.loads(json.dumps(document)); changed["flash"]["unexpected"] = 1
+            manifest_mutations.append(("flash-extra", changed))
+            changed = json.loads(json.dumps(document)); changed["bsp"]["unexpected"] = 1
+            manifest_mutations.append(("bsp-extra", changed))
+            for label, changed in manifest_mutations:
+                payload = (json.dumps(changed, indent=2, sort_keys=True) + "\n").encode("utf-8")
+                with self.assertRaises(ValueError, msg=label):
+                    packager.validate_written_bundle(
+                        tampered(f"manifest-{label}.zip", {"manifest.json": payload}),
+                        changed,
+                        extras,
+                        trusted_head,
+                        trusted_root,
+                    )
 
     def test_ci_requires_full_package_sha(self) -> None:
         previous_ci, previous_sha = os.environ.get("CI"), os.environ.get("PACKAGE_GIT_SHA")
@@ -162,13 +715,25 @@ class CiFirmwarePackageTests(unittest.TestCase):
             if previous_sha is None: os.environ.pop("PACKAGE_GIT_SHA", None)
             else: os.environ["PACKAGE_GIT_SHA"] = previous_sha
 
+    def test_local_packaging_also_rejects_missing_git_sha(self) -> None:
+        with mock.patch.dict(os.environ, {"GITHUB_SHA": "d" * 40}, clear=True):
+            with self.assertRaises(ValueError):
+                packager.git_sha()
+
     def test_workflow_and_windows_safety_contract(self) -> None:
         for relative in (".github/workflows/esp-idf.yml", ".github/workflows/arduino.yml", ".github/workflows/firmware.yml"):
             text = (ROOT / relative).read_text(encoding="utf-8")
             self.assertIn("PACKAGE_GIT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}", text)
             self.assertIn("actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a", text)
         arduino_workflow = (ROOT / ".github/workflows/arduino.yml").read_text(encoding="utf-8")
-        self.assertIn("--export-binaries", arduino_workflow)
+        self.assertIn("--build-path", arduino_workflow)
+        self.assertNotIn("--output-dir", arduino_workflow)
+        self.assertNotIn("--export-binaries", arduino_workflow)
+        self.assertIn("--bsp-source-git-sha", arduino_workflow)
+        self.assertIn("--bsp-component-tree-sha", arduino_workflow)
+        for required in ("compiler.c.extra_flags=", "compiler.cpp.extra_flags=", "compiler.S.extra_flags=", "-ffile-prefix-map=", "-fmacro-prefix-map="):
+            self.assertIn(required, arduino_workflow)
+        self.assertNotIn("build.extra_flags=", arduino_workflow)
         self.assertIn(packager.ARDUINO_FQBN, arduino_workflow)
         flasher = (ROOT / "scripts" / "ci_firmware.py").read_text(encoding="utf-8")
         self.assertIn("Hash of data verified", flasher)
@@ -289,27 +854,101 @@ class CiFirmwareCoreTests(unittest.TestCase):
             package.joinpath("manifest.json").write_text(json.dumps(document), encoding="utf-8")
             with self.assertRaises(core.CiFirmwareError): core.validate_manifest(package, item, repo)
 
-    def test_arduino_layout_requires_exact_fqbn_and_complete_layout(self) -> None:
+    def test_arduino_layout_requires_exact_packaged_metadata_and_provenance(self) -> None:
         item = next(entry for entry in core.expected_items(ROOT) if entry.framework == "arduino-esp32")
+        repo = core.repository(ROOT)
+        project = ROOT / item.source_project
+        name = project.name
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            files = []
-            for offset, name in ((0, "bootloader.bin"), (0x8000, "partitions.bin"), (0xe000, "boot_app0.bin"), (0x10000, Path(item.source_project).name + ".ino.bin")):
-                path = root / name; path.write_bytes(b"x"); files.append((offset, 1, path, f"bin/{name}"))
-            core.validate_arduino_layout(item, {"fqbn": packager.ARDUINO_FQBN}, files, packager)
-            with self.assertRaises(core.CiFirmwareError): core.validate_arduino_layout(item, {"fqbn": "wrong"}, files, packager)
-            with self.assertRaises(core.CiFirmwareError): core.validate_arduino_layout(item, {"fqbn": packager.ARDUINO_FQBN}, files[:-1], packager)
+            build = root / "build"
+            build.mkdir()
+            for filename in (f"{name}.ino.bootloader.bin", f"{name}.ino.partitions.bin", "boot_app0.bin", f"{name}.ino.bin"):
+                (build / filename).write_bytes(filename.encode("utf-8"))
+            (build / "build.options.json").write_text(
+                json.dumps({"fqbn": packager.ARDUINO_FQBN, "hardwareFolders": "/home/example/.arduino15/packages/esp32/hardware/esp32/3.3.11", "sketchLocation": str(project)}),
+                encoding="utf-8",
+            )
+            (build / "flash_args").write_text(
+                "--flash-mode dio --flash-freq 80m --flash-size 32MB\n"
+                f"0x2000 {name}.ino.bootloader.bin\n0x8000 {name}.ino.partitions.bin\n"
+                f"0xe000 boot_app0.bin\n0x10000 {name}.ino.bin\n", encoding="utf-8")
+            old = Path.cwd(); os.chdir(ROOT)
+            try:
+                with mock.patch.dict(os.environ, {"PACKAGE_GIT_SHA": repo.head}):
+                    package_zip = packager.package_arduino(
+                        project, build, item.version, root / "package.zip", packager.ARDUINO_FQBN,
+                        item.profile, "3.0.0", "b" * 40, "c" * 40,
+                    )
+            finally:
+                os.chdir(old)
+            package = root / "package"
+            with zipfile.ZipFile(package_zip) as archive:
+                archive.extractall(package)
+            plan, options = core.validate_manifest(package, item, repo)
+            self.assertEqual([0x2000, 0x8000, 0xe000, 0x10000], [offset for offset, _ in plan])
+            self.assertEqual(["--flash-mode", "dio", "--flash-freq", "80m", "--flash-size", "32MB"], options)
+            manifest_path = package / "manifest.json"
+            document = json.loads(manifest_path.read_text(encoding="utf-8"))
+            for key, bad_value in (("fqbn", "wrong"), ("target", "esp32s3")):
+                changed = json.loads(json.dumps(document)); changed[key] = bad_value
+                manifest_path.write_text(json.dumps(changed), encoding="utf-8")
+                with self.assertRaises(core.CiFirmwareError, msg=key):
+                    core.validate_manifest(package, item, repo)
+            changed = json.loads(json.dumps(document)); changed["files"][0]["bsp_component_git_tree_sha"] = "d" * 40
+            manifest_path.write_text(json.dumps(changed), encoding="utf-8")
+            with self.assertRaises(core.CiFirmwareError):
+                core.validate_manifest(package, item, repo)
+            changed = json.loads(json.dumps(document)); changed["flash"]["segmented_payload_total"] += 1
+            manifest_path.write_text(json.dumps(changed), encoding="utf-8")
+            with self.assertRaises(core.CiFirmwareError):
+                core.validate_manifest(package, item, repo)
+            changed = json.loads(json.dumps(document)); changed["arduino_build_identity"]["source_size"] += 1
+            manifest_path.write_text(json.dumps(changed), encoding="utf-8")
+            with self.assertRaises(core.CiFirmwareError):
+                core.validate_manifest(package, item, repo)
+            changed = json.loads(json.dumps(document)); changed["privacy_leak"] = "/home/example/private"
+            manifest_path.write_text(json.dumps(changed), encoding="utf-8")
+            with self.assertRaises(core.CiFirmwareError):
+                core.validate_manifest(package, item, repo)
+            manifest_path.write_text(json.dumps(document), encoding="utf-8")
+            canonical_path = package / "metadata" / "arduino_build_identity.json"
+            original_canonical = canonical_path.read_bytes()
+            canonical_path.write_text(json.dumps({"fqbn": packager.ARDUINO_FQBN, "leak": "/tmp/private"}), encoding="utf-8")
+            with self.assertRaises(core.CiFirmwareError):
+                core.validate_manifest(package, item, repo)
+            canonical_path.write_bytes(original_canonical)
+            raw_options = package / "build.options.json"
+            raw_options.write_text('{"sketchLocation":"/home/example/private"}', encoding="utf-8")
+            with self.assertRaises(core.CiFirmwareError):
+                core.validate_manifest(package, item, repo)
+            raw_options.unlink()
+            expanded = package / "metadata" / "expanded-properties.txt"
+            expanded.write_text("/Users/example/cache", encoding="utf-8")
+            with self.assertRaises(core.CiFirmwareError):
+                core.validate_manifest(package, item, repo)
+            expanded.unlink()
+            segment_path = plan[0][1]
+            original_segment = segment_path.read_bytes()
+            segment_path.write_bytes(original_segment + b"x")
+            with self.assertRaises(core.CiFirmwareError):
+                core.validate_manifest(package, item, repo)
+            segment_path.write_bytes(original_segment)
+            metadata_path = package / "metadata" / "flash_args"
+            metadata_path.write_text(metadata_path.read_text(encoding="utf-8") + "\n", encoding="utf-8")
+            with self.assertRaises(core.CiFirmwareError):
+                core.validate_manifest(package, item, repo)
 
     def test_manifest_hash_offsets_command_profile_and_c6_gates(self) -> None:
         item = core.expected_items(ROOT)[0]
-        repo = core.Repository(ROOT, "waveshareteam", ROOT.name, "branch", "a" * 40, True)
+        repo = core.repository(ROOT)
         with tempfile.TemporaryDirectory() as directory:
             package = Path(directory); binary = package / "bin" / "app.bin"; binary.parent.mkdir(); binary.write_bytes(b"firmware")
             (package / "metadata").mkdir()
             (package / "metadata" / "flasher_args.json").write_text(json.dumps({"flash_files": {"0x0": "app.bin"}}), encoding="utf-8")
             manifest = {"schema_version": 1, "board": ROOT.name, "chip": "esp32p4", "board_profile": item.profile, "chip_revision": {"minimum": "1.0", "maximum_exclusive": "3.0"}, "c6_firmware_included": False, "framework": item.framework, "framework_version": item.version, "source_project": item.source_project, "git_sha": repo.head, "flash": {"baud": 460800, "size_bytes": 32 * 1024 * 1024, "command": "python -m esptool --chip esp32p4 --baud 460800 write_flash 0x0 bin/app.bin"}, "files": [{"offset": "0x0", "archive_path": "bin/app.bin", "metadata_path": "app.bin", "size": 8, "sha256": core.sha256(binary)}]}
             (package / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
-            self.assertEqual([(0, binary)], core.validate_manifest(package, item, repo))
+            self.assertEqual(([(0, binary)], []), core.validate_manifest(package, item, repo))
             manifest["c6_firmware_included"] = True; (package / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
             with self.assertRaises(core.CiFirmwareError): core.validate_manifest(package, item, repo)
 
