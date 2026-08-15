@@ -51,6 +51,61 @@ class RepositoryPolicyTests(unittest.TestCase):
     def test_ci_boundaries(self) -> None:
         self.assertEqual([], policy.check_ci_contract(ROOT))
 
+    def test_arduino_serial_startup_contract_ignores_comments_and_requires_short_bounds(self) -> None:
+        self.assertEqual([], policy.check_arduino_serial_contract(ROOT))
+        inventory = {path.relative_to(ROOT).as_posix() for path in policy.first_party_arduino_sources(ROOT)}
+        self.assertIn("examples/arduino/HelloWorld/HelloWorld.ino", inventory)
+        self.assertIn(
+            "examples/arduino/libraries/Waveshare_ESP32_P4_4B_Display/displays_config.h",
+            inventory,
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self.write_fixture(
+                root,
+                ".github/workflows/arduino.yml",
+                "ARDUINO_FQBN: esp32:esp32:esp32p4:USBMode=default,CDCOnBoot=default\n",
+            )
+            for relative in ("examples/arduino/README.md", "examples/arduino/README_ZH.md"):
+                self.write_fixture(
+                    root,
+                    relative,
+                    "Arduino-ESP32 3.3.11 USBMode=default CDCOnBoot=default UART0 CH343P\n",
+                )
+            sketch = self.write_fixture(
+                root,
+                "examples/arduino/Test/Test.ino",
+                "// while (!Serial);\n"
+                "const char *example = \"while (!USBSerial.dtr())\";\n"
+                "void fatal() { while (true) {} }\n"
+                "void setup() { unsigned long started = millis(); "
+                "while (!Serial && (millis() - started) < 3000UL) {} }\n",
+            )
+            self.assertEqual([], policy.check_arduino_serial_contract(root))
+            unsafe_conditions = (
+                "while (!Serial) {}",
+                "while (!USBSerial.dtr()) {}",
+                "while (!SerialUSB) {}",
+                "while (!Serial0) {}",
+                "while (Serial.availableForWrite() < 1) {}",
+                "while (!Serial && millis() - started < 60000UL) {}",
+                "while (!Serial || (millis() - started) < 3000UL) {}",
+                "while ((!USBSerial.dtr()) || ((millis() - started) <= 5000UL)) {}",
+                "while (!(Serial)) {}",
+                "while ((bool)Serial == false) {}",
+                "while (Serial == false) {}",
+                "for (; !Serial;) {}",
+                "while (!Serial && ((millis() - started) < 3000UL ? true : true)) {}",
+                "while (!Serial && ((millis() - started, 1) < 3000UL)) {}",
+                "while (!Serial && ((started = millis()) < 3000UL)) {}",
+                "while (!Serial && (((millis() - started) < 3000UL) & ready)) {}",
+            )
+            for condition in unsafe_conditions:
+                sketch.write_text(f"void setup() {{ {condition} }}\n", encoding="utf-8")
+                errors = policy.check_arduino_serial_contract(root)
+                self.assertEqual(1, len(errors), (condition, errors))
+                self.assertIn("unbounded Serial/USB CDC readiness wait", errors[0])
+
     def test_public_text_covers_every_sensitive_rule_family(self) -> None:
         sensitive = (
             "/home/example/work/repository",

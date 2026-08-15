@@ -96,6 +96,9 @@ PRIVATE_TEXT_PATTERNS = (
         re.compile(r"(?:\.codex|\.agents)[/\\]", re.IGNORECASE),
     ),
 )
+ARDUINO_SOURCE_SUFFIXES = {".c", ".cc", ".cpp", ".h", ".hh", ".hpp", ".ino"}
+ARDUINO_FIRST_PARTY_LIBRARY = "Waveshare_ESP32_P4_4B_Display"
+ARDUINO_SERIAL_TIMEOUT_MAX_MS = 5000
 
 
 def tracked_markdown(root: Path) -> tuple[Path, ...]:
@@ -111,6 +114,258 @@ def tracked_markdown(root: Path) -> tuple[Path, ...]:
         return tuple(path for path in root.rglob("*.md") if not ignored_generated.intersection(path.parts))
     paths = [item for item in completed.stdout.split(b"\0") if item]
     return tuple(candidate for item in paths if (candidate := root / item.decode("utf-8", errors="surrogateescape")).is_file())
+
+
+def first_party_arduino_sources(root: Path) -> tuple[Path, ...]:
+    """Return sketches and the product-owned Arduino helper, never vendored libraries."""
+    arduino_root = root / "examples" / "arduino"
+    paths: set[Path] = set()
+    if arduino_root.is_dir():
+        for child in arduino_root.iterdir():
+            if child.is_dir() and child.name != "libraries":
+                paths.update(
+                    path for path in child.rglob("*")
+                    if path.is_file() and path.suffix.casefold() in ARDUINO_SOURCE_SUFFIXES
+                )
+    library = arduino_root / "libraries" / ARDUINO_FIRST_PARTY_LIBRARY
+    if library.is_dir():
+        paths.update(
+            path for path in library.rglob("*")
+            if path.is_file() and path.suffix.casefold() in ARDUINO_SOURCE_SUFFIXES
+        )
+    return tuple(sorted(paths, key=lambda path: path.as_posix()))
+
+
+def strip_cpp_comments_and_literals(text: str) -> str:
+    """Blank comments and literals while preserving positions and line numbers."""
+    output = list(text)
+
+    def blank(start: int, end: int) -> None:
+        for position in range(start, end):
+            if output[position] not in "\r\n":
+                output[position] = " "
+
+    index = 0
+    while index < len(text):
+        if text.startswith("//", index):
+            end = text.find("\n", index + 2)
+            end = len(text) if end < 0 else end
+            blank(index, end)
+            index = end
+            continue
+        if text.startswith("/*", index):
+            end = text.find("*/", index + 2)
+            end = len(text) if end < 0 else end + 2
+            blank(index, end)
+            index = end
+            continue
+        if text.startswith('R"', index):
+            delimiter_end = text.find("(", index + 2, min(len(text), index + 19))
+            if delimiter_end >= 0:
+                delimiter = text[index + 2 : delimiter_end]
+                close = ")" + delimiter + '"'
+                end = text.find(close, delimiter_end + 1)
+                end = len(text) if end < 0 else end + len(close)
+                blank(index, end)
+                index = end
+                continue
+        if text[index] in {'"', "'"}:
+            quote = text[index]
+            end = index + 1
+            while end < len(text):
+                if text[end] == "\\":
+                    end += 2
+                    continue
+                if text[end] == quote:
+                    end += 1
+                    break
+                end += 1
+            blank(index, min(end, len(text)))
+            index = end
+            continue
+        index += 1
+    return "".join(output)
+
+
+def cpp_while_conditions(text: str) -> tuple[tuple[str, int], ...]:
+    """Extract balanced C/C++ while conditions after lexical blanking."""
+    stripped = strip_cpp_comments_and_literals(text)
+    found: list[tuple[str, int]] = []
+    for match in re.finditer(r"\bwhile\b", stripped):
+        cursor = match.end()
+        while cursor < len(stripped) and stripped[cursor].isspace():
+            cursor += 1
+        if cursor >= len(stripped) or stripped[cursor] != "(":
+            continue
+        start = cursor + 1
+        depth = 1
+        cursor += 1
+        while cursor < len(stripped) and depth:
+            if stripped[cursor] == "(":
+                depth += 1
+            elif stripped[cursor] == ")":
+                depth -= 1
+            cursor += 1
+        if depth == 0:
+            found.append((stripped[start : cursor - 1], text.count("\n", 0, match.start()) + 1))
+    return tuple(found)
+
+
+def cpp_for_conditions(text: str) -> tuple[tuple[str, int], ...]:
+    """Extract the condition field from classic C/C++ for loops."""
+    stripped = strip_cpp_comments_and_literals(text)
+    found: list[tuple[str, int]] = []
+    for match in re.finditer(r"\bfor\b", stripped):
+        cursor = match.end()
+        while cursor < len(stripped) and stripped[cursor].isspace():
+            cursor += 1
+        if cursor >= len(stripped) or stripped[cursor] != "(":
+            continue
+        start = cursor + 1
+        depth = 1
+        cursor += 1
+        while cursor < len(stripped) and depth:
+            if stripped[cursor] == "(":
+                depth += 1
+            elif stripped[cursor] == ")":
+                depth -= 1
+            cursor += 1
+        if depth:
+            continue
+        body = stripped[start : cursor - 1]
+        fields: list[str] = []
+        field_start = 0
+        nested = 0
+        for index, character in enumerate(body):
+            if character in "([{":
+                nested += 1
+            elif character in ")]}":
+                nested = max(0, nested - 1)
+            elif character == ";" and nested == 0:
+                fields.append(body[field_start:index])
+                field_start = index + 1
+        fields.append(body[field_start:])
+        if len(fields) == 3 and fields[1].strip():
+            found.append((fields[1], text.count("\n", 0, match.start()) + 1))
+    return tuple(found)
+
+
+def _serial_readiness_condition(condition: str) -> bool:
+    serial = r"(?:\b(?:Serial(?:USB|[0-9]+)?|USBSerial)\b|\b(?:TinyUSB|USB|CDC)[A-Za-z0-9_]*\b)"
+    readiness = r"(?:dtr|mounted|ready|connected|availableForWrite)"
+    serial_atom = rf"(?:\(\s*)*{serial}(?:\s*\))*"
+    serial_boolean = rf"(?:\(\s*bool\s*\)\s*)?{serial_atom}"
+    return bool(
+        re.search(rf"!\s*{serial_atom}", condition, re.IGNORECASE)
+        or re.search(rf"{serial_boolean}\s*(?:==\s*false|!=\s*true)\b", condition, re.IGNORECASE)
+        or re.search(rf"\b(?:false\s*==|true\s*!=)\s*{serial_boolean}", condition, re.IGNORECASE)
+        or re.search(rf"{serial}[^&|;]*{readiness}", condition, re.IGNORECASE)
+        or re.search(rf"{readiness}[^&|;]*{serial}", condition, re.IGNORECASE)
+        or re.search(r"\bavailableForWrite\s*\(", condition, re.IGNORECASE)
+    )
+
+
+def _strip_balanced_outer_parentheses(condition: str) -> str:
+    """Remove only parentheses that enclose the complete Boolean expression."""
+    value = condition.strip()
+    while value.startswith("(") and value.endswith(")"):
+        depth = 0
+        closes_at_end = False
+        for index, character in enumerate(value):
+            if character == "(":
+                depth += 1
+            elif character == ")":
+                depth -= 1
+                if depth == 0:
+                    closes_at_end = index == len(value) - 1
+                    break
+        if not closes_at_end:
+            break
+        value = value[1:-1].strip()
+    return value
+
+
+def _split_top_level_boolean(condition: str, operator: str) -> tuple[str, ...]:
+    """Split a lexically blanked condition on one top-level Boolean operator."""
+    value = _strip_balanced_outer_parentheses(condition)
+    parts: list[str] = []
+    start = 0
+    depth = 0
+    index = 0
+    while index < len(value) - 1:
+        character = value[index]
+        if character == "(":
+            depth += 1
+        elif character == ")" and depth:
+            depth -= 1
+        elif depth == 0 and value[index : index + 2] == operator:
+            parts.append(value[start:index].strip())
+            start = index + 2
+            index += 1
+        index += 1
+    if not parts:
+        return (value,)
+    parts.append(value[start:].strip())
+    return tuple(parts)
+
+
+def _short_millis_bound(condition: str) -> bool:
+    value = re.sub(r"\s+", "", _strip_balanced_outer_parentheses(condition))
+    millis_expression = r"\(*millis\(\)(?:-[A-Za-z_][A-Za-z0-9_]*)?\)*"
+    number = r"([0-9]+)(?:[uUlL]*)"
+    patterns = (
+        rf"^{millis_expression}(?:<|<=){number}$",
+        rf"^{number}(?:>|>=){millis_expression}$",
+    )
+    for pattern in patterns:
+        match = re.fullmatch(pattern, value)
+        if match and 0 < int(match.group(1)) <= ARDUINO_SERIAL_TIMEOUT_MAX_MS:
+            return True
+    return False
+
+
+def _mandatory_short_serial_exit_bound(condition: str) -> bool:
+    """Require readiness AND a <=5 s exit bound; OR can never guarantee exit."""
+    unsafe_syntax = (
+        "||" in condition
+        or any(token in condition for token in ("?", ":", ",", "++", "--"))
+        or bool(re.search(r"(?<!&)&(?!&)|(?<!\|)\|(?!\|)", condition))
+        or bool(re.search(r"(?<![!<>=])=(?!=)", condition))
+    )
+    if unsafe_syntax:
+        return False
+    conjuncts = _split_top_level_boolean(condition, "&&")
+    if len(conjuncts) < 2:
+        return False
+    return (
+        any(_serial_readiness_condition(part) for part in conjuncts)
+        and any(_short_millis_bound(part) for part in conjuncts)
+    )
+
+
+def check_arduino_serial_contract(root: Path) -> list[str]:
+    """Prevent monitor-dependent startup while preserving fatal business halts."""
+    errors: list[str] = []
+    workflow_path = root / ".github" / "workflows" / "arduino.yml"
+    workflow = workflow_path.read_text(encoding="utf-8") if workflow_path.is_file() else ""
+    if "USBMode=default,CDCOnBoot=default" not in workflow:
+        errors.append("arduino.yml: FQBN must keep USBMode=default and CDCOnBoot=default (UART0 debug contract)")
+    for relative in ("examples/arduino/README.md", "examples/arduino/README_ZH.md"):
+        path = root / relative
+        text = path.read_text(encoding="utf-8") if path.is_file() else ""
+        for evidence in ("Arduino-ESP32 3.3.11", "USBMode=default", "CDCOnBoot=default", "UART0", "CH343P"):
+            if evidence not in text:
+                errors.append(f"{relative}: missing pinned UART0/CH343P serial evidence: {evidence}")
+    for path in first_party_arduino_sources(root):
+        text = path.read_text(encoding="utf-8")
+        for condition, line_number in (*cpp_while_conditions(text), *cpp_for_conditions(text)):
+            if (_serial_readiness_condition(condition)
+                    and not _mandatory_short_serial_exit_bound(condition)):
+                relative = path.relative_to(root).as_posix()
+                errors.append(
+                    f"{relative}:{line_number}: unbounded Serial/USB CDC readiness wait can block startup without a monitor"
+                )
+    return errors
 
 
 def _is_chinese(path: Path) -> bool:
@@ -526,8 +781,23 @@ def check_ci_contract(root: Path) -> list[str]:
             errors.append(f"{workflow_name}: package SHA is not bound to the final checkout SHA")
     if final_ref not in policy:
         errors.append("repository-policy.yml: checkout is not pinned to the event final SHA")
-    if "--export-binaries" not in arduino:
-        errors.append("arduino.yml: compile must export deterministic package binaries")
+    if "--build-path" not in arduino or "--output-dir" in arduino:
+        errors.append("arduino.yml: compile must preserve core flash_args in an isolated build path")
+    if any(option not in arduino for option in ("--bsp-version", "--bsp-source-git-sha", "--bsp-component-tree-sha")):
+        errors.append("arduino.yml: package must bind exact BSP version, source Git SHA, and component tree SHA")
+    for required in (
+        "arduino-cli config get directories.data",
+        "arduino-cli config get directories.user",
+        "-ffile-prefix-map=",
+        "-fmacro-prefix-map=",
+        "compiler.c.extra_flags=",
+        "compiler.cpp.extra_flags=",
+        "compiler.S.extra_flags=",
+    ):
+        if required not in arduino:
+            errors.append(f"arduino.yml: missing dynamic binary privacy mapping: {required}")
+    if "build.extra_flags=" in arduino:
+        errors.append("arduino.yml: privacy mapping must not override board build.extra_flags")
     for workflow_name, text in (("esp-idf.yml", idf), ("arduino.yml", arduino), ("firmware.yml", firmware), ("repository-policy.yml", policy)):
         for reference in re.findall(r"\buses:\s+[^@\s]+@([^\s#]+)", text):
             if not re.fullmatch(r"[0-9a-f]{40}", reference):
@@ -617,6 +887,7 @@ def run_checks(root: Path) -> list[str]:
     errors.extend(check_public_text(root, markdown_files))
     errors.extend(check_managed_component_contract(root))
     errors.extend(check_ci_contract(root))
+    errors.extend(check_arduino_serial_contract(root))
     errors.extend(check_revision_profile_contract(root))
     errors.extend(check_idf_partition_contract(root))
     if (root / "SECURITY.md").exists():
