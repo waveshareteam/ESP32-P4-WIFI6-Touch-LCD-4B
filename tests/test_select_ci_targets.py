@@ -68,9 +68,15 @@ class SelectorTests(unittest.TestCase):
         self.assertEqual(5, len(self.route("arduino", ".github/workflows/arduino.yml").builds))
         self.assertFalse(self.route("esp-idf", ".github/workflows/arduino.yml").builds)
 
-    def test_selector_change_routes_both_frameworks(self) -> None:
-        self.assertEqual(26, len(self.route("esp-idf", "scripts/select_ci_targets.py").builds))
-        self.assertEqual(5, len(self.route("arduino", "scripts/select_ci_targets.py").builds))
+    def test_routing_helpers_and_their_tests_route_both_frameworks(self) -> None:
+        for path in (
+            "scripts/collect_ci_changes.py",
+            "scripts/select_ci_targets.py",
+            "tests/test_collect_ci_changes.py",
+            "tests/test_select_ci_targets.py",
+        ):
+            self.assertEqual(26, len(self.route("esp-idf", path).builds), path)
+            self.assertEqual(5, len(self.route("arduino", path).builds), path)
 
     def test_ci_flasher_packager_and_tests_are_global_build_inputs(self) -> None:
         for path in (

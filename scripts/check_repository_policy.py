@@ -64,12 +64,37 @@ H2_RE = re.compile(r"^##\s+(\S+)", re.MULTILINE)
 FENCE_RE = re.compile(r"^ {0,3}(```|~~~)")
 PRIVATE_TEXT_PATTERNS = (
     (
-        "Windows user/workspace path",
-        re.compile(r"\b[A-Za-z]:[\\/](?:Users|SourceCode|Projects|workspaces)[\\/]", re.IGNORECASE),
+        "machine-specific absolute path",
+        re.compile(
+            r"(?i)(?<![A-Za-z0-9])(?:[A-Z]:[\\/]|\\\\[A-Za-z0-9._-]+[\\/][A-Za-z0-9$._-]+[\\/]|/(?:home|Users)/[A-Za-z0-9._-]+/)"
+        ),
     ),
-    ("POSIX home path", re.compile(r"/(?:home|Users)/[A-Za-z0-9._-]+/")),
-    ("UNC share path", re.compile(r"(?:^|\s)\\\\[^\\\s]+\\[^\\\s]+")),
-    ("local agent provenance", re.compile(r"(?:\.codex|\.agents)[/\\]", re.IGNORECASE)),
+    (
+        "actual serial port",
+        re.compile(
+            r"(?i)\bCOM[1-9][0-9]*\b|/dev/serial/by-id/[A-Za-z0-9._:+-]+|/dev/cu\.[A-Za-z0-9._-]+"
+        ),
+    ),
+    (
+        "device-specific MAC address",
+        re.compile(r"(?i)\b(?:[0-9A-F]{2}[:-]){5}[0-9A-F]{2}\b"),
+    ),
+    (
+        "credential or token",
+        re.compile(
+            r"(?i)(?:\b(?:github_pat_[A-Za-z0-9_]{20,}|gh[pousr]_[A-Za-z0-9]{20,}|sk-[A-Za-z0-9_-]{20,}|Bearer\s+[A-Za-z0-9._~+/-]{20,})|-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----)"
+        ),
+    ),
+    (
+        "editing-tool or model provenance",
+        re.compile(
+            r"(?i)\b(?:(?:generated|written|edited|translated|created|reviewed)\s+(?:by|with|using)|(?:tool|model)(?:\s+(?:used|source|name))?\s*[:=])\s*(?:OpenAI|ChatGPT|Codex|Claude|Gemini|Copilot|GPT[-\s]?[0-9][A-Za-z0-9_.-]*)"
+        ),
+    ),
+    (
+        "local agent path provenance",
+        re.compile(r"(?:\.codex|\.agents)[/\\]", re.IGNORECASE),
+    ),
 )
 
 
@@ -444,6 +469,16 @@ def check_ci_contract(root: Path) -> list[str]:
     for name, text in (("esp-idf.yml", idf), ("arduino.yml", arduino)):
         if "scripts/select_ci_targets.py" not in text:
             errors.append(f"{name}: changed-file selector is not invoked")
+        for required in (
+            "python scripts/collect_ci_changes.py",
+            '--base "$BASE_SHA"',
+            '--head "$HEAD_SHA"',
+            '--output "$changed_file"',
+        ):
+            if required not in text:
+                errors.append(f"{name}: fail-closed Git diff invocation is incomplete: {required}")
+        if "git diff-tree --root" in text:
+            errors.append(f"{name}: workflow contains an unchecked root-diff fallback")
         if re.search(r"^\s+paths(?:-ignore)?:", text, re.MULTILINE):
             errors.append(f"{name}: path filters hide the always-visible routing job")
     if '. "$IDF_PATH/export.sh"' not in idf:
@@ -489,6 +524,8 @@ def check_ci_contract(root: Path) -> list[str]:
             errors.append(f"{workflow_name}: CI firmware artifact upload contract is incomplete")
         if "PACKAGE_GIT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}" not in text:
             errors.append(f"{workflow_name}: package SHA is not bound to the final checkout SHA")
+    if final_ref not in policy:
+        errors.append("repository-policy.yml: checkout is not pinned to the event final SHA")
     if "--export-binaries" not in arduino:
         errors.append("arduino.yml: compile must export deterministic package binaries")
     for workflow_name, text in (("esp-idf.yml", idf), ("arduino.yml", arduino), ("firmware.yml", firmware), ("repository-policy.yml", policy)):

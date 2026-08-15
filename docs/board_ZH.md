@@ -134,9 +134,9 @@ C6 的 SDIO/控制连接。信号级映射与时序由 Hosted 配置和匹配的
 - `espressif/esp_codec_dev ~1.5`。
 - 使用 ESP-IDF 6 或更高版本构建时使用 `espressif/usb ^1.0.0`。
 
-所有首方 ESP-IDF 示例和受维护的 Brookesia 固件均从 ESP Component Registry
-解析可复用的 BSP 与 ST7703 驱动。本地不再保留会遮蔽解析的同名副本，只保留
-产品专用的 `bsp_extra` 代码。
+需要板级或显示支持的首方 ESP-IDF 示例，以及受维护的 Brookesia 固件，均从
+ESP Component Registry 解析可复用的 BSP 与 ST7703 驱动。本地不再保留会遮蔽
+解析的同名副本，只保留产品专用的 `bsp_extra` 代码。
 
 ## 验证状态
 

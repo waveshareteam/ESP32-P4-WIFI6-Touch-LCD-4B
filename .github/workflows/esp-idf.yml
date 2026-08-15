@@ -49,13 +49,10 @@ jobs:
           fi
 
           changed_file="$RUNNER_TEMP/esp-idf-name-status.z"
-          if [[ -n "$BASE_SHA" ]] && \
-             [[ ! "$BASE_SHA" =~ ^0+$ ]] && \
-             git cat-file -e "$BASE_SHA^{commit}" 2>/dev/null; then
-            git diff --name-status -z "$BASE_SHA" "$HEAD_SHA" > "$changed_file"
-          else
-            git diff-tree --root --no-commit-id --name-status -z -r "$HEAD_SHA" > "$changed_file"
-          fi
+          python scripts/collect_ci_changes.py \
+            --base "$BASE_SHA" \
+            --head "$HEAD_SHA" \
+            --output "$changed_file"
 
           python scripts/select_ci_targets.py \
             --framework esp-idf \

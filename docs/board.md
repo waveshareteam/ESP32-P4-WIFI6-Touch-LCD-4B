@@ -150,10 +150,10 @@ The repository migration baseline is the published
 - `espressif/esp_codec_dev ~1.5`.
 - `espressif/usb ^1.0.0` when building with ESP-IDF 6 or newer.
 
-All first-party ESP-IDF examples and the maintained Brookesia firmware resolve
-the reusable BSP and ST7703 driver from the ESP Component Registry. No local
-copy of either component is kept to shadow that resolution; only
-product-specific `bsp_extra` code remains local.
+First-party ESP-IDF examples that need board or display support, together with
+the maintained Brookesia firmware, resolve the reusable BSP and ST7703 driver
+from the ESP Component Registry. No local copy of either component is kept to
+shadow that resolution; only product-specific `bsp_extra` code remains local.
 
 ## Validation status
 
