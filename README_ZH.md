@@ -38,9 +38,9 @@ PSRAM、4 英寸 720 × 720 ST7703 双通道 MIPI DSI 屏、GT911 触摸、音�
 [`docs/board_ZH.md`](docs/board_ZH.md) 和
 [`schematic/README_ZH.md`](schematic/README_ZH.md)。
 
-受维护的 ESP-IDF BSP 将 DSI 通道速率配置为 750 Mbps，而产品资源包导入的
-Arduino 辅助库使用 480 Mbps。二者是不同的软件配置，不是可以互换的硬件事实；
-未在目标板卡版本上进行显示验证前，不应强行统一。
+ESP-IDF 示例和受维护固件使用的 Registry BSP 3.0.0 将 DSI 通道速率配置为
+480 Mbps。产品资源包导入的 Arduino 辅助库同样使用 480 Mbps，但配置一致并不
+等同于硬件验证；修改任一实现前，仍需在目标板卡版本上重新验证显示效果。
 
 ## 🗂️ 仓库结构
 

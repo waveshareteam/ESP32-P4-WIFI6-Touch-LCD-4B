@@ -51,6 +51,37 @@ class RepositoryPolicyTests(unittest.TestCase):
     def test_ci_boundaries(self) -> None:
         self.assertEqual([], policy.check_ci_contract(ROOT))
 
+    def test_firmware_uses_registry_managed_waveshare_bsp(self) -> None:
+        self.assertEqual([], policy.check_managed_component_contract(ROOT))
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self.write_fixture(
+                root,
+                "firmware/brookesia/components/bsp_extra/idf_component.yml",
+                "dependencies:\n"
+                "  waveshare/esp32_p4_wifi6_touch_lcd_4b:\n"
+                '    version: "3.0.0"\n',
+            )
+            self.write_fixture(
+                root,
+                f"{policy.FORBIDDEN_LOCAL_REUSABLE_COMPONENTS[0]}/idf_component.yml",
+                "version: 3.0.0\n",
+            )
+            errors = policy.check_managed_component_contract(root)
+            self.assertEqual(1, len(errors))
+            self.assertIn("shadows ESP Component Registry", errors[0])
+
+            manifest = root / "firmware/brookesia/components/bsp_extra/idf_component.yml"
+            manifest.write_text(
+                "dependencies:\n"
+                "  waveshare/esp32_p4_wifi6_touch_lcd_4b:\n"
+                '    version: "2.0.0"\n',
+                encoding="utf-8",
+            )
+            errors = policy.check_managed_component_contract(root)
+            self.assertTrue(any("must pin Registry" in error for error in errors))
+
     def test_revision_profile_policy_keeps_examples_single_profile_and_firmware_dual_profile(self) -> None:
         self.assertEqual([], policy.check_revision_profile_contract(ROOT))
         shared = (ROOT / "config/sdkconfig.defaults").read_text(encoding="utf-8")

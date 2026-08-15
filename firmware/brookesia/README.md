@@ -26,21 +26,18 @@ Wi-Fi paths.
 | Display / touch | 4-inch 720 x 720 MIPI DSI ST7703 / GT911 |
 | Framework | ESP-IDF v5.5.5 (`idf_component.yml` requires `>=5.5,<6.0`) |
 | UI | LVGL 9.4.0 with local ESP-Brookesia core 0.6.0-beta2 |
-| Board component | Vendored `waveshare/esp32_p4_wifi6_touch_lcd_4b` 3.0.0 snapshot; project overlay constrains the Registry identity to 3.0.0 |
+| Board component | Registry-managed `waveshare/esp32_p4_wifi6_touch_lcd_4b` 3.0.0 |
 | LVGL integration | `espressif/esp_lvgl_adapter` 0.6.2, not `esp_lvgl_port` |
 | Wireless | ESP32-C6 coprocessor over SDIO using ESP-Hosted / `esp_wifi_remote` |
 | Voice assistant | `espressif/esp_xiaozhi` 0.1.1, ESP-SR 2.4.7, Xiaozhi fonts 1.6.0 |
 
-The vendored BSP and ST7703 sources preserve the factory-firmware integration
-state and therefore shadow managed components of the same name. Standalone
-examples use the published BSP 3.0.0. Remove the vendored copies only after the
-complete Brookesia firmware has been compared and hardware-tested against the
-Registry release.
+The firmware resolves BSP 3.0.0 and its ST7703 2.0.0 dependency from the ESP
+Component Registry. It keeps only product-specific composition in `bsp_extra`;
+there are no same-name local reusable copies to shadow managed resolution.
 
-Vendored upstream manifests retain their compatibility ranges. The active
-ESP-IDF v5.5.5 graph is narrowed by exact project/component constraints. The
-generated `dependencies.lock` remains ignored because local component entries
-contain host-specific paths; record resolved transitive versions with CI evidence.
+The active ESP-IDF v5.5.5 graph is narrowed by exact project/component
+constraints. The generated `dependencies.lock` remains ignored as a local
+build artifact; record resolved transitive versions with CI evidence.
 
 Hardware pin details and the P4/C6 compatibility notes live in
 [`docs/board.md`](../../docs/board.md) and
@@ -102,8 +99,8 @@ source icons used to generate the compiled LVGL assets.
 ### Prerequisites
 
 - ESP-IDF v5.5.5 with the `esp32p4` toolchain installed.
-- Git and network access to the ESP Component Registry and the pinned Waveshare
-  component repository on the first dependency resolution.
+- Git and network access to the ESP Component Registry on the first dependency
+  resolution.
 - An ESP32-P4-WIFI6-Touch-LCD-4B and a data-capable USB cable for flashing.
 - Enough disk space for managed components and the generated SPIFFS/model
   images.
@@ -122,12 +119,11 @@ and the "Ni Hao Xiao Zhi" WakeNet model. Do not edit files under
 `managed_components/`; update a component manifest and let the IDF Component
 Manager regenerate them.
 
-With local components, the generated `dependencies.lock` contains absolute
-component paths from the current build host. It is therefore ignored and is a
-local build aid, not a publication artifact. Run `idf.py reconfigure` (or the
-first `build`) to generate it in a new environment. Keep reproducible BSP
-commits and component ranges in `idf_component.yml`, and do not publish a
-host-specific lock file.
+The Component Manager generates `dependencies.lock` as a local build aid, and
+this repository keeps it ignored rather than publishing build-host state. Run
+`idf.py reconfigure` (or the first `build`) to regenerate it in a new
+environment. Keep reproducible component constraints in `idf_component.yml`
+and record the resolved versions in validation evidence.
 
 ### First flash and partition changes
 
@@ -406,10 +402,10 @@ shared hardware are involved.
 - **P4 has no native Wi-Fi radio.** Host components must remain compatible with
   the firmware running on the ESP32-C6 coprocessor. A host-only dependency
   upgrade can break wireless operation even when it compiles.
-- **The BSP has a vendored 3.0.0 snapshot.** It shadows the published managed
-  component so the imported Brookesia integration remains reproducible. Compare
-  the complete firmware with the Registry release before replacing or updating
-  it, especially around the `esp_lvgl_adapter` contract.
+- **The BSP is Registry-managed.** Do not reintroduce a same-name component
+  directory, because project components override managed resolution. BSP 3.0.0
+  uses a 480 Mbps DSI lane rate; validate display behavior on both maintained
+  hardware profiles before changing or upgrading it.
 - **RS485 receive is hardware-revision dependent.** Check transceiver direction
   wiring before diagnosing the terminal software.
 

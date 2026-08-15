@@ -41,10 +41,11 @@ features. Review [`docs/board.md`](docs/board.md) and
 [`schematic/README.md`](schematic/README.md) before changing pins or carrying
 assumptions across hardware revisions.
 
-The maintained ESP-IDF BSP configures a 750 Mbps DSI lane rate, while the
-Arduino helper imported from the product archive configures 480 Mbps. These are
-distinct software profiles, not interchangeable hardware facts. Do not align
-them without display testing on the intended board revision.
+The Registry BSP 3.0.0 used by the ESP-IDF examples and maintained firmware
+configures a 480 Mbps DSI lane rate. The Arduino helper imported from the
+product archive also uses 480 Mbps, but that agreement is a software
+configuration rather than hardware-validation evidence. Revalidate the display
+on the intended board revision before changing either implementation.
 
 ## 🗂️ Repository layout
 

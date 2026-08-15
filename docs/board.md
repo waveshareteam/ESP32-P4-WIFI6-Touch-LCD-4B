@@ -35,7 +35,7 @@ on physical hardware.
 | --- | --- | --- |
 | LCD | Resolution | 720 x 720 |
 | LCD | Interface | Two-lane MIPI DSI |
-| LCD | DSI lane rate in BSP | 750 Mbit/s per lane |
+| LCD | DSI lane rate in Registry BSP 3.0.0 | 480 Mbit/s per lane |
 | LCD | Reset | GPIO27 |
 | LCD backlight | PWM | GPIO26 |
 | LCD backlight | Enable | GPIO33 |
@@ -150,10 +150,10 @@ The repository migration baseline is the published
 - `espressif/esp_codec_dev ~1.5`.
 - `espressif/usb ^1.0.0` when building with ESP-IDF 6 or newer.
 
-Any remaining local copy of the reusable BSP or ST7703 driver is transitional
-and can shadow the registry component. Verify managed-component resolution
-before describing a build as a BSP 3.0.0 build. Keep only product-specific
-`bsp_extra` code locally.
+All first-party ESP-IDF examples and the maintained Brookesia firmware resolve
+the reusable BSP and ST7703 driver from the ESP Component Registry. No local
+copy of either component is kept to shadow that resolution; only
+product-specific `bsp_extra` code remains local.
 
 ## Validation status
 

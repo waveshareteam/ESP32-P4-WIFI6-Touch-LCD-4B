@@ -43,6 +43,12 @@ README_WORKFLOW_BADGES = (
     ("Firmware Build", "firmware.yml"),
 )
 README_H2_ICONS = ("🖥️", "🗂️", "🧪", "🚀", "📦", "📄")
+MANAGED_BSP_COMPONENT = "waveshare/esp32_p4_wifi6_touch_lcd_4b"
+MANAGED_BSP_VERSION = "3.0.0"
+FORBIDDEN_LOCAL_REUSABLE_COMPONENTS = (
+    "firmware/brookesia/components/esp32_p4_wifi6_touch_lcd_4b",
+    "firmware/brookesia/components/esp_lcd_st7703",
+)
 GITHUB_WORKFLOW_URL = "https://github.com/waveshareteam/ESP32-P4-WIFI6-Touch-LCD-4B/actions/workflows/{}"
 ICON_SYNCHRONIZED_PAIRS = (
     ("README.md", "README_ZH.md"),
@@ -400,6 +406,35 @@ def check_public_text(root: Path, markdown_files: tuple[Path, ...]) -> list[str]
     return errors
 
 
+def check_managed_component_contract(root: Path) -> list[str]:
+    """Require Registry resolution for reusable board/display components."""
+    errors: list[str] = []
+    for relative in FORBIDDEN_LOCAL_REUSABLE_COMPONENTS:
+        component_path = root / relative
+        if component_path.is_file() or (
+            component_path.is_dir()
+            and any(candidate.is_file() for candidate in component_path.rglob("*"))
+        ):
+            errors.append(f"{relative}: local reusable component shadows ESP Component Registry")
+
+    manifest_path = root / "firmware/brookesia/components/bsp_extra/idf_component.yml"
+    if not manifest_path.is_file():
+        return errors + [
+            "firmware/brookesia/components/bsp_extra/idf_component.yml: managed BSP dependency manifest is missing"
+        ]
+    manifest = manifest_path.read_text(encoding="utf-8")
+    dependency = re.compile(
+        rf"(?m)^  {re.escape(MANAGED_BSP_COMPONENT)}:\s*\n"
+        rf"    version: [\"']?{re.escape(MANAGED_BSP_VERSION)}[\"']?\s*$"
+    )
+    if not dependency.search(manifest):
+        errors.append(
+            "firmware/brookesia/components/bsp_extra/idf_component.yml: "
+            f"must pin Registry {MANAGED_BSP_COMPONENT} {MANAGED_BSP_VERSION}"
+        )
+    return errors
+
+
 def check_ci_contract(root: Path) -> list[str]:
     errors: list[str] = []
     idf = (root / ".github/workflows/esp-idf.yml").read_text(encoding="utf-8")
@@ -543,6 +578,7 @@ def run_checks(root: Path) -> list[str]:
     errors.extend(check_bilingual_contract(root))
     errors.extend(check_homepage_contract(root))
     errors.extend(check_public_text(root, markdown_files))
+    errors.extend(check_managed_component_contract(root))
     errors.extend(check_ci_contract(root))
     errors.extend(check_revision_profile_contract(root))
     errors.extend(check_idf_partition_contract(root))

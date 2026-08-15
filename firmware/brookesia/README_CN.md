@@ -24,18 +24,18 @@ ESP32-C6 Hosted Wi-Fi。
 | 显示 / 触摸 | 4 英寸 720 x 720 MIPI DSI ST7703 / GT911 |
 | 开发框架 | ESP-IDF v5.5.5，`idf_component.yml` 要求 `>=5.5,<6.0` |
 | UI | LVGL 9.4.0，本地 ESP-Brookesia core 0.6.0-beta2 |
-| BSP | 内置 `waveshare/esp32_p4_wifi6_touch_lcd_4b` 3.0.0 快照；工程约束 Registry 标识为 3.0.0 |
+| BSP | Registry 托管的 `waveshare/esp32_p4_wifi6_touch_lcd_4b` 3.0.0 |
 | LVGL 适配 | `espressif/esp_lvgl_adapter` 0.6.2，不使用 `esp_lvgl_port` |
 | 无线网络 | ESP32-C6 协处理器，通过 SDIO 运行 ESP-Hosted / `esp_wifi_remote` |
 | 语音助手 | `espressif/esp_xiaozhi` 0.1.1、ESP-SR 2.4.7、xiaozhi-fonts 1.6.0 |
 
-内置 BSP 与 ST7703 源码用于保留出厂固件的集成状态，因此会遮蔽同名托管组件。
-独立示例使用已发布的 BSP 3.0.0。只有在完整比较并完成 Brookesia 上板验证后，
-才能移除这些本地副本并完全切换到 Registry 版本。
+固件从 ESP Component Registry 解析 BSP 3.0.0 及其 ST7703 2.0.0 依赖，
+本地只保留 `bsp_extra` 中的产品专用组合逻辑，不再保留会遮蔽托管解析的
+同名可复用副本。
 
-内置的上游清单保留兼容版本范围；工程和组件层的精确约束会收窄当前
-ESP-IDF v5.5.5 活动依赖图。生成的 `dependencies.lock` 因本地组件条目含主机
-路径而保持忽略；提交验证证据时应另外记录其解析出的传递依赖版本。
+工程和组件层的精确约束会收窄当前 ESP-IDF v5.5.5 活动依赖图。生成的
+`dependencies.lock` 作为本地构建产物保持忽略；提交验证证据时应另外记录
+其解析出的传递依赖版本。
 
 硬件引脚和 P4/C6 兼容关系分别见
 [`docs/board_ZH.md`](../../docs/board_ZH.md) 与
@@ -94,8 +94,7 @@ PCB/电气版本匹配或硬件运行正常。
 ### 环境要求
 
 - 已安装 ESP-IDF v5.5.5 及 `esp32p4` 工具链。
-- 首次解析依赖时，可以访问 ESP Component Registry 和固定的 Waveshare
-  组件仓库。
+- 首次解析依赖时，可以访问 ESP Component Registry。
 - 烧录时准备 ESP32-P4-WIFI6-Touch-LCD-4B 和可传输数据的 USB 线。
 - 为托管组件、SPIFFS 镜像和语音模型镜像预留足够磁盘空间。
 
@@ -112,10 +111,10 @@ idf.py -C firmware/brookesia build
 `managed_components/` 中的文件；应修改组件清单，再由 IDF Component Manager
 重新解析。
 
-工程含本地组件时，Component Manager 生成的 `dependencies.lock` 会记录当前
-机器的绝对组件路径，因此该文件只适合本地使用并已忽略。新环境可执行
-`idf.py reconfigure` 或首次 `build` 重新生成；可复现的 BSP 提交和组件范围应
-维护在各 `idf_component.yml` 中，公开发布物不要包含主机专用锁文件。
+Component Manager 生成的 `dependencies.lock` 是本地构建辅助文件，本仓库保持
+忽略，不发布构建主机状态。新环境可执行 `idf.py reconfigure` 或首次 `build`
+重新生成；可复现的组件约束应维护在各 `idf_component.yml` 中，并在验证证据中
+记录实际解析版本。
 
 ### 首次完整烧录与分区变更
 
@@ -354,9 +353,9 @@ MusicPlayer 枚举 `/spiffs/music` 中最多五首由集成方提供的 MP3，UI
   MP4 枚举/播放。
 - **P4 本身没有 Wi-Fi。** Host 组件必须与 ESP32-C6 中运行的从机固件兼容；
   只升级 P4 依赖可能出现“能编译但无线不可用”。
-- **BSP 内置 3.0.0 快照。** 它会遮蔽已发布的托管组件，以保留导入时的
-  Brookesia 集成状态。替换或升级前应与 Registry 版本完整比较，重点确认
-  `esp_lvgl_adapter` 接口兼容性。
+- **BSP 由 Registry 托管。** 不要重新加入同名组件目录，因为工程组件会覆盖
+  托管解析。BSP 3.0.0 使用 480 Mbps DSI 通道速率；修改或升级前，应在两个
+  受维护硬件 profile 上验证显示行为。
 - **RS485 接收取决于硬件版本。** 软件排障前先检查收发器方向引脚。
 
 ## 诊断开关
