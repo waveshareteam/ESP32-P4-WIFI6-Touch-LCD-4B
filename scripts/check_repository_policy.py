@@ -764,6 +764,12 @@ def check_ci_contract(root: Path) -> list[str]:
         errors.append("firmware.yml: maintained firmware must remain separate, PR source-impact gated, and manually dispatchable")
     if '. "$IDF_PATH/export.sh"' not in firmware:
         errors.append("firmware.yml: IDF container environment is not activated")
+    container_checkout_trust = 'git config --global --add safe.directory "$GITHUB_WORKSPACE"'
+    for workflow_name, text in (("esp-idf.yml", idf), ("firmware.yml", firmware)):
+        if container_checkout_trust not in text:
+            errors.append(
+                f"{workflow_name}: IDF container must trust the exact checked-out workspace before packaging"
+            )
     package_script = root / "scripts/package_ci_firmware.py"
     flasher_script = root / "scripts/Flash-CI-Firmware.ps1"
     flasher_cmd = root / "Flash-CI-Firmware.cmd"

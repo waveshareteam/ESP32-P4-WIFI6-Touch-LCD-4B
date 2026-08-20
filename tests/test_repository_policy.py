@@ -201,6 +201,10 @@ class RepositoryPolicyTests(unittest.TestCase):
             self.assertIn(expected, text)
             self.assertIn("retention-days: 14", text)
             self.assertIn("PACKAGE_GIT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}", text)
+        container_checkout_trust = 'git config --global --add safe.directory "$GITHUB_WORKSPACE"'
+        for name in ("esp-idf.yml", "firmware.yml"):
+            text = (ROOT / ".github/workflows" / name).read_text(encoding="utf-8")
+            self.assertIn(container_checkout_trust, text)
         flasher = (ROOT / "scripts/ci_firmware.py").read_text(encoding="utf-8")
         self.assertIn("Hash of data verified", flasher)
         self.assertIn("c6_firmware_included", flasher)
