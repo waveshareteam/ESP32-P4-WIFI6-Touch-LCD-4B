@@ -771,6 +771,10 @@ class CiFirmwareCoreTests(unittest.TestCase):
     def repo(self) -> core.Repository:
         return core.Repository(ROOT, "waveshareteam", ROOT.name, "branch", "a" * 40, True)
 
+    def trusted_repo(self) -> core.Repository:
+        root, head = packager.trusted_repository()
+        return core.Repository(root, "waveshareteam", root.name, "test", head, True)
+
     def test_origin_and_dynamic_inventory(self) -> None:
         self.assertEqual(("owner", "repo"), core.parse_github_origin("git@github.com:owner/repo.git"))
         self.assertEqual(("owner", "repo"), core.parse_github_origin("https://github.com/owner/repo.git"))
@@ -856,7 +860,7 @@ class CiFirmwareCoreTests(unittest.TestCase):
 
     def test_arduino_layout_requires_exact_packaged_metadata_and_provenance(self) -> None:
         item = next(entry for entry in core.expected_items(ROOT) if entry.framework == "arduino-esp32")
-        repo = core.repository(ROOT)
+        repo = self.trusted_repo()
         project = ROOT / item.source_project
         name = project.name
         with tempfile.TemporaryDirectory() as directory:
@@ -941,7 +945,7 @@ class CiFirmwareCoreTests(unittest.TestCase):
 
     def test_manifest_hash_offsets_command_profile_and_c6_gates(self) -> None:
         item = core.expected_items(ROOT)[0]
-        repo = core.repository(ROOT)
+        repo = self.trusted_repo()
         with tempfile.TemporaryDirectory() as directory:
             package = Path(directory); binary = package / "bin" / "app.bin"; binary.parent.mkdir(); binary.write_bytes(b"firmware")
             (package / "metadata").mkdir()
