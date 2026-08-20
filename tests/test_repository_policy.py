@@ -284,6 +284,8 @@ class RepositoryPolicyTests(unittest.TestCase):
             "releases/README.md",
             "schematic/README.md",
             "examples/arduino/AsciiTable/README.md",
+            "examples/arduino/libraries/Waveshare_ESP32_P4_4B_Display/README.md",
+            "examples/arduino/libraries/Waveshare_ESP32_P4_4B_Display/README_ZH.md",
             "examples/esp-idf/hello_world/README.md",
             "firmware/brookesia/README.md",
             "firmware/brookesia/archive/README.md",
@@ -293,6 +295,21 @@ class RepositoryPolicyTests(unittest.TestCase):
             "firmware/brookesia/archive/components/AIChats/third_party/xiaozhi_esp32/README.md",
             inventory,
         )
+
+    def test_arduino_wrapper_pair_detects_missing_page_and_language_switches(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            wrapper = "examples/arduino/libraries/Waveshare_ESP32_P4_4B_Display"
+            self.write_fixture(root, f"{wrapper}/README.md", "# Wrapper\n")
+            errors = policy.check_bilingual_contract(root)
+            self.assertIn(
+                f"Missing maintained bilingual pair: {wrapper}/README.md / {wrapper}/README_ZH.md",
+                errors,
+            )
+            self.write_fixture(root, f"{wrapper}/README_ZH.md", "# 辅助库\n")
+            errors = policy.check_bilingual_contract(root)
+            self.assertIn(f"{wrapper}/README.md: missing language switch to {wrapper}/README_ZH.md", errors)
+            self.assertIn(f"{wrapper}/README_ZH.md: missing language switch to {wrapper}/README.md", errors)
 
     def test_reciprocal_language_navigation_is_required_in_both_directions(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

@@ -419,6 +419,9 @@ def first_party_markdown(root: Path) -> tuple[Path, ...]:
                 if child.is_dir() and child.name != "libraries":
                     add(child / "README.md")
                     add(child / "README_ZH.md")
+    wrapper_root = root / "examples/arduino/libraries/Waveshare_ESP32_P4_4B_Display"
+    for name in ("README.md", "README_ZH.md"):
+        add(wrapper_root / name)
     for name in ("README.md", "README_CN.md"):
         add(root / "firmware/brookesia" / name)
     for name in ("README.md", "README_ZH.md"):
