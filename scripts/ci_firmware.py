@@ -134,8 +134,8 @@ def expected_items(root: Path = ROOT) -> tuple[Item, ...]:
     idf = _workflow_text("esp-idf.yml", root)
     arduino = _workflow_text("arduino.yml", root)
     firmware = _workflow_text("firmware.yml", root)
-    required_idf = "firmware-esp-idf-${{ matrix.name }}-${{ matrix.idf_version }}-rev1_3"
-    required_arduino = "firmware-arduino-${{ matrix.name }}-3.3.11-rev1_3"
+    required_idf = "firmware-esp-idf-${{ matrix.name }}-${{ matrix.idf_version }}-rev3_x"
+    required_arduino = "firmware-arduino-${{ matrix.name }}-3.3.11-rev3_x"
     required_brookesia = "firmware-brookesia-v5.5.5-${{ matrix.profile }}"
     if required_idf not in idf or required_arduino not in arduino or required_brookesia not in firmware:
         raise CiFirmwareError("workflow artifact templates drifted; refusing to infer packages")
@@ -149,9 +149,9 @@ def expected_items(root: Path = ROOT) -> tuple[Item, ...]:
     items: list[Item] = []
     for project in inventory.idf_projects:
         for version in selector.IDF_VERSIONS:
-            items.append(Item(0, "esp-idf.yml", f"firmware-esp-idf-{Path(project).name}-{version}-rev1_3", "esp-idf", version, project, "rev1_3"))
+            items.append(Item(0, "esp-idf.yml", f"firmware-esp-idf-{Path(project).name}-{version}-rev3_x", "esp-idf", version, project, "rev3_x"))
     for sketch in inventory.arduino_sketches:
-        items.append(Item(0, "arduino.yml", f"firmware-arduino-{Path(sketch).name}-{version_match.group(1)}-rev1_3", "arduino-esp32", version_match.group(1), sketch, "rev1_3"))
+        items.append(Item(0, "arduino.yml", f"firmware-arduino-{Path(sketch).name}-{version_match.group(1)}-rev3_x", "arduino-esp32", version_match.group(1), sketch, "rev3_x"))
     for profile in profiles:
         items.append(Item(0, "firmware.yml", f"firmware-brookesia-{brookesia_version.group(1)}-{profile}", "esp-idf", brookesia_version.group(1), "firmware/brookesia", profile))
     return tuple(Item(index + 1, item.workflow, item.artifact, item.framework, item.version, item.source_project, item.profile) for index, item in enumerate(items))
@@ -383,7 +383,7 @@ def validate_arduino_layout(
     raw_files: list[Any],
     packager: Any,
 ) -> list[str]:
-    if (item.profile != "rev1_3" or manifest.get("fqbn") != packager.ARDUINO_FQBN
+    if (item.profile != "rev3_x" or manifest.get("fqbn") != packager.ARDUINO_FQBN
             or manifest.get("target") != packager.CHIP):
         raise CiFirmwareError("Arduino manifest FQBN or profile does not match the packager contract")
     build_identity = manifest.get("arduino_build_identity")
@@ -823,7 +823,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             raise CiFirmwareError(f"ESP32-P4 major revision {major} requires {profile_for_major(major)}, not {item.profile}")
         if capacity < packager.FLASH_SIZE or capacity < 32 * 1024 * 1024:
             raise CiFirmwareError("detected flash capacity is below the required 32 MiB")
-        if item.profile == "rev3_x": print("WARNING: confirm matching rev3_x PCB/electrical revision before flashing.")
+        if item.profile == "rev3_x": print("INFO: detected ESP32-P4 silicon revision v3.00 or newer matches rev3_x; no PCB revision is inferred.")
         print(f"run={runs[item.workflow].run_id} sha={repo.head} artifact={item.artifact} profile={item.profile} port={port} chip=ESP32-P4 revision={major} flash={capacity}")
         print("plan=" + " ".join([*write_flash_args, *(f"0x{offset:x}:{path}" for offset, path in plan)]))
         if input("Type FLASH to write this one item: ").strip() != "FLASH":

@@ -1,15 +1,16 @@
 # Shared defaults for first-party ESP-IDF projects.
 # ESP32-P4-WIFI6-Touch-LCD-4B memory and flash geometry.
-# Default for every first-party ESP-IDF example: ESP32-P4 rev 1.3 / pre-v3.
-# ESP-IDF exposes a pre-v3 selector and a 1.x minimum, not a 1.3-only symbol.
-CONFIG_ESP32P4_SELECTS_REV_LESS_V3=y
-CONFIG_ESP32P4_REV_MIN_100=y
+# Default for every first-party ESP-IDF example: ESP32-P4 rev 3.x / post-v3.
+# ESP-IDF exposes a post-v3 minimum, not a 3.x-only selector.
+CONFIG_ESP32P4_SELECTS_REV_LESS_V3=n
+CONFIG_ESP32P4_REV_MIN_300=y
 CONFIG_ESPTOOLPY_FLASHMODE_QIO=y
 CONFIG_ESPTOOLPY_FLASHSIZE_32MB=y
 CONFIG_ESPTOOLPY_FLASHSIZE="32MB"
 CONFIG_PARTITION_TABLE_OFFSET=0x10000
 CONFIG_SPIRAM=y
-CONFIG_SPIRAM_SPEED_200M=y
+CONFIG_SPIRAM_SPEED_250M=y
+CONFIG_SPIRAM_SPEED=250
 
 CONFIG_COMPILER_OPTIMIZATION_DEBUG=y
 CONFIG_COMPILER_OPTIMIZATION_ASSERTIONS_ENABLE=y

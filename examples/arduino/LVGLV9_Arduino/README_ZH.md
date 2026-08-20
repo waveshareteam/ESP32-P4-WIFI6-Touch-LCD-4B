@@ -19,7 +19,7 @@ Arduino Library Manager 软件包使用，不依赖上游源码仓库中独立�
 ## 开发板设置
 
 启用 PSRAM，选择 32 MB Flash 和 13 MB 应用分区，并使用
-`ChipVariant=prev3`。USB 模式、CDC-on-boot、MSC、DFU 和上传模式保持默认值。
+`ChipVariant=postv3`。USB 模式、CDC-on-boot、MSC、DFU 和上传模式保持默认值。
 
 ## 运行保护
 
@@ -29,6 +29,6 @@ Arduino Library Manager 软件包使用，不依赖上游源码仓库中独立�
 
 ## 硬件边界
 
-触摸使用 SDA GPIO7、SCL GPIO8 和复位 GPIO23。由于参考原理图中触摸中断没有
-连接到 ESP32-P4 GPIO，本示例使用轮询。编译不能验证实体板上的显示时序、触摸行为
-或内存稳定性。
+触摸使用 SDA GPIO7 和 SCL GPIO8。辅助库不驱动 GT911 的 INT 或 RST：先探测 `0x5D`，
+再探测 `0x14`，以响应的地址初始化。由于参考原理图中触摸中断没有连接到 ESP32-P4 GPIO，
+本示例使用轮询。编译不能验证实体板上的显示时序、触摸行为、地址选择时序或内存稳定性。

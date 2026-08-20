@@ -92,12 +92,12 @@ class CiFirmwarePackageTests(unittest.TestCase):
     def expected_list_only_items() -> list[tuple[str, str]]:
         inventory = selector.discover_inventory(ROOT)
         expected = [
-            (f"firmware-esp-idf-{Path(project).name}-{version}-rev1_3", project)
+            (f"firmware-esp-idf-{Path(project).name}-{version}-rev3_x", project)
             for project in inventory.idf_projects
             for version in ("v5.5.5", "v6.0.2")
         ]
         expected += [
-            (f"firmware-arduino-{Path(sketch).name}-3.3.11-rev1_3", sketch)
+            (f"firmware-arduino-{Path(sketch).name}-3.3.11-rev3_x", sketch)
             for sketch in inventory.arduino_sketches
         ]
         return expected + [
@@ -123,7 +123,7 @@ class CiFirmwarePackageTests(unittest.TestCase):
         (build / "bootloader.bin").write_bytes(b"boot")
         (build / "app.bin").write_bytes(b"application compiled from /tmp/external-component.c")
         (build / "config").mkdir()
-        (build / "config" / "sdkconfig.json").write_text(json.dumps({"ESP32P4_SELECTS_REV_LESS_V3": True, "ESP32P4_REV_MIN_100": True}), encoding="utf-8")
+        (build / "config" / "sdkconfig.json").write_text(json.dumps({"ESP32P4_SELECTS_REV_LESS_V3": False, "ESP32P4_REV_MIN_300": True}), encoding="utf-8")
         (build / "flasher_args.json").write_text(json.dumps({"flash_files": {"0x0": "bootloader.bin", "0x10000": "app.bin"}}), encoding="utf-8")
         (project / "CMakeLists.txt").write_text("# test fixture\n", encoding="utf-8")
         self.commit_repository(root)
@@ -170,7 +170,7 @@ class CiFirmwarePackageTests(unittest.TestCase):
             root = Path(directory); project, build = self.fixture(root); output = root / "artifact.zip"
             old = Path.cwd(); os.chdir(root)
             try:
-                packager.package_idf(project, build, "v5.5.5", output, "rev1_3")
+                packager.package_idf(project, build, "v5.5.5", output, "rev3_x")
             finally:
                 os.chdir(old)
             with zipfile.ZipFile(output) as archive:
@@ -179,9 +179,9 @@ class CiFirmwarePackageTests(unittest.TestCase):
             self.assertEqual(1, document["schema_version"])
             self.assertEqual("examples/esp-idf/hello_world", document["source_project"])
             self.assertEqual("esp32p4", document["chip"])
-            self.assertEqual("rev1_3", document["board_profile"])
-            self.assertEqual("1.0", document["chip_revision"]["minimum"])
-            self.assertEqual("3.0", document["chip_revision"]["maximum_exclusive"])
+            self.assertEqual("rev3_x", document["board_profile"])
+            self.assertEqual("3.0", document["chip_revision"]["minimum"])
+            self.assertIsNone(document["chip_revision"]["maximum_exclusive"])
             self.assertEqual(32 * 1024 * 1024, document["flash"]["size_bytes"])
             self.assertFalse(document["c6_firmware_included"])
             self.assertNotIn("erase_flash", document["flash"]["command"])
@@ -193,9 +193,9 @@ class CiFirmwarePackageTests(unittest.TestCase):
             root = Path(directory); project, build = self.fixture(root); old = Path.cwd(); os.chdir(root)
             try:
                 (build / "flasher_args.json").write_text(json.dumps({"flash_files": {"0x0": "../escape.bin"}}), encoding="utf-8")
-                with self.assertRaises(ValueError): packager.package_idf(project, build, "v5.5.5", root / "bad.zip", "rev1_3")
+                with self.assertRaises(ValueError): packager.package_idf(project, build, "v5.5.5", root / "bad.zip", "rev3_x")
                 (build / "flasher_args.json").write_text(json.dumps({"flash_files": {"0x0": "bootloader.bin"}, "write_flash_args": ["--erase-all"]}), encoding="utf-8")
-                with self.assertRaises(ValueError): packager.package_idf(project, build, "v5.5.5", root / "dangerous.zip", "rev1_3")
+                with self.assertRaises(ValueError): packager.package_idf(project, build, "v5.5.5", root / "dangerous.zip", "rev3_x")
                 with self.assertRaises(ValueError): packager.validate_plan([{"offset": "0x0", "size": 8}, {"offset": "0x4", "size": 8}])
                 with self.assertRaises(ValueError): packager.validate_plan([{"offset": "0x1fffff0", "size": 32}])
             finally:
@@ -217,27 +217,27 @@ class CiFirmwarePackageTests(unittest.TestCase):
             old = Path.cwd(); os.chdir(root)
             try:
                 (build / "flash_args").unlink()
-                with self.assertRaises((ValueError, FileNotFoundError)): packager.package_arduino(project, build, "3.3.11", root / "missing.zip", fqbn, "rev1_3", self.BSP_VERSION, self.BSP_SHA, self.BSP_TREE_SHA)
+                with self.assertRaises((ValueError, FileNotFoundError)): packager.package_arduino(project, build, "3.3.11", root / "missing.zip", fqbn, "rev3_x", self.BSP_VERSION, self.BSP_SHA, self.BSP_TREE_SHA)
                 _, build = self.arduino_fixture(root, "Second")
-                with self.assertRaises(ValueError): packager.package_arduino(root / "examples/arduino/Second", build, "3.3.11", root / "bad-fqbn.zip", "FlashSize=16M", "rev1_3", self.BSP_VERSION, self.BSP_SHA, self.BSP_TREE_SHA)
+                with self.assertRaises(ValueError): packager.package_arduino(root / "examples/arduino/Second", build, "3.3.11", root / "bad-fqbn.zip", "FlashSize=16M", "rev3_x", self.BSP_VERSION, self.BSP_SHA, self.BSP_TREE_SHA)
                 (build / "build.options.json").write_text(json.dumps({"fqbn": "esp32:esp32:esp32s3"}), encoding="utf-8")
-                with self.assertRaises(ValueError): packager.package_arduino(root / "examples/arduino/Second", build, "3.3.11", root / "relabeled.zip", fqbn, "rev1_3", self.BSP_VERSION, self.BSP_SHA, self.BSP_TREE_SHA)
+                with self.assertRaises(ValueError): packager.package_arduino(root / "examples/arduino/Second", build, "3.3.11", root / "relabeled.zip", fqbn, "rev3_x", self.BSP_VERSION, self.BSP_SHA, self.BSP_TREE_SHA)
                 (build / "build.options.json").write_text(json.dumps({"fqbn": fqbn, "hardwareFolders": "/toolchain/esp32/3.3.11"}), encoding="utf-8")
                 (build / "build.options.json").write_text(json.dumps({"fqbn": fqbn, "hardwareFolders": "/toolchain/esp32/3.3.10"}), encoding="utf-8")
                 with self.assertRaises(ValueError):
-                    packager.package_arduino(root / "examples/arduino/Second", build, "3.3.11", root / "wrong-core.zip", fqbn, "rev1_3", self.BSP_VERSION, self.BSP_SHA, self.BSP_TREE_SHA)
+                    packager.package_arduino(root / "examples/arduino/Second", build, "3.3.11", root / "wrong-core.zip", fqbn, "rev3_x", self.BSP_VERSION, self.BSP_SHA, self.BSP_TREE_SHA)
                 (build / "build.options.json").write_text(json.dumps({"fqbn": fqbn, "hardwareFolders": "/toolchain/esp32/3.3.11"}), encoding="utf-8")
                 third_project, third_build = self.arduino_fixture(root, "Third")
                 (third_build / "build.options.json").unlink()
                 with self.assertRaises((ValueError, FileNotFoundError)):
-                    packager.package_arduino(third_project, third_build, "3.3.11", root / "missing-options.zip", fqbn, "rev1_3", self.BSP_VERSION, self.BSP_SHA, self.BSP_TREE_SHA)
+                    packager.package_arduino(third_project, third_build, "3.3.11", root / "missing-options.zip", fqbn, "rev3_x", self.BSP_VERSION, self.BSP_SHA, self.BSP_TREE_SHA)
                 (third_build / "build.options.json").write_text("{not-json", encoding="utf-8")
                 with self.assertRaises(ValueError):
-                    packager.package_arduino(third_project, third_build, "3.3.11", root / "malformed-options.zip", fqbn, "rev1_3", self.BSP_VERSION, self.BSP_SHA, self.BSP_TREE_SHA)
+                    packager.package_arduino(third_project, third_build, "3.3.11", root / "malformed-options.zip", fqbn, "rev3_x", self.BSP_VERSION, self.BSP_SHA, self.BSP_TREE_SHA)
                 with self.assertRaises(ValueError): packager.parse_arduino_fqbn("esp32:esp32:esp32p4:FlashSize=32M,FlashSize=32M,ChipVariant=prev3,EraseFlash=none")
-                with self.assertRaises(ValueError): packager.package_arduino(root / "examples/arduino/Second", build, "3.3.11", root / "bad-profile.zip", fqbn, "rev3_x", self.BSP_VERSION, self.BSP_SHA, self.BSP_TREE_SHA)
-                with self.assertRaises(ValueError): packager.package_arduino(root / "examples/arduino/Second", build, "3.3.11", root / "bad-bsp.zip", fqbn, "rev1_3", self.BSP_VERSION, "short", self.BSP_TREE_SHA)
-                with self.assertRaises(ValueError): packager.package_arduino(root / "examples/arduino/Second", build, "3.3.11", root / "bad-tree.zip", fqbn, "rev1_3", self.BSP_VERSION, self.BSP_SHA, "short")
+                with self.assertRaises(ValueError): packager.package_arduino(root / "examples/arduino/Second", build, "3.3.11", root / "bad-profile.zip", fqbn, "rev1_3", self.BSP_VERSION, self.BSP_SHA, self.BSP_TREE_SHA)
+                with self.assertRaises(ValueError): packager.package_arduino(root / "examples/arduino/Second", build, "3.3.11", root / "bad-bsp.zip", fqbn, "rev3_x", self.BSP_VERSION, "short", self.BSP_TREE_SHA)
+                with self.assertRaises(ValueError): packager.package_arduino(root / "examples/arduino/Second", build, "3.3.11", root / "bad-tree.zip", fqbn, "rev3_x", self.BSP_VERSION, self.BSP_SHA, "short")
             finally:
                 os.chdir(old)
 
@@ -252,7 +252,7 @@ class CiFirmwarePackageTests(unittest.TestCase):
                         merged.write(chunk)
             old = Path.cwd(); os.chdir(root)
             try:
-                output = packager.package_arduino(project, build, "3.3.11", root / "arduino.zip", fqbn, "rev1_3", self.BSP_VERSION, self.BSP_SHA, self.BSP_TREE_SHA)
+                output = packager.package_arduino(project, build, "3.3.11", root / "arduino.zip", fqbn, "rev3_x", self.BSP_VERSION, self.BSP_SHA, self.BSP_TREE_SHA)
             finally:
                 os.chdir(old)
             trusted_head = self.git(root, "rev-parse", "HEAD").lower()
@@ -266,7 +266,7 @@ class CiFirmwarePackageTests(unittest.TestCase):
                     for entry in document["files"]
                 }
             self.assertEqual(fqbn, document["fqbn"])
-            self.assertEqual("rev1_3", document["board_profile"])
+            self.assertEqual("rev3_x", document["board_profile"])
             self.assertEqual(["0x2000", "0x8000", "0xe000", "0x10000"], [entry["offset"] for entry in document["files"]])
             self.assertEqual(["bootloader", "partition_table", "boot_app0", "application"], [entry["role"] for entry in document["files"]])
             self.assertTrue(all(entry["metadata_source"] == "metadata/flash_args" for entry in document["files"]))
@@ -379,7 +379,7 @@ class CiFirmwarePackageTests(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     packager.package_arduino(
                         project_a, build_b, "3.3.11", root / "swapped.zip", fqbn,
-                        "rev1_3", self.BSP_VERSION, self.BSP_SHA, self.BSP_TREE_SHA,
+                        "rev3_x", self.BSP_VERSION, self.BSP_SHA, self.BSP_TREE_SHA,
                     )
 
                 impersonator = root / "other" / "examples" / "arduino" / "Alpha"
@@ -392,7 +392,7 @@ class CiFirmwarePackageTests(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     packager.package_arduino(
                         project_a, build_a, "3.3.11", root / "impersonated.zip", fqbn,
-                        "rev1_3", self.BSP_VERSION, self.BSP_SHA, self.BSP_TREE_SHA,
+                        "rev3_x", self.BSP_VERSION, self.BSP_SHA, self.BSP_TREE_SHA,
                     )
 
                 options["sketchLocation"] = str(project_a)
@@ -407,7 +407,7 @@ class CiFirmwarePackageTests(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     packager.package_arduino(
                         project_a, build_a, "3.3.11", root / "relabeled.zip", fqbn,
-                        "rev1_3", self.BSP_VERSION, self.BSP_SHA, self.BSP_TREE_SHA,
+                        "rev3_x", self.BSP_VERSION, self.BSP_SHA, self.BSP_TREE_SHA,
                     )
             finally:
                 os.chdir(old)
@@ -422,7 +422,7 @@ class CiFirmwarePackageTests(unittest.TestCase):
             try:
                 output = packager.package_arduino(
                     project, build, "3.3.11", root / "base.zip", fqbn,
-                    "rev1_3", self.BSP_VERSION, self.BSP_SHA, self.BSP_TREE_SHA,
+                    "rev3_x", self.BSP_VERSION, self.BSP_SHA, self.BSP_TREE_SHA,
                 )
             finally:
                 os.chdir(old)
@@ -473,7 +473,7 @@ class CiFirmwarePackageTests(unittest.TestCase):
             try:
                 output = packager.package_arduino(
                     project_a, build_a, "3.3.11", root_a / "base.zip", fqbn,
-                    "rev1_3", self.BSP_VERSION, self.BSP_SHA, self.BSP_TREE_SHA,
+                    "rev3_x", self.BSP_VERSION, self.BSP_SHA, self.BSP_TREE_SHA,
                 )
             finally:
                 os.chdir(old)
@@ -523,7 +523,7 @@ class CiFirmwarePackageTests(unittest.TestCase):
             root = Path(directory); project, build = self.arduino_fixture(root, boot_offset=0)
             old = Path.cwd(); os.chdir(root)
             try:
-                output = packager.package_arduino(project, build, "3.3.11", root / "zero.zip", fqbn, "rev1_3", self.BSP_VERSION, self.BSP_SHA, self.BSP_TREE_SHA)
+                output = packager.package_arduino(project, build, "3.3.11", root / "zero.zip", fqbn, "rev3_x", self.BSP_VERSION, self.BSP_SHA, self.BSP_TREE_SHA)
                 self.assertTrue(output.is_file())
                 cases = {
                     "merged": "--flash-mode dio --flash-freq 80m --flash-size 32MB\n0x0 HelloWorld.ino.merged.bin\n",
@@ -535,7 +535,7 @@ class CiFirmwarePackageTests(unittest.TestCase):
                 for label, text in cases.items():
                     (build / "flash_args").write_text(text, encoding="utf-8")
                     with self.assertRaises(ValueError, msg=label):
-                        packager.package_arduino(project, build, "3.3.11", root / f"{label}.zip", fqbn, "rev1_3", self.BSP_VERSION, self.BSP_SHA, self.BSP_TREE_SHA)
+                        packager.package_arduino(project, build, "3.3.11", root / f"{label}.zip", fqbn, "rev3_x", self.BSP_VERSION, self.BSP_SHA, self.BSP_TREE_SHA)
                 self.arduino_fixture(root, "Overlap")
                 overlap_project = root / "examples/arduino/Overlap"; overlap_build = root / "build/Overlap"
                 (overlap_build / "flash_args").write_text(
@@ -543,22 +543,22 @@ class CiFirmwarePackageTests(unittest.TestCase):
                     "0x2000 Overlap.ino.bootloader.bin\n0x2004 Overlap.ino.partitions.bin\n"
                     "0xe000 boot_app0.bin\n0x10000 Overlap.ino.bin\n", encoding="utf-8")
                 with self.assertRaises(ValueError):
-                    packager.package_arduino(overlap_project, overlap_build, "3.3.11", root / "overlap.zip", fqbn, "rev1_3", self.BSP_VERSION, self.BSP_SHA, self.BSP_TREE_SHA)
+                    packager.package_arduino(overlap_project, overlap_build, "3.3.11", root / "overlap.zip", fqbn, "rev3_x", self.BSP_VERSION, self.BSP_SHA, self.BSP_TREE_SHA)
                 self.arduino_fixture(root, "Range", boot_offset=0x1FFFFFF)
                 with self.assertRaises(ValueError):
-                    packager.package_arduino(root / "examples/arduino/Range", root / "build/Range", "3.3.11", root / "range.zip", fqbn, "rev1_3", self.BSP_VERSION, self.BSP_SHA, self.BSP_TREE_SHA)
+                    packager.package_arduino(root / "examples/arduino/Range", root / "build/Range", "3.3.11", root / "range.zip", fqbn, "rev3_x", self.BSP_VERSION, self.BSP_SHA, self.BSP_TREE_SHA)
                 self.arduino_fixture(root, "Linked")
                 linked_project = root / "examples/arduino/Linked"; linked_build = root / "build/Linked"
                 target = linked_build / "real.bin"; target.write_bytes(b"boot")
                 (linked_build / "Linked.ino.bootloader.bin").unlink()
                 (linked_build / "Linked.ino.bootloader.bin").symlink_to(target)
                 with self.assertRaises(ValueError):
-                    packager.package_arduino(linked_project, linked_build, "3.3.11", root / "linked.zip", fqbn, "rev1_3", self.BSP_VERSION, self.BSP_SHA, self.BSP_TREE_SHA)
+                    packager.package_arduino(linked_project, linked_build, "3.3.11", root / "linked.zip", fqbn, "rev3_x", self.BSP_VERSION, self.BSP_SHA, self.BSP_TREE_SHA)
                 # Opaque compiled images are exempt from the text privacy scan, so a
                 # sanitized //IDF path inside a .bin payload still packages cleanly.
                 self.arduino_fixture(root, "Opaque")
                 (root / "build/Opaque/Opaque.ino.bin").write_bytes(b"//IDF/components/sanitized.c")
-                opaque_output = packager.package_arduino(root / "examples/arduino/Opaque", root / "build/Opaque", "3.3.11", root / "opaque.zip", fqbn, "rev1_3", self.BSP_VERSION, self.BSP_SHA, self.BSP_TREE_SHA)
+                opaque_output = packager.package_arduino(root / "examples/arduino/Opaque", root / "build/Opaque", "3.3.11", root / "opaque.zip", fqbn, "rev3_x", self.BSP_VERSION, self.BSP_SHA, self.BSP_TREE_SHA)
                 self.assertTrue(opaque_output.is_file())
             finally:
                 os.chdir(old)
@@ -570,7 +570,7 @@ class CiFirmwarePackageTests(unittest.TestCase):
             try:
                 output = packager.package_arduino(
                     project, build, "3.3.11", root / "base.zip", packager.ARDUINO_FQBN,
-                    "rev1_3", self.BSP_VERSION, self.BSP_SHA, self.BSP_TREE_SHA,
+                    "rev3_x", self.BSP_VERSION, self.BSP_SHA, self.BSP_TREE_SHA,
                 )
             finally:
                 os.chdir(old)
@@ -683,7 +683,7 @@ class CiFirmwarePackageTests(unittest.TestCase):
             manifest_mutations.append(("schema", changed))
             changed = json.loads(json.dumps(document)); changed["c6_firmware_included"] = True
             manifest_mutations.append(("c6", changed))
-            changed = json.loads(json.dumps(document)); changed["chip_revision"]["minimum"] = "3.0"
+            changed = json.loads(json.dumps(document)); changed["chip_revision"]["minimum"] = "1.0"
             manifest_mutations.append(("revision", changed))
             changed = json.loads(json.dumps(document)); changed["generated_at_utc"] = "not-a-timestamp"
             manifest_mutations.append(("generated-at", changed))
@@ -946,7 +946,8 @@ class CiFirmwareCoreTests(unittest.TestCase):
             package = Path(directory); binary = package / "bin" / "app.bin"; binary.parent.mkdir(); binary.write_bytes(b"firmware")
             (package / "metadata").mkdir()
             (package / "metadata" / "flasher_args.json").write_text(json.dumps({"flash_files": {"0x0": "app.bin"}}), encoding="utf-8")
-            manifest = {"schema_version": 1, "board": ROOT.name, "chip": "esp32p4", "board_profile": item.profile, "chip_revision": {"minimum": "1.0", "maximum_exclusive": "3.0"}, "c6_firmware_included": False, "framework": item.framework, "framework_version": item.version, "source_project": item.source_project, "git_sha": repo.head, "flash": {"baud": 460800, "size_bytes": 32 * 1024 * 1024, "command": "python -m esptool --chip esp32p4 --baud 460800 write_flash 0x0 bin/app.bin"}, "files": [{"offset": "0x0", "archive_path": "bin/app.bin", "metadata_path": "app.bin", "size": 8, "sha256": core.sha256(binary)}]}
+            profile = packager.BOARD_PROFILES[item.profile]
+            manifest = {"schema_version": 1, "board": ROOT.name, "chip": "esp32p4", "board_profile": item.profile, "chip_revision": {"minimum": profile["minimum"], "maximum_exclusive": profile["maximum_exclusive"]}, "c6_firmware_included": False, "framework": item.framework, "framework_version": item.version, "source_project": item.source_project, "git_sha": repo.head, "flash": {"baud": 460800, "size_bytes": 32 * 1024 * 1024, "command": "python -m esptool --chip esp32p4 --baud 460800 write_flash 0x0 bin/app.bin"}, "files": [{"offset": "0x0", "archive_path": "bin/app.bin", "metadata_path": "app.bin", "size": 8, "sha256": core.sha256(binary)}]}
             (package / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
             self.assertEqual(([(0, binary)], []), core.validate_manifest(package, item, repo))
             manifest["c6_firmware_included"] = True; (package / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")

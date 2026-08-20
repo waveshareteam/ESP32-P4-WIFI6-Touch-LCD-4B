@@ -12,7 +12,7 @@
 
 ## 开发板设置
 
-启用 PSRAM，选择 32 MB Flash 和 13 MB 应用分区，并使用 `ChipVariant=prev3`。USB 模式、CDC-on-boot、MSC、DFU 和上传模式保持默认值。
+启用 PSRAM，选择 32 MB Flash 和 13 MB 应用分区，并使用 `ChipVariant=postv3`。USB 模式、CDC-on-boot、MSC、DFU 和上传模式保持默认值。
 
 ## 无线边界
 

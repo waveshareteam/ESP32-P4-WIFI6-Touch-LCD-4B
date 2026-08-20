@@ -14,7 +14,7 @@ same text at randomized positions, colors, and sizes.
 ## Board settings
 
 Enable PSRAM, select 32 MB flash with the 13 MB application partition, and use
-`ChipVariant=prev3`. Keep the USB mode, CDC-on-boot, MSC, DFU, and upload-mode
+`ChipVariant=postv3`. Keep the USB mode, CDC-on-boot, MSC, DFU, and upload-mode
 selections at their defaults.
 
 ## Hardware boundary

@@ -104,8 +104,8 @@ not a complete first-install package.
 
 The ESP-IDF, Arduino, and Brookesia workflows package after a successful build
 and upload one ZIP with `if-no-files-found: error` and 14-day retention. Artifact
-names are `firmware-esp-idf-<name>-<idf-version>-rev1_3`,
-`firmware-arduino-<name>-3.3.11-rev1_3`, and
+names are `firmware-esp-idf-<name>-<idf-version>-rev3_x`,
+`firmware-arduino-<name>-3.3.11-rev3_x`, and
 `firmware-brookesia-v5.5.5-rev1_3` / `firmware-brookesia-v5.5.5-rev3_x`. The manifest
 must carry the complete final PR/push SHA; it is not valid evidence for another
 revision.
@@ -122,18 +122,18 @@ when promoting a CI artifact to a release.
 
 ## Revision profiles
 
-All example and Arduino packages are `rev1_3`/pre-v3 only; the example matrices
+All example and Arduino packages are `rev3_x`/post-v3 only; the example matrices
 remain 26 ESP-IDF builds and five Arduino builds rather than being doubled.
 Brookesia is the only maintained product firmware with two profile-safe
-artifacts. `rev1_3` declares a 1.0 minimum and `<3.0` maximum; `rev3_x` declares
-a 3.0 minimum and deliberately makes no unverified upper hardware claim.
-Never cross-flash the profiles. Before a v3.x flash, confirm the matching
-PCB/electrical revision as well as the chip revision.
+artifacts. `rev1_3` is pre-v3 with a 1.00 minimum and 200 MHz PSRAM baseline;
+`rev3_x` is post-v3 with a 3.00 minimum and 250 MHz PSRAM baseline. Never
+cross-flash the profiles. They are silicon/configuration profiles: the available
+main-board schematics do not establish a PCB/electrical difference between them.
 
 ## Arduino boundary
 
-Arduino packages require the exact 32 MiB pre-v3 FQBN with `FlashSize=32M`,
-`ChipVariant=prev3`, and `EraseFlash=none`. Compilation uses `--build-path` so
+Arduino packages require the exact 32 MiB post-v3 FQBN with `FlashSize=32M`,
+`ChipVariant=postv3`, and `EraseFlash=none`. Compilation uses `--build-path` so
 Arduino-ESP32 3.3.11 leaves both `build.options.json` and `flash_args`. The
 packager checks the former's exact FQBN and core path, but excludes it because it
 contains host paths. The workflow/local command dynamically maps repository,
@@ -173,9 +173,9 @@ fails closed without an older-run fallback.
 Default interactive use lets an operator choose any dynamically derived item,
 checks one exact-SHA schema-1 package, probes a selected port, and requires exact
 `FLASH` before one non-erasing `write_flash`. The write must report `Hash of data
-verified`; the program exits after that one item and never auto-advances. A v3.x
-chip still requires independent PCB/electrical confirmation. A compile, package,
-or verified write is not a runtime PASS.
+verified`; the program exits after that one item and never auto-advances. The
+profile check is a silicon/configuration check, not evidence of a PCB/electrical
+difference. A compile, package, or verified write is not a runtime PASS.
 
 ESP-IDF package acceptance also compares every verified manifest file's original
 metadata path with bundled `metadata/flasher_args.json`; missing referenced

@@ -15,8 +15,8 @@
 | --- | --- |
 | 产品 | ESP32-P4-WIFI6-Touch-LCD-4B |
 | ESP-IDF 目标 | `esp32p4` |
-| 默认示例基线 | ESP32-P4 rev 1.3 / pre-v3（`SELECTS_REV_LESS_V3=y`，最低 1.x） |
-| 维护固件 profile | 独立的 `rev1_3` 与 `rev3_x` Brookesia 二进制；请确认芯片及 PCB/电气版本 |
+| 默认示例基线 | ESP32-P4 rev3.x / post-v3（`SELECTS_REV_LESS_V3=n`、最低 3.0、250 MHz PSRAM） |
+| 维护固件 profile | 独立的 `rev1_3` 与 `rev3_x` Brookesia 芯片/配置 profile |
 | Flash | 32 MB |
 | PSRAM | 32 MB；维护的 Brookesia 默认配置中为 Hex 模式 |
 | 显示屏 | 4 英寸、720 x 720、双通道 MIPI DSI、ST7703 |
@@ -39,10 +39,13 @@
 | LCD 背光 | 使能 | GPIO33 |
 | 触摸 / 共享控制总线 | SDA | GPIO7 |
 | 触摸 / 共享控制总线 | SCL | GPIO8 |
-| 触摸 | 复位 | GPIO23 |
-| 触摸 | 中断 | 仅测试点；当前 BSP 未使用 MCU GPIO |
+| 触摸 | 复位 | 原理图有 GPIO23；Arduino 辅助库不驱动，但已发布 BSP 3.0.0 仍配置该引脚 |
+| 触摸 | 中断 | 仅测试点；未连接至 MCU GPIO，Arduino 辅助库与已发布 BSP 3.0.0 均不使用 |
 
-本产品的 LCD 复位与触摸复位为独立信号。不要从另一块 Waveshare 开发板复制“共用复位”的假设。
+本产品的 LCD 复位与触摸复位为独立信号。Arduino 辅助库有意不驱动 GT911 的 INT 或 RST：
+它先探测 I2C 地址 `0x5D`，再探测 `0x14`，以响应的地址初始化，并轮询触摸状态。BSP 3.0.1
+拟采用同样行为；在 Registry 发布前，产品继续使用已发布 BSP 3.0.0。不要从另一块 Waveshare
+开发板复制“共用复位”的假设。编译不能验证实体硬件上的地址选择时序或触摸输入。
 
 ### 音频
 
@@ -138,13 +141,19 @@ C6 的 SDIO/控制连接。信号级映射与时序由 Hosted 配置和匹配的
 ESP Component Registry 解析可复用的 BSP 与 ST7703 驱动。本地不再保留会遮蔽
 解析的同名副本，只保留产品专用的 `bsp_extra` 代码。
 
+产品 manifest 继续依赖已发布的 BSP 3.0.0。GT911 地址探测修改将作为 BSP 3.0.1 准备，
+但在该版本发布到 Component Registry 前，产品 manifest 不得升级；不能以 Git URL 替代
+Registry 发布版本。
+
 ## 验证状态
 
-ESP32-P4 rev 1.3/pre-v3 与 v3.x 使用不兼容的软件 profile，不能共用或交叉烧录二进制。
-默认 ESP-IDF 示例和 Arduino 草图仅面向 `rev1_3`/pre-v3，不会扩展为双矩阵；只有
-Brookesia 作为受维护产品固件提供两份 profile。v3.x profile 需要 ESP-IDF 5.5.3 或
-更高版本（或 6.0 及更高版本），本仓库的受维护固件工作流当前固定为 v5.5.5。芯片
-探测本身不能证明 PCB/电气兼容性。
+`rev1_3` 与 `rev3_x` 是芯片/配置 profile，不是已经验证的 PCB 电气版本。`rev1_3` 为
+pre-v3、最低芯片版本 1.00、200 MHz PSRAM 基线；`rev3_x` 为 post-v3、最低芯片版本
+3.00、250 MHz PSRAM 基线。二者的二进制不能交叉烧录。默认 ESP-IDF 示例和 Arduino 草图
+使用 `rev3_x`/post-v3，不会扩展为双矩阵；只有 Brookesia 继续构建两个 profile。v3.x
+profile 需要 ESP-IDF 5.5.3 或更高版本（或 6.0 及更高版本），本仓库的受维护固件工作流
+当前固定为 v5.5.5。现有主板原理图不足以证明这两个 profile 名称之间存在 PCB/电气差异；
+芯片探测或编译同样不能证明硬件兼容性。
 
 ### 由源材料支持
 

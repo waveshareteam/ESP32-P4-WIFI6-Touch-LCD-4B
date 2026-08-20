@@ -30,6 +30,9 @@ class RepositoryPolicyTests(unittest.TestCase):
 
     def test_single_product_homepage_contract(self) -> None:
         self.assertEqual([], policy.check_homepage_contract(ROOT))
+        config = (ROOT / "config/markdown-audit.json").read_text(encoding="utf-8")
+        self.assertIn('"category": "first_party_wrapper"', config)
+        self.assertIn('Waveshare_ESP32_P4_4B_Display/README_ZH.md', config)
         expected_badges = ["Repository Policy", "ESP-IDF Build", "Arduino Build", "Firmware Build"]
         for relative, expected_alt in policy.README_HERO_ALTS.items():
             text = (ROOT / relative).read_text(encoding="utf-8")
@@ -162,8 +165,15 @@ class RepositoryPolicyTests(unittest.TestCase):
     def test_revision_profile_policy_keeps_examples_single_profile_and_firmware_dual_profile(self) -> None:
         self.assertEqual([], policy.check_revision_profile_contract(ROOT))
         shared = (ROOT / "config/sdkconfig.defaults").read_text(encoding="utf-8")
-        self.assertIn("CONFIG_ESP32P4_SELECTS_REV_LESS_V3=y", shared)
-        self.assertIn("CONFIG_ESP32P4_REV_MIN_100=y", shared)
+        self.assertIn("CONFIG_ESP32P4_SELECTS_REV_LESS_V3=n", shared)
+        self.assertIn("CONFIG_ESP32P4_REV_MIN_300=y", shared)
+        self.assertIn("CONFIG_SPIRAM_SPEED_250M=y", shared)
+        for defaults in (ROOT / "examples/esp-idf").glob("**/sdkconfig.defaults*"):
+            if "managed_components" in defaults.relative_to(ROOT).parts:
+                continue
+            text = defaults.read_text(encoding="utf-8")
+            self.assertNotIn("CONFIG_SPIRAM_SPEED_200M=y", text, defaults)
+            self.assertNotIn("CONFIG_SPIRAM_SPEED=200", text, defaults)
         firmware = (ROOT / ".github/workflows/firmware.yml").read_text(encoding="utf-8")
         self.assertIn("profile: rev1_3", firmware)
         self.assertIn("profile: rev3_x", firmware)
@@ -194,11 +204,25 @@ class RepositoryPolicyTests(unittest.TestCase):
         flasher = (ROOT / "scripts/ci_firmware.py").read_text(encoding="utf-8")
         self.assertIn("Hash of data verified", flasher)
         self.assertIn("c6_firmware_included", flasher)
+        self.assertIn("silicon revision v3.00 or newer", flasher)
+        self.assertIn("no PCB revision is inferred", flasher)
+        self.assertNotIn("confirm matching rev3_x PCB/electrical revision", flasher)
         self.assertNotIn("erase_flash", flasher)
         self.assertIn("ci_firmware.py", (ROOT / "scripts/Flash-CI-Firmware.ps1").read_text(encoding="utf-8"))
 
     def test_idf_partition_contract(self) -> None:
         self.assertEqual([], policy.check_idf_partition_contract(ROOT))
+
+    def test_idf_partition_contract_ignores_generated_managed_components(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self.write_fixture(root, "config/sdkconfig.defaults", "CONFIG_PARTITION_TABLE_OFFSET=0x10000\n")
+            self.write_fixture(
+                root,
+                "examples/esp-idf/demo/managed_components/vendor/partitions.csv",
+                "factory, app, factory, 0x10000, 1M\n",
+            )
+            self.assertEqual([], policy.check_idf_partition_contract(root))
 
     def test_idf_component_names_cover_both_supported_lines(self) -> None:
         i2c_cmake = (ROOT / "examples/esp-idf/i2c-tools/main/CMakeLists.txt").read_text(

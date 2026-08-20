@@ -1,8 +1,20 @@
 {
+  "classification_rules": [
+    {
+      "category": "first_party_wrapper",
+      "patterns": [
+        "examples/arduino/libraries/Waveshare_ESP32_P4_4B_Display/**"
+      ]
+    }
+  ],
   "bilingual_pairs": [
     {
       "english": "firmware/brookesia/README.md",
       "chinese": "firmware/brookesia/README_CN.md"
+    },
+    {
+      "english": "examples/arduino/libraries/Waveshare_ESP32_P4_4B_Display/README.md",
+      "chinese": "examples/arduino/libraries/Waveshare_ESP32_P4_4B_Display/README_ZH.md"
     }
   ],
   "pair_exempt_patterns": [

@@ -25,6 +25,8 @@
 ESP-Brookesia 源码作为独立固件范围保留。新建 ESP-IDF 应用时，显示、触摸、
 音频和开发板支持应优先使用已发布的
 [`waveshare/esp32_p4_wifi6_touch_lcd_4b` 3.0.0 BSP](https://components.espressif.com/components/waveshare/esp32_p4_wifi6_touch_lcd_4b/versions/3.0.0)。
+GT911 地址探测修复将作为 BSP 3.0.1 提交；在该版本发布到 Component Registry 前，产品继续
+使用 3.0.0，不使用 Git URL 依赖。
 
 ## 🖥️ 硬件范围
 

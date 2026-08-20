@@ -14,7 +14,7 @@ strength on the 720 x 720 display.
 ## Board settings
 
 Enable PSRAM, select 32 MB flash with the 13 MB application partition, and use
-`ChipVariant=prev3`. Keep the USB mode, CDC-on-boot, MSC, DFU, and upload-mode
+`ChipVariant=postv3`. Keep the USB mode, CDC-on-boot, MSC, DFU, and upload-mode
 selections at their defaults.
 
 ## Wireless boundary

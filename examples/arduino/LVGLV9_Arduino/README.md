@@ -21,7 +21,7 @@ Review and migrate that configuration before changing the LVGL version.
 ## Board settings
 
 Enable PSRAM, select 32 MB flash with the 13 MB application partition, and use
-`ChipVariant=prev3`. Keep the USB mode, CDC-on-boot, MSC, DFU, and upload-mode
+`ChipVariant=postv3`. Keep the USB mode, CDC-on-boot, MSC, DFU, and upload-mode
 selections at their defaults.
 
 ## Runtime safeguards
@@ -32,7 +32,9 @@ size passed to LVGL is measured in bytes, matching the LVGL 9 API contract.
 
 ## Hardware boundary
 
-Touch uses SDA GPIO7, SCL GPIO8, and reset GPIO23 and is polled because the
-touch interrupt is not connected to an ESP32-P4 GPIO in the referenced
-schematic. Compilation does not validate display timing, touch behavior, or
-memory stability on a physical board.
+Touch uses SDA GPIO7 and SCL GPIO8. The helper does not drive GT911 INT or RST;
+it probes `0x5D` first, then `0x14`, and initializes the responding address.
+The sketch polls because the touch interrupt is not connected to an ESP32-P4
+GPIO in the referenced schematic. Compilation does not validate display timing,
+touch behavior, address-selection timing, or memory stability on a physical
+board.

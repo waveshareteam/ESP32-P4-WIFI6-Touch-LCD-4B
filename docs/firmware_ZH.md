@@ -26,11 +26,11 @@ Brookesia 项目当前面向 ESP-IDF v5.5.5 与 ESP32-P4。它使用包含应用
 SPIFFS 存储镜像的自定义分区表。完整的首次安装必须使用项目生成的烧录参数，以便将每个必需镜像写入
 正确偏移量。
 
-Brookesia 有两个不兼容的开发板 profile：`rev1_3` 是默认/pre-v3 profile（最低芯片版本
-1.0、最高排他版本 3.0、200 MHz PSRAM）；`rev3_x` 最低为 3.0，不宣称已经验证的硬件
-最高上限，并使用现有 250 MHz PSRAM 设置。CI 为二者使用独立 SDKCONFIG 和 build 目录，
-不能共用二进制。v3.x profile 需要 ESP-IDF 5.5.3+ 或 6.0+；v5.5.5 满足软件前提但不能
-证明硬件兼容性。还必须确认匹配的 PCB/电气版本。
+Brookesia 有两个不兼容的芯片/配置 profile：`rev1_3` 是默认 pre-v3 profile（最低芯片版本
+1.00、最高排他版本 3.00、200 MHz PSRAM）；`rev3_x` 是 post-v3 profile（最低 3.00、
+250 MHz PSRAM）。CI 为二者使用独立 SDKCONFIG 和 build 目录，不能共用二进制。v3.x
+profile 需要 ESP-IDF 5.5.3+ 或 6.0+；v5.5.5 满足软件前提但不能证明硬件兼容性。现有主板
+原理图不足以证明这些 profile 名称之间存在 PCB/电气差异。
 
 ```sh
 idf.py -C firmware/brookesia -p PORT flash monitor
@@ -106,7 +106,7 @@ Flash-CI-Firmware.cmd -Item 1 -Port COMx
 普通使用先执行同样的预检，随后可以自由选择动态推导出的 33 个产物（26 个 ESP-IDF、5 个 Arduino、
 2 个 Brookesia profile）。程序下载到操作系统用户缓存，并验证 schema-1 清单、路径、哈希、偏移量、
 容量及规范的非擦除命令，再探测所选端口。芯片 major revision 小于 3 时必须使用 `rev1_3`，3 或更高
-时必须使用 `rev3_x`；后者仍需独立确认 PCB/电气版本。操作员必须精确输入 `FLASH`；单项写入必须输出
+时必须使用 `rev3_x`；这是芯片/配置选择，不构成 PCB/电气差异的证据。操作员必须精确输入 `FLASH`；单项写入必须输出
 `Hash of data verified` 后程序即退出，绝不会自动前进。
 
 对于 ESP-IDF 包，每个通过验证的清单文件还带有其原始 `flasher_args.json` 元数据路径。烧录器要求该

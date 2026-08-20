@@ -26,6 +26,10 @@
 
 仓库面向每个首方示例支持 ESP-IDF v5.5.5 和 v6.0.2。Brookesia 在确认 v6 兼容性前继续使用 v5.5.5。
 
+默认示例配置使用 `rev3_x`/post-v3 芯片 profile：最低 ESP32-P4 版本 3.00，并以 250 MHz
+PSRAM 为基线。保留的 `rev1_3` Brookesia profile 是可选的 pre-v3 profile（最低 1.00、
+200 MHz PSRAM）；二者是芯片/配置 profile，不是已文档化的 PCB 电气版本。
+
 显式激活所需 IDF 版本，然后构建一个示例：
 
 ```sh
@@ -39,6 +43,8 @@ idf.py -C examples/esp-idf/hello_world build
 ## 开发板支持
 
 显示、触摸和音频示例应使用已发布的 `waveshare/esp32_p4_wifi6_touch_lcd_4b` 3.0.0 BSP 及其受管依赖。项目本地代码仅适用于示例组合或产品专用胶水代码。
+GT911 地址探测的 BSP 3.0.1 更新必须先发布到 Component Registry，本仓库才可升级 manifest；
+不要将 Registry 依赖替换为 Git URL。
 
 ## 硬件限制
 

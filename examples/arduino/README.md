@@ -39,7 +39,7 @@ FlashMode=qio
 FlashSize=32M
 PartitionScheme=app13M_data7M_32MB
 PSRAM=enabled
-ChipVariant=prev3
+ChipVariant=postv3
 USBMode=default
 CDCOnBoot=default
 MSCOnBoot=default
@@ -53,12 +53,13 @@ JTAGAdapter=default
 The corresponding compile FQBN is:
 
 ```text
-esp32:esp32:esp32p4:UploadSpeed=921600,USBMode=default,CDCOnBoot=default,MSCOnBoot=default,DFUOnBoot=default,UploadMode=default,FlashFreq=80,FlashMode=qio,FlashSize=32M,PartitionScheme=app13M_data7M_32MB,DebugLevel=none,PSRAM=enabled,EraseFlash=none,JTAGAdapter=default,ChipVariant=prev3
+esp32:esp32:esp32p4:UploadSpeed=921600,USBMode=default,CDCOnBoot=default,MSCOnBoot=default,DFUOnBoot=default,UploadMode=default,FlashFreq=80,FlashMode=qio,FlashSize=32M,PartitionScheme=app13M_data7M_32MB,DebugLevel=none,PSRAM=enabled,EraseFlash=none,JTAGAdapter=default,ChipVariant=postv3
 ```
 
-`ChipVariant=prev3` matches the current repository firmware baseline. Confirm
-the actual silicon revision before changing that option for a different
-production lot.
+`ChipVariant=postv3` matches the default `rev3_x` example profile. It selects
+ESP32-P4 v3.00 or newer; confirm the actual silicon revision before changing
+the option. The retained `rev1_3` Brookesia profile is an opt-in pre-v3 profile
+and is not the example default.
 
 With Arduino-ESP32 3.3.11, `USBMode=default` resolves to USB mode `0` and
 `CDCOnBoot=default` resolves to CDC-on-boot `0`; global `Serial` is therefore
@@ -90,7 +91,7 @@ arduino_user_root="$(arduino-cli config get directories.user)"
 build_temp_root="${TMPDIR:?export TMPDIR as an absolute temporary directory}"
 prefix_map_flags="-ffile-prefix-map=${repository_root}=REPOSITORY -fmacro-prefix-map=${repository_root}=REPOSITORY -ffile-prefix-map=${arduino_data_root}=ARDUINO_DATA -fmacro-prefix-map=${arduino_data_root}=ARDUINO_DATA -ffile-prefix-map=${arduino_user_root}=ARDUINO_USER -fmacro-prefix-map=${arduino_user_root}=ARDUINO_USER -ffile-prefix-map=${build_temp_root}=BUILD_TEMP -fmacro-prefix-map=${build_temp_root}=BUILD_TEMP"
 arduino-cli compile \
-  --fqbn "esp32:esp32:esp32p4:UploadSpeed=921600,USBMode=default,CDCOnBoot=default,MSCOnBoot=default,DFUOnBoot=default,UploadMode=default,FlashFreq=80,FlashMode=qio,FlashSize=32M,PartitionScheme=app13M_data7M_32MB,DebugLevel=none,PSRAM=enabled,EraseFlash=none,JTAGAdapter=default,ChipVariant=prev3" \
+  --fqbn "esp32:esp32:esp32p4:UploadSpeed=921600,USBMode=default,CDCOnBoot=default,MSCOnBoot=default,DFUOnBoot=default,UploadMode=default,FlashFreq=80,FlashMode=qio,FlashSize=32M,PartitionScheme=app13M_data7M_32MB,DebugLevel=none,PSRAM=enabled,EraseFlash=none,JTAGAdapter=default,ChipVariant=postv3" \
   --build-path build/arduino/HelloWorld \
   --build-property "compiler.c.extra_flags=${prefix_map_flags}" \
   --build-property "compiler.cpp.extra_flags=${prefix_map_flags}" \
@@ -126,12 +127,12 @@ PACKAGE_GIT_SHA="$(git rev-parse HEAD)" python scripts/package_ci_firmware.py ar
   --project examples/arduino/HelloWorld \
   --build-dir build/arduino/HelloWorld \
   --framework-version 3.3.11 \
-  --fqbn "esp32:esp32:esp32p4:UploadSpeed=921600,USBMode=default,CDCOnBoot=default,MSCOnBoot=default,DFUOnBoot=default,UploadMode=default,FlashFreq=80,FlashMode=qio,FlashSize=32M,PartitionScheme=app13M_data7M_32MB,DebugLevel=none,PSRAM=enabled,EraseFlash=none,JTAGAdapter=default,ChipVariant=prev3" \
-  --board-profile rev1_3 \
+  --fqbn "esp32:esp32:esp32p4:UploadSpeed=921600,USBMode=default,CDCOnBoot=default,MSCOnBoot=default,DFUOnBoot=default,UploadMode=default,FlashFreq=80,FlashMode=qio,FlashSize=32M,PartitionScheme=app13M_data7M_32MB,DebugLevel=none,PSRAM=enabled,EraseFlash=none,JTAGAdapter=default,ChipVariant=postv3" \
+  --board-profile rev3_x \
   --bsp-version 3.0.0 \
   --bsp-source-git-sha 32d86900af6916d5e6eb629741d57ee19a577740 \
   --bsp-component-tree-sha 27a67ea44c29375d0309bb5e1dbef25a9c24d6c5 \
-  --output release-artifacts/firmware-arduino-HelloWorld-3.3.11-rev1_3.zip
+  --output release-artifacts/firmware-arduino-HelloWorld-3.3.11-rev3_x.zip
 ```
 
 The ZIP contains `metadata/flash_args`, per-segment sizes and SHA-256 values,

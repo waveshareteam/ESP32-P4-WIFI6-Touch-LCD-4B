@@ -60,12 +60,13 @@ Alpha 或 Preview 版本。
 
 ## 🧱 ESP-IDF 环境
 
-共享默认配置使所有示例默认面向 `rev1_3` pre-v3：
-`CONFIG_ESP32P4_SELECTS_REV_LESS_V3=y` 与 `CONFIG_ESP32P4_REV_MIN_100=y`。
-ESP-IDF 没有“仅 1.3”Kconfig 符号。Arduino 保持 `ChipVariant=prev3`。示例仍保持
-26/5 矩阵，不会翻倍。只有 Brookesia 使用 `rev1_3`（200 MHz PSRAM）和 `rev3_x`
-（250 MHz PSRAM）profile，且各自拥有 build 目录和生成的 sdkconfig。这两个 profile
-软件不兼容；v3.x 需要 ESP-IDF 5.5.3+ 或 6.0+。
+共享默认配置使所有示例默认面向 `rev3_x` post-v3：
+`CONFIG_ESP32P4_SELECTS_REV_LESS_V3=n` 与 `CONFIG_ESP32P4_REV_MIN_300=y`，并以
+250 MHz PSRAM 为基线。Arduino 使用 `ChipVariant=postv3`。示例仍保持 26/5 矩阵，
+不会翻倍。Brookesia 继续构建两个隔离 profile：`rev1_3` 为 pre-v3（最低 1.00、
+200 MHz PSRAM），`rev3_x` 为 post-v3（最低 3.00、250 MHz PSRAM）。这两个 profile
+软件不兼容；v3.x 需要 ESP-IDF 5.5.3+ 或 6.0+。它们是芯片/配置 profile，不是已验证的
+PCB 电气版本；现有主板原理图不足以证明其名称之间存在电气差异。
 
 每个矩阵作业在对应固定版本的官方 IDF 容器中运行，加载
 `$IDF_PATH/export.sh`，选择 `esp32p4`，在干净检出中解析托管组件，然后构建所选
@@ -79,7 +80,9 @@ ESP-IDF 没有“仅 1.3”Kconfig 符号。Arduino 保持 `ChipVariant=prev3`�
 目录都不是源码输入。作业不得依赖开发者机器生成的副本。
 
 开发板迁移基线是托管组件 `waveshare/esp32_p4_wifi6_touch_lcd_4b` 3.0.0 BSP。
-Hosted Wi-Fi 示例固定使用 `esp_wifi_remote` 1.6.3 和 `esp_hosted` 2.12.11。
+待处理的 BSP 3.0.1 GT911 地址探测修改必须先发布到 Component Registry，产品 manifest
+才可升级；工作流不得使用未发布版本或 Git URL。Hosted Wi-Fi 示例固定使用
+`esp_wifi_remote` 1.6.3 和 `esp_hosted` 2.12.11。
 主机端编译成功不能证明其与板上 ESP32-C6 镜像兼容。
 
 使用 BSP 3.0.0 的 LVGL 工程将 `esp_lvgl_adapter` 固定为 0.6.3。LVGL 9 工程
@@ -95,7 +98,7 @@ Arduino 作业使用：
 
 - Core `esp32:esp32@3.3.11` 和 FQBN `esp32:esp32:esp32p4`。
 - `FlashMode=qio`、`FlashSize=32M`、`PSRAM=enabled`、
-  `PartitionScheme=app13M_data7M_32MB` 和 `ChipVariant=prev3`。
+  `PartitionScheme=app13M_data7M_32MB` 和 `ChipVariant=postv3`。
 - `USBMode=default` 与 `CDCOnBoot=default`。在 Arduino-ESP32 3.3.11 中两者均解析为
   `0`，所以全局 `Serial` 是经原理图 U6 CH343P 调试桥连接的 UART0，而不是原生 USB CDC。
 - `examples/arduino/libraries/` 下的产品辅助库。
@@ -136,7 +139,7 @@ LVGL 草图仅使用公开的 LVGL 核心 API，不依赖上游仓库中未随 A
 ## 📦 固件软件包
 
 每个成功构建后的矩阵作业都会打包并上传一个保留 14 天的 CI ZIP：
-`firmware-esp-idf-<name>-<idf-version>-rev1_3`、`firmware-arduino-<name>-3.3.11-rev1_3`、
+`firmware-esp-idf-<name>-<idf-version>-rev3_x`、`firmware-arduino-<name>-3.3.11-rev3_x`、
 `firmware-brookesia-v5.5.5-rev1_3` 或 `firmware-brookesia-v5.5.5-rev3_x`。包使用最终 PR SHA（或推送 SHA）；ZIP 不存在时工作流失败。
 ESP-IDF 打包从 `flasher_args.json` 获取所有镜像和偏移，因此 Brookesia 也包含模型和文件系统镜像。
 Arduino 使用隔离的 `--build-path` 编译；打包先将请求的 FQBN 与 core 3.3.11 路径同
@@ -148,7 +151,7 @@ build identity 会记录原始文件名/大小/SHA-256，其自身大小/SHA-256
 复核哈希、大小、安全路径、不重叠、容量和总有效字节。`segmented_bytes` 与
 `segmented_payload_total` 均等于实际段大小总和，且不得超过 32 MiB Flash 的一半。
 烧录前会校验清单 profile 与芯片 major revision：低于 3 只允许 `rev1_3`，3 或更高只允许
-`rev3_x`；v3.x 还必须匹配 PCB/电气版本。
+`rev3_x`；这是芯片/配置检查，不构成 PCB 电气差异的证据。
 
 `Flash-CI-Firmware.cmd` 是 Windows 上按顺序进行人工测试的入口。它不会使用过期 SHA 构件、脏或
 分离的检出、草稿/缺失 PR 或未验证的软件包。Arduino 烧录命令保留已验证 `flash_args` 中的

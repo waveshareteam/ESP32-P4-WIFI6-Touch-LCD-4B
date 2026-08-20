@@ -69,13 +69,16 @@ its own firmware workflow, not through an example selector.
 
 ## 🧱 ESP-IDF environment
 
-The shared defaults make every example a `rev1_3` pre-v3 target with
-`CONFIG_ESP32P4_SELECTS_REV_LESS_V3=y` and `CONFIG_ESP32P4_REV_MIN_100=y`.
-There is no ESP-IDF “1.3-only” Kconfig symbol. Arduino remains
-`ChipVariant=prev3`. Examples retain the 26/5 matrix rather than being doubled.
-Only Brookesia has `rev1_3` (200 MHz PSRAM) and `rev3_x` (250 MHz PSRAM)
-profiles, each with its own build directory and generated sdkconfig. The
-profiles are software-incompatible; v3.x needs ESP-IDF 5.5.3+ or 6.0+.
+The shared defaults make every example a `rev3_x` post-v3 target with
+`CONFIG_ESP32P4_SELECTS_REV_LESS_V3=n` and `CONFIG_ESP32P4_REV_MIN_300=y`, plus
+a 250 MHz PSRAM baseline. Arduino uses `ChipVariant=postv3`. Examples retain
+the 26/5 matrix rather than being doubled. Brookesia continues to build both
+isolated profiles: `rev1_3` is pre-v3 (minimum 1.00, 200 MHz PSRAM) and
+`rev3_x` is post-v3 (minimum 3.00, 250 MHz PSRAM). The profiles are
+software-incompatible; v3.x needs ESP-IDF 5.5.3+ or 6.0+. They are
+silicon/configuration profiles, not verified PCB electrical revisions; the
+available main-board schematics do not prove an electrical difference between
+their names.
 
 Each matrix job runs the official container for its pinned IDF version, sources
 `$IDF_PATH/export.sh`, selects `esp32p4`, resolves managed components in a clean
@@ -92,7 +95,10 @@ directories are not source inputs. Jobs must not depend on copies produced by a
 developer machine.
 
 The board migration baseline is the managed
-`waveshare/esp32_p4_wifi6_touch_lcd_4b` 3.0.0 BSP. The hosted Wi-Fi example pins
+`waveshare/esp32_p4_wifi6_touch_lcd_4b` 3.0.0 BSP. A pending BSP 3.0.1 GT911
+address-probe change must first be published to the Component Registry before
+the product manifest is updated; workflows must not use an unpublished version
+or a Git URL. The hosted Wi-Fi example pins
 `esp_wifi_remote` 1.6.3 with `esp_hosted` 2.12.11. A successful host compile
 does not prove compatibility with the ESP32-C6 image installed on a board.
 
@@ -111,7 +117,7 @@ Arduino jobs use:
 
 - Core `esp32:esp32@3.3.11` and FQBN `esp32:esp32:esp32p4`.
 - `FlashMode=qio`, `FlashSize=32M`, `PSRAM=enabled`,
-  `PartitionScheme=app13M_data7M_32MB`, and `ChipVariant=prev3`.
+  `PartitionScheme=app13M_data7M_32MB`, and `ChipVariant=postv3`.
 - `USBMode=default` and `CDCOnBoot=default`. Under Arduino-ESP32 3.3.11 both
   resolve to `0`, so global `Serial` is UART0 through the schematic's U6 CH343P
   debug bridge, not native USB CDC.
@@ -163,8 +169,8 @@ are not validation evidence.
 ## 📦 Firmware packages
 
 After a successful build, each matrix job packages and uploads one CI ZIP for
-14 days: `firmware-esp-idf-<name>-<idf-version>-rev1_3`,
-`firmware-arduino-<name>-3.3.11-rev1_3`, or
+14 days: `firmware-esp-idf-<name>-<idf-version>-rev3_x`,
+`firmware-arduino-<name>-3.3.11-rev3_x`, or
 `firmware-brookesia-v5.5.5-rev1_3` / `firmware-brookesia-v5.5.5-rev3_x`. The package
 uses the final pull-request SHA (or push SHA), and the workflow fails if the ZIP
 is absent. ESP-IDF packaging derives every image and offset from
@@ -185,7 +191,8 @@ non-overlap, capacity, and total effective bytes are rechecked after ZIP write.
 segment sizes and must be no more than half of the 32 MiB flash.
 Manifest profile and chip-revision bounds are checked before flashing; a chip
 major revision below 3 accepts only `rev1_3`, and major revision 3 or later only
-accepts `rev3_x`. For v3.x, matching PCB/electrical revision remains mandatory.
+accepts `rev3_x`. This is a silicon/configuration check, not evidence of a PCB
+electrical distinction.
 
 `Flash-CI-Firmware.cmd` is the Windows sequential manual-test entry point. It
 will not use stale SHA artifacts, a dirty/detached checkout, a draft/missing PR,

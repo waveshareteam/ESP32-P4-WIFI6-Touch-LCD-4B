@@ -12,7 +12,7 @@
 
 ## 开发板设置
 
-启用 PSRAM，选择 32 MB Flash 和 13 MB 应用分区，并使用产品示例采用的 `Before v3.00`（`ChipVariant=prev3`）目标。USB 模式、CDC-on-boot、MSC、DFU 和上传模式保持默认值，以使串口输出继续使用开发板的 USB 转 UART 路径。
+启用 PSRAM，选择 32 MB Flash 和 13 MB 应用分区，并使用产品示例采用的 `v3.00 或更高版本`（`ChipVariant=postv3`）目标。USB 模式、CDC-on-boot、MSC、DFU 和上传模式保持默认值，以使串口输出继续使用开发板的 USB 转 UART 路径。
 
 ## 硬件边界
 

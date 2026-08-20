@@ -35,7 +35,7 @@ FlashMode=qio
 FlashSize=32M
 PartitionScheme=app13M_data7M_32MB
 PSRAM=enabled
-ChipVariant=prev3
+ChipVariant=postv3
 USBMode=default
 CDCOnBoot=default
 MSCOnBoot=default
@@ -49,10 +49,12 @@ JTAGAdapter=default
 对应的编译 FQBN 为：
 
 ```text
-esp32:esp32:esp32p4:UploadSpeed=921600,USBMode=default,CDCOnBoot=default,MSCOnBoot=default,DFUOnBoot=default,UploadMode=default,FlashFreq=80,FlashMode=qio,FlashSize=32M,PartitionScheme=app13M_data7M_32MB,DebugLevel=none,PSRAM=enabled,EraseFlash=none,JTAGAdapter=default,ChipVariant=prev3
+esp32:esp32:esp32p4:UploadSpeed=921600,USBMode=default,CDCOnBoot=default,MSCOnBoot=default,DFUOnBoot=default,UploadMode=default,FlashFreq=80,FlashMode=qio,FlashSize=32M,PartitionScheme=app13M_data7M_32MB,DebugLevel=none,PSRAM=enabled,EraseFlash=none,JTAGAdapter=default,ChipVariant=postv3
 ```
 
-`ChipVariant=prev3` 与当前仓库的固件基线相符。在针对不同生产批次修改此选项前，请确认实际芯片版本。
+`ChipVariant=postv3` 与默认 `rev3_x` 示例 profile 相符，选择 ESP32-P4 v3.00 或更高版本。
+修改此选项前，请确认实际芯片版本。保留的 `rev1_3` Brookesia profile 是可选的 pre-v3 profile，
+不是示例默认值。
 
 在 Arduino-ESP32 3.3.11 中，`USBMode=default` 解析为 USB mode `0`，
 `CDCOnBoot=default` 解析为 CDC-on-boot `0`；全局 `Serial` 因此是 UART0，
@@ -82,7 +84,7 @@ arduino_user_root="$(arduino-cli config get directories.user)"
 build_temp_root="${TMPDIR:?请将 TMPDIR 设为绝对临时目录}"
 prefix_map_flags="-ffile-prefix-map=${repository_root}=REPOSITORY -fmacro-prefix-map=${repository_root}=REPOSITORY -ffile-prefix-map=${arduino_data_root}=ARDUINO_DATA -fmacro-prefix-map=${arduino_data_root}=ARDUINO_DATA -ffile-prefix-map=${arduino_user_root}=ARDUINO_USER -fmacro-prefix-map=${arduino_user_root}=ARDUINO_USER -ffile-prefix-map=${build_temp_root}=BUILD_TEMP -fmacro-prefix-map=${build_temp_root}=BUILD_TEMP"
 arduino-cli compile \
-  --fqbn "esp32:esp32:esp32p4:UploadSpeed=921600,USBMode=default,CDCOnBoot=default,MSCOnBoot=default,DFUOnBoot=default,UploadMode=default,FlashFreq=80,FlashMode=qio,FlashSize=32M,PartitionScheme=app13M_data7M_32MB,DebugLevel=none,PSRAM=enabled,EraseFlash=none,JTAGAdapter=default,ChipVariant=prev3" \
+  --fqbn "esp32:esp32:esp32p4:UploadSpeed=921600,USBMode=default,CDCOnBoot=default,MSCOnBoot=default,DFUOnBoot=default,UploadMode=default,FlashFreq=80,FlashMode=qio,FlashSize=32M,PartitionScheme=app13M_data7M_32MB,DebugLevel=none,PSRAM=enabled,EraseFlash=none,JTAGAdapter=default,ChipVariant=postv3" \
   --build-path build/arduino/HelloWorld \
   --build-property "compiler.c.extra_flags=${prefix_map_flags}" \
   --build-property "compiler.cpp.extra_flags=${prefix_map_flags}" \
@@ -112,12 +114,12 @@ PACKAGE_GIT_SHA="$(git rev-parse HEAD)" python scripts/package_ci_firmware.py ar
   --project examples/arduino/HelloWorld \
   --build-dir build/arduino/HelloWorld \
   --framework-version 3.3.11 \
-  --fqbn "esp32:esp32:esp32p4:UploadSpeed=921600,USBMode=default,CDCOnBoot=default,MSCOnBoot=default,DFUOnBoot=default,UploadMode=default,FlashFreq=80,FlashMode=qio,FlashSize=32M,PartitionScheme=app13M_data7M_32MB,DebugLevel=none,PSRAM=enabled,EraseFlash=none,JTAGAdapter=default,ChipVariant=prev3" \
-  --board-profile rev1_3 \
+  --fqbn "esp32:esp32:esp32p4:UploadSpeed=921600,USBMode=default,CDCOnBoot=default,MSCOnBoot=default,DFUOnBoot=default,UploadMode=default,FlashFreq=80,FlashMode=qio,FlashSize=32M,PartitionScheme=app13M_data7M_32MB,DebugLevel=none,PSRAM=enabled,EraseFlash=none,JTAGAdapter=default,ChipVariant=postv3" \
+  --board-profile rev3_x \
   --bsp-version 3.0.0 \
   --bsp-source-git-sha 32d86900af6916d5e6eb629741d57ee19a577740 \
   --bsp-component-tree-sha 27a67ea44c29375d0309bb5e1dbef25a9c24d6c5 \
-  --output release-artifacts/firmware-arduino-HelloWorld-3.3.11-rev1_3.zip
+  --output release-artifacts/firmware-arduino-HelloWorld-3.3.11-rev3_x.zip
 ```
 
 ZIP 包含 `metadata/flash_args`、逐段大小与 SHA-256，以及 `flash.sh`/`flash.cmd`。

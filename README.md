@@ -26,6 +26,9 @@ the product resource package. The maintained ESP-Brookesia source remains a
 separate firmware surface. Reusable display, touch, audio, and board support
 for new ESP-IDF applications should resolve through the published
 [`waveshare/esp32_p4_wifi6_touch_lcd_4b` 3.0.0 BSP](https://components.espressif.com/components/waveshare/esp32_p4_wifi6_touch_lcd_4b/versions/3.0.0).
+The GT911 address-probe fix is queued as BSP 3.0.1; this product stays on 3.0.0
+until that version is published in the Component Registry, without Git URL
+dependencies.
 
 ## 🖥️ Hardware scope
 

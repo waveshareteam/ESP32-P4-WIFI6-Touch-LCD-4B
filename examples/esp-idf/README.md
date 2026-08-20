@@ -31,6 +31,12 @@ The official `11_esp_brookesia_phone` project is represented by the maintained
 The repository targets ESP-IDF v5.5.5 and v6.0.2 for every first-party example.
 Brookesia remains on v5.5.5 until its v6 compatibility is verified.
 
+The default example configuration is the `rev3_x`/post-v3 silicon profile:
+minimum ESP32-P4 revision 3.00 and a 250 MHz PSRAM baseline. The retained
+`rev1_3` Brookesia profile is an opt-in pre-v3 profile (minimum 1.00, 200 MHz
+PSRAM); these are silicon/configuration profiles, not documented PCB electrical
+revisions.
+
 Activate the intended IDF version explicitly, then build an example:
 
 ```sh
@@ -49,7 +55,9 @@ or `build/` output.
 Display, touch, and audio examples should use the published
 `waveshare/esp32_p4_wifi6_touch_lcd_4b` 3.0.0 BSP and its managed dependencies.
 Project-local code is appropriate only for example composition or
-product-specific glue.
+product-specific glue. A BSP 3.0.1 GT911 address-probe update must be published
+to the Component Registry before this repository upgrades its manifest; do not
+replace the registry dependency with a Git URL.
 
 ## Hardware limits
 

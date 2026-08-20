@@ -14,7 +14,7 @@ to check basic panel initialization, geometry, colors, and built-in font output.
 ## Board settings
 
 Enable PSRAM, select 32 MB flash with the 13 MB application partition, and use
-the `Before v3.00` (`ChipVariant=prev3`) target used by the product examples.
+the `v3.00 or newer` (`ChipVariant=postv3`) target used by the product examples.
 Keep the USB mode, CDC-on-boot, MSC, DFU, and upload-mode selections at their
 default values so serial output remains on the board's USB-to-UART path.
 

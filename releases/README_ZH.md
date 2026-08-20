@@ -90,7 +90,7 @@ Brookesia 软件包必须包含其生成的烧录参数所引用的每个镜像�
 
 ESP-IDF、Arduino 和 Brookesia 工作流会在构建成功后打包并上传一个 ZIP，使用
 `if-no-files-found: error` 和 14 天保留期。构件名称为
-`firmware-esp-idf-<name>-<idf-version>-rev1_3`、`firmware-arduino-<name>-3.3.11-rev1_3`、
+`firmware-esp-idf-<name>-<idf-version>-rev3_x`、`firmware-arduino-<name>-3.3.11-rev3_x`、
 `firmware-brookesia-v5.5.5-rev1_3` 和 `firmware-brookesia-v5.5.5-rev3_x`。清单必须包含完整的最终 PR/推送 SHA；它不能作为另一版本的证据。
 
 当工作流上传软件包后，可通过 GitHub Web 界面或 GitHub CLI 下载：
@@ -103,15 +103,15 @@ gh run download RUN_ID --name ARTIFACT_NAME --dir releases/downloads
 
 ## 修订 profile
 
-所有示例和 Arduino 软件包仅为 `rev1_3`/pre-v3；示例矩阵仍为 26 个 ESP-IDF 构建和
+所有示例和 Arduino 软件包仅为 `rev3_x`/post-v3；示例矩阵仍为 26 个 ESP-IDF 构建和
 5 个 Arduino 构建，不会翻倍。只有 Brookesia 是提供双 profile 安全构件的受维护产品固件。
-`rev1_3` 声明最低 1.0、最高 `<3.0`；`rev3_x` 声明最低 3.0，并刻意不伪造未验证的
-硬件最高上限。不得交叉烧录两个 profile；烧录 v3.x 前除芯片版本外还必须确认匹配的
-PCB/电气版本。
+`rev1_3` 为 pre-v3（最低 1.00、200 MHz PSRAM 基线）；`rev3_x` 为 post-v3（最低
+3.00、250 MHz PSRAM 基线）。不得交叉烧录两个 profile。它们是芯片/配置 profile；现有
+主板原理图不足以证明两者之间存在 PCB/电气差异。
 
 ## Arduino 边界
 
-Arduino 包要求精确的 32 MiB pre-v3 FQBN，并包含 `FlashSize=32M`、`ChipVariant=prev3` 与
+Arduino 包要求精确的 32 MiB post-v3 FQBN，并包含 `FlashSize=32M`、`ChipVariant=postv3` 与
 `EraseFlash=none`。编译使用 `--build-path`，使 Arduino-ESP32 3.3.11 保留
 `build.options.json` 和 `flash_args`。打包器用前者核验精确 FQBN 与 core 路径，但因其包含
 主机路径而不归档。工作流/本地命令会对 repository、Arduino data/user 与临时根目录动态设置
@@ -141,8 +141,8 @@ Python 核心，需要 Git、带 `esptool` 的 Python，以及已认证的 GitHu
 
 默认交互模式可自由选择动态推导的任一项，校验一个精确 SHA 的 schema-1 包，探测所选端口，并要求
 精确输入 `FLASH` 后才执行一次非擦除 `write_flash`。写入必须出现 `Hash of data verified`；完成
-该单项后程序立即退出，绝不会自动前进。v3.x 芯片仍需独立确认 PCB/电气版本。编译、打包或已验证的
-写入都不是运行 PASS。
+该单项后程序立即退出，绝不会自动前进。profile 检查是芯片/配置检查，不构成 PCB/电气差异的证据。
+编译、打包或已验证的写入都不是运行 PASS。
 
 ESP-IDF 包验收还会将每个已验证清单文件的原始元数据路径与包内 `metadata/flasher_args.json` 比对；任何
 缺失的引用镜像都会被拒绝。Arduino 验收会将清单、命令和每个已验证段与包内

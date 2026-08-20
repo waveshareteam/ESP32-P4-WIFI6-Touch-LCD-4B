@@ -21,8 +21,8 @@ CHIP = "esp32p4"
 FLASH_SIZE = 32 * 1024 * 1024
 DEFAULT_BAUD = 460800
 ARDUINO_CORE_VERSION = "3.3.11"
-ARDUINO_FQBN = "esp32:esp32:esp32p4:UploadSpeed=921600,USBMode=default,CDCOnBoot=default,MSCOnBoot=default,DFUOnBoot=default,UploadMode=default,FlashFreq=80,FlashMode=qio,FlashSize=32M,PartitionScheme=app13M_data7M_32MB,DebugLevel=none,PSRAM=enabled,EraseFlash=none,JTAGAdapter=default,ChipVariant=prev3"
-ARDUINO_FQBN_OPTIONS = {"FlashSize": "32M", "ChipVariant": "prev3", "EraseFlash": "none"}
+ARDUINO_FQBN = "esp32:esp32:esp32p4:UploadSpeed=921600,USBMode=default,CDCOnBoot=default,MSCOnBoot=default,DFUOnBoot=default,UploadMode=default,FlashFreq=80,FlashMode=qio,FlashSize=32M,PartitionScheme=app13M_data7M_32MB,DebugLevel=none,PSRAM=enabled,EraseFlash=none,JTAGAdapter=default,ChipVariant=postv3"
+ARDUINO_FQBN_OPTIONS = {"FlashSize": "32M", "ChipVariant": "postv3", "EraseFlash": "none"}
 ARDUINO_BSP_COMPONENT = "waveshare/esp32_p4_wifi6_touch_lcd_4b"
 ARDUINO_FLASH_FLAGS = ("--flash-mode", "--flash-freq", "--flash-size")
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -577,16 +577,16 @@ def _validate_arduino_written_bundle(
             or generated_at.utcoffset() != timezone.utc.utcoffset(generated_at)
             or not isinstance(revision, dict)
             or set(revision) != {"minimum", "maximum_exclusive", "maximum_note"}
-            or revision.get("minimum") != BOARD_PROFILES["rev1_3"]["minimum"]
-            or revision.get("maximum_exclusive") != BOARD_PROFILES["rev1_3"]["maximum_exclusive"]
-            or revision.get("maximum_note") is not None
+            or revision.get("minimum") != BOARD_PROFILES["rev3_x"]["minimum"]
+            or revision.get("maximum_exclusive") != BOARD_PROFILES["rev3_x"]["maximum_exclusive"]
+            or revision.get("maximum_note") != "No validated hardware upper bound is claimed."
             or document.get("framework") != "arduino-esp32"
             or document.get("framework_version") != ARDUINO_CORE_VERSION
             or document.get("fqbn") != ARDUINO_FQBN
             or document.get("target") != CHIP
             or document.get("board") != BOARD
             or document.get("chip") != CHIP
-            or document.get("board_profile") != "rev1_3"):
+            or document.get("board_profile") != "rev3_x"):
         raise ValueError("Generated Arduino ZIP identity differs from the release contract")
     parse_arduino_fqbn(_contract_string(document.get("fqbn"), "Arduino manifest FQBN"))
     product_sha = _contract_string(document.get("git_sha"), "Arduino product Git SHA").lower()
@@ -1059,8 +1059,8 @@ def package_arduino(
     bsp_source_git_sha: str,
     bsp_component_tree_sha: str,
 ) -> Path:
-    if board_profile(profile) != "rev1_3":
-        raise ValueError("Arduino ChipVariant=prev3 packages must use board profile rev1_3")
+    if board_profile(profile) != "rev3_x":
+        raise ValueError("Arduino ChipVariant=postv3 packages must use board profile rev3_x")
     if version != ARDUINO_CORE_VERSION:
         raise ValueError(f"Arduino packages must use pinned core {ARDUINO_CORE_VERSION}")
     parse_arduino_fqbn(fqbn)

@@ -673,6 +673,21 @@ def check_homepage_contract(root: Path) -> list[str]:
         errors.append("config/markdown-audit.json: README homepage must require a build badge")
     if homepage.get("required_h2_icons") != list(README_H2_ICONS):
         errors.append("config/markdown-audit.json: README H2-icon contract differs from policy")
+    wrapper_pattern = "examples/arduino/libraries/Waveshare_ESP32_P4_4B_Display/**"
+    rules = config.get("classification_rules", [])
+    if not any(
+        isinstance(rule, dict)
+        and rule.get("category") == "first_party_wrapper"
+        and wrapper_pattern in rule.get("patterns", [])
+        for rule in rules
+    ):
+        errors.append("config/markdown-audit.json: Arduino display helper must be a first_party_wrapper")
+    wrapper_pair = {
+        "english": "examples/arduino/libraries/Waveshare_ESP32_P4_4B_Display/README.md",
+        "chinese": "examples/arduino/libraries/Waveshare_ESP32_P4_4B_Display/README_ZH.md",
+    }
+    if wrapper_pair not in config.get("bilingual_pairs", []):
+        errors.append("config/markdown-audit.json: Arduino display helper bilingual pair is missing")
     return errors
 
 
@@ -769,8 +784,8 @@ def check_ci_contract(root: Path) -> list[str]:
     artifact_sha = "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a"
     final_ref = "ref: ${{ github.event.pull_request.head.sha || github.sha }}"
     for workflow_name, text, artifact in (
-        ("esp-idf.yml", idf, "firmware-esp-idf-${{ matrix.name }}-${{ matrix.idf_version }}-rev1_3"),
-        ("arduino.yml", arduino, "firmware-arduino-${{ matrix.name }}-3.3.11-rev1_3"),
+        ("esp-idf.yml", idf, "firmware-esp-idf-${{ matrix.name }}-${{ matrix.idf_version }}-rev3_x"),
+        ("arduino.yml", arduino, "firmware-arduino-${{ matrix.name }}-3.3.11-rev3_x"),
         ("firmware.yml", firmware, "firmware-brookesia-v5.5.5-${{ matrix.profile }}"),
     ):
         if final_ref not in text:
@@ -809,14 +824,21 @@ def check_revision_profile_contract(root: Path) -> list[str]:
     """Keep the revision split explicit without multiplying the example matrices."""
     errors: list[str] = []
     shared = (root / "config/sdkconfig.defaults").read_text(encoding="utf-8")
-    if not re.search(r"^CONFIG_ESP32P4_SELECTS_REV_LESS_V3=y$", shared, re.MULTILINE) or not re.search(r"^CONFIG_ESP32P4_REV_MIN_100=y$", shared, re.MULTILINE):
-        errors.append("config/sdkconfig.defaults: shared ESP-IDF default must be pre-v3 with a 1.x minimum")
+    if not re.search(r"^CONFIG_ESP32P4_SELECTS_REV_LESS_V3=n$", shared, re.MULTILINE) or not re.search(r"^CONFIG_ESP32P4_REV_MIN_300=y$", shared, re.MULTILINE) or not re.search(r"^CONFIG_SPIRAM_SPEED_250M=y$", shared, re.MULTILINE):
+        errors.append("config/sdkconfig.defaults: shared ESP-IDF default must be post-v3 with a 3.x minimum and 250 MHz PSRAM")
     usb = (root / "examples/esp-idf/usb-extended-screen/sdkconfig.defaults.esp32p4").read_text(encoding="utf-8")
     if "CONFIG_ESP32P4_REV_MIN_1=" in usb:
         errors.append("usb-extended-screen: obsolete local revision default conflicts with the shared contract")
+    for defaults in sorted((root / "examples/esp-idf").glob("**/sdkconfig.defaults*")):
+        relative = defaults.relative_to(root).as_posix()
+        if "managed_components" in defaults.relative_to(root).parts:
+            continue
+        text = defaults.read_text(encoding="utf-8")
+        if "CONFIG_SPIRAM_SPEED_200M=y" in text or "CONFIG_SPIRAM_SPEED=200" in text:
+            errors.append(f"{relative}: project defaults must not override the rev3_x 250 MHz PSRAM default")
     arduino = (root / ".github/workflows/arduino.yml").read_text(encoding="utf-8")
-    if "ChipVariant=prev3" not in arduino:
-        errors.append("arduino.yml: Arduino default must remain ChipVariant=prev3")
+    if "ChipVariant=postv3" not in arduino:
+        errors.append("arduino.yml: Arduino default must remain ChipVariant=postv3")
     firmware = (root / ".github/workflows/firmware.yml").read_text(encoding="utf-8")
     for required in ("profile: rev1_3", "profile: rev3_x", "$GITHUB_WORKSPACE/firmware/brookesia/build-${{ matrix.profile }}", "$RUNNER_TEMP/brookesia-${{ matrix.profile }}.sdkconfig", "$GITHUB_WORKSPACE/firmware/brookesia/sdkconfig.defaults;$GITHUB_WORKSPACE/firmware/brookesia/${{ matrix.defaults }}", "firmware-brookesia-v5.5.5-${{ matrix.profile }}"):
         if required not in firmware:
@@ -856,7 +878,7 @@ def check_revision_profile_contract(root: Path) -> list[str]:
     for required in ("BOARD_PROFILES", '"rev1_3"', '"rev3_x"', "validate_idf_profile", "--board-profile"):
         if required not in packager:
             errors.append(f"package_ci_firmware.py: missing profile contract {required}")
-    for required in ("expected_items", "profile_for_major", "validate_manifest", "safe_extract", "Hash of data verified", "PCB/electrical revision", "no-auto-next=ok"):
+    for required in ("expected_items", "profile_for_major", "validate_manifest", "safe_extract", "Hash of data verified", "silicon revision v3.00 or newer", "no PCB revision is inferred", "no-auto-next=ok"):
         if required not in flasher:
             errors.append(f"ci_firmware.py: missing profile safety contract {required}")
     return errors
@@ -869,6 +891,8 @@ def check_idf_partition_contract(root: Path) -> list[str]:
         errors.append("config/sdkconfig.defaults: first-party examples must reserve a 0x10000 partition-table offset")
     example_root = root / "examples/esp-idf"
     for csv_path in sorted(example_root.glob("**/*partition*.csv")):
+        if "managed_components" in csv_path.relative_to(example_root).parts:
+            continue
         for line_number, raw_line in enumerate(csv_path.read_text(encoding="utf-8").splitlines(), start=1):
             if not raw_line.strip() or raw_line.lstrip().startswith("#"):
                 continue

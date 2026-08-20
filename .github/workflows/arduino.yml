@@ -28,7 +28,7 @@ env:
   WAVESHARE_BSP_COMPONENT_TREE_SHA: "27a67ea44c29375d0309bb5e1dbef25a9c24d6c5"
   ESP32_PACKAGE_INDEX: "https://espressif.github.io/arduino-esp32/package_esp32_index.json"
   ARDUINO_FQBN: >-
-    esp32:esp32:esp32p4:UploadSpeed=921600,USBMode=default,CDCOnBoot=default,MSCOnBoot=default,DFUOnBoot=default,UploadMode=default,FlashFreq=80,FlashMode=qio,FlashSize=32M,PartitionScheme=app13M_data7M_32MB,DebugLevel=none,PSRAM=enabled,EraseFlash=none,JTAGAdapter=default,ChipVariant=prev3
+    esp32:esp32:esp32p4:UploadSpeed=921600,USBMode=default,CDCOnBoot=default,MSCOnBoot=default,DFUOnBoot=default,UploadMode=default,FlashFreq=80,FlashMode=qio,FlashSize=32M,PartitionScheme=app13M_data7M_32MB,DebugLevel=none,PSRAM=enabled,EraseFlash=none,JTAGAdapter=default,ChipVariant=postv3
 
 jobs:
   discover:
@@ -137,14 +137,14 @@ jobs:
             --build-dir "build/arduino/${{ matrix.name }}" \
             --framework-version "$ARDUINO_CORE_VERSION" \
             --fqbn "$ARDUINO_FQBN" \
-            --board-profile rev1_3 \
+            --board-profile rev3_x \
             --bsp-version "$WAVESHARE_BSP_VERSION" \
             --bsp-source-git-sha "$WAVESHARE_BSP_SOURCE_GIT_SHA" \
             --bsp-component-tree-sha "$WAVESHARE_BSP_COMPONENT_TREE_SHA" \
-            --output "release-artifacts/firmware-arduino-${{ matrix.name }}-3.3.11-rev1_3.zip"
+            --output "release-artifacts/firmware-arduino-${{ matrix.name }}-3.3.11-rev3_x.zip"
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: firmware-arduino-${{ matrix.name }}-3.3.11-rev1_3
-          path: release-artifacts/firmware-arduino-${{ matrix.name }}-3.3.11-rev1_3.zip
+          name: firmware-arduino-${{ matrix.name }}-3.3.11-rev3_x
+          path: release-artifacts/firmware-arduino-${{ matrix.name }}-3.3.11-rev3_x.zip
           if-no-files-found: error
           retention-days: 14

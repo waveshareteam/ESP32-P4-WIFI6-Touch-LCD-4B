@@ -30,13 +30,14 @@ custom partition table with an application, ESP-SR model image, and SPIFFS
 storage image. A complete first installation must use the project-generated
 flash arguments so every required image is written at the correct offset.
 
-Brookesia has two incompatible board profiles: `rev1_3` is the default/pre-v3
-profile (minimum silicon revision 1.0, maximum exclusive 3.0, 200 MHz PSRAM),
-while `rev3_x` has a 3.0 minimum, no claimed validated upper hardware bound, and
-the existing 250 MHz PSRAM setting. They use separate SDKCONFIG and build
-directories in CI and must never share a binary. The v3.x profile requires
-ESP-IDF 5.5.3+ or 6.0+; v5.5.5 meets that software prerequisite but does not
-prove hardware compatibility. Confirm the matching PCB/electrical revision too.
+Brookesia has two incompatible silicon/configuration profiles: `rev1_3` is the
+default pre-v3 profile (minimum silicon revision 1.00, maximum exclusive 3.00,
+200 MHz PSRAM), while `rev3_x` is post-v3 (minimum 3.00, 250 MHz PSRAM). They
+use separate SDKCONFIG and build directories in CI and must never share a
+binary. The v3.x profile requires ESP-IDF 5.5.3+ or 6.0+; v5.5.5 meets that
+software prerequisite but does not prove hardware compatibility. The available
+main-board schematics do not establish a PCB/electrical difference between the
+profile names.
 
 ```sh
 idf.py -C firmware/brookesia -p PORT flash monitor
@@ -131,8 +132,9 @@ of the dynamically derived 33 artifacts (26 ESP-IDF, five Arduino, two
 Brookesia profiles). It downloads into an OS-user cache, verifies the schema-1
 manifest, paths, hashes, offsets, capacity, and canonical non-erasing command,
 then probes the selected port. Chip major revision below 3 requires `rev1_3`;
-3 or above requires `rev3_x`, which still requires an independent PCB/electrical
-confirmation. The operator must type exact `FLASH`; one write runs, must report
+3 or above requires `rev3_x`. This is a silicon/configuration selection, not
+evidence of a PCB/electrical difference. The operator must type exact `FLASH`;
+one write runs, must report
 `Hash of data verified`, and then the program exits. It never auto-advances.
 
 For ESP-IDF packages, each verified manifest file also carries its original
