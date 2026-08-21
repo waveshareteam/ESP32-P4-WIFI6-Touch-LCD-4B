@@ -11,6 +11,7 @@ factory or recovery images. These terms are not interchangeable.
 | --- | --- | --- |
 | Source firmware | `firmware/brookesia/` | Maintained ESP-IDF source project for the board |
 | Source-built package | Ignored output such as `release-artifacts/` or `releases/dist/` | Reproducible output built from a specific repository revision |
+| Checked-in default source-built image | `firmware/ESP32-P4-WIFI6-Touch-LCD-4B-Brookesia-rev3_x-260821.bin` | Complete 32 MiB Brookesia image for ESP32-P4 rev3.x silicon |
 | Factory or recovery image | Not included at present | Vendor-provided image intended for production or recovery, if added later |
 | ESP32-C6 slave firmware | Not included at present | Separate coprocessor image that must match the P4 Hosted stack |
 
@@ -22,6 +23,32 @@ built binary identical to a vendor-programmed production image.
 Factory/recovery images and C6 source/build instructions are not included in
 this repository yet and may be added in a later update. Their absence must not
 be described as proof that they are closed or permanently unavailable.
+
+## Checked-in default source-built image
+
+[`ESP32-P4-WIFI6-Touch-LCD-4B-Brookesia-rev3_x-260821.bin`](../firmware/ESP32-P4-WIFI6-Touch-LCD-4B-Brookesia-rev3_x-260821.bin)
+is the default checked-in image for ESP32-P4 silicon revision v3.00 or newer.
+It is a source-built Brookesia image, not a vendor factory/recovery image and
+not one of the segmented CI ZIP artifacts. It was built from source commit
+`f417f6b764f06dddb89fd4f30730ecf4b1fc56d3` with ESP-IDF v5.5.5 and the
+`firmware/brookesia/sdkconfig.defaults.rev3_x` profile (250 MHz PSRAM).
+
+The file is a 32 MiB whole-flash raw image. Its layout was created from the
+build's `flasher_args.json`: bootloader at `0x2000`, partition table at
+`0x8000`, OTA data at `0x10d000`, ESP-SR model at `0x110000`, application at
+`0x200000`, and storage at `0xa00000`. Write it at flash offset `0x0` only
+when replacing the complete 32 MiB flash contents. This overwrites existing
+partitions, application data, and storage; back up any data that must be kept.
+
+The image contains no ESP32-C6 coprocessor firmware. Hosted Wi-Fi operation
+still requires a compatible C6 firmware/runtime combination described in
+[P4/C6 Hosted Wi-Fi](p4-c6-hosted-wifi.md). The image has passed source build
+and segment-layout checks only; it has not received a hardware flash, display,
+touch, audio, camera, SD, or Wi-Fi HIL validation in this repository.
+
+`rev1_3` remains available as a separate segmented CI build profile for
+pre-v3 silicon. It is intentionally not represented by a second checked-in
+default whole-flash image, and the two profiles must not be interchanged.
 
 ## Brookesia source firmware
 

@@ -106,8 +106,10 @@ Arduino 构建使用 FQBN `esp32:esp32:esp32p4`、32 MB Flash、已启用 PSRAM�
 
 官方下载地址、压缩包哈希和规范化目录映射记录在
 [`docs/sources_ZH.md`](docs/sources_ZH.md) 中。CI 构建包与未来可能提供的工厂或恢复
-镜像属于不同制品类别，参见 [`docs/firmware_ZH.md`](docs/firmware_ZH.md)。生成的构建树、
-依赖缓存、锁文件和发布包均有意排除在源码版本控制之外。
+镜像属于不同制品类别，参见 [`docs/firmware_ZH.md`](docs/firmware_ZH.md)。默认已提交的
+[`Brookesia rev3_x 镜像`](firmware/ESP32-P4-WIFI6-Touch-LCD-4B-Brookesia-rev3_x-260821.bin)
+面向 ESP32-P4 芯片 v3.00 或更高版本，由源码构建；它不是工厂镜像或 CI ZIP，且会替换完整的
+32 MiB Flash。生成的构建树、依赖缓存、锁文件和 CI 发布包均有意排除在源码版本控制之外。
 
 ## 📄 许可与再分发
 

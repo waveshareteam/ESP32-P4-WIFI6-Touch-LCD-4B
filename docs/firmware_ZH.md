@@ -10,6 +10,7 @@
 | --- | --- | --- |
 | 源代码固件 | `firmware/brookesia/` | 面向该开发板维护的 ESP-IDF 源代码项目 |
 | 由源代码构建的包 | 已忽略的输出，例如 `release-artifacts/` 或 `releases/dist/` | 从特定仓库版本构建的可复现输出 |
+| 已提交的默认源码构建镜像 | `firmware/ESP32-P4-WIFI6-Touch-LCD-4B-Brookesia-rev3_x-260821.bin` | 适用于 ESP32-P4 rev3.x 芯片的完整 32 MiB Brookesia 镜像 |
 | 工厂或恢复镜像 | 当前未包含 | 如后续添加，供生产或恢复使用的厂商提供镜像 |
 | ESP32-C6 从机固件 | 当前未包含 | 必须与 P4 Hosted 栈匹配的独立协处理器镜像 |
 
@@ -19,6 +20,26 @@
 
 本仓库尚未包含工厂/恢复镜像以及 C6 源代码/构建说明，后续更新可能会添加。不得将其缺失描述为它们
 已关闭或永久不可用的证据。
+
+## 已提交的默认源码构建镜像
+
+[`ESP32-P4-WIFI6-Touch-LCD-4B-Brookesia-rev3_x-260821.bin`](../firmware/ESP32-P4-WIFI6-Touch-LCD-4B-Brookesia-rev3_x-260821.bin)
+是面向 ESP32-P4 芯片版本 v3.00 或更高版本的默认已提交镜像。它是由源码构建的 Brookesia 镜像，
+不是厂商工厂/恢复镜像，也不是 CI 生成的分段 ZIP 构件。该镜像由源提交
+`f417f6b764f06dddb89fd4f30730ecf4b1fc56d3` 使用 ESP-IDF v5.5.5 和
+`firmware/brookesia/sdkconfig.defaults.rev3_x` profile（250 MHz PSRAM）构建。
+
+该文件是 32 MiB 的整片 Flash 原始镜像。其布局来自构建输出的 `flasher_args.json`：bootloader 位于
+`0x2000`，分区表位于 `0x8000`，OTA 数据位于 `0x10d000`，ESP-SR 模型位于 `0x110000`，
+应用程序位于 `0x200000`，存储位于 `0xa00000`。仅在需要替换完整 32 MiB Flash 内容时才从
+Flash 偏移 `0x0` 写入。该操作会覆盖现有分区、应用数据和存储；请先备份需要保留的数据。
+
+镜像不包含 ESP32-C6 协处理器固件。Hosted Wi-Fi 运行仍需要与之兼容的 C6 固件/运行时组合，
+详见 [P4/C6 Hosted Wi-Fi](p4-c6-hosted-wifi_ZH.md)。该镜像仅完成源码构建和分段布局检查；
+本仓库尚未对它执行硬件烧录、显示、触摸、音频、摄像头、SD 或 Wi-Fi 的 HIL 验证。
+
+`rev1_3` 仍作为面向 pre-v3 芯片的独立分段 CI 构建 profile 保留。它不会添加第二个已提交的
+默认整片镜像，且两个 profile 不能交叉使用。
 
 ## Brookesia 源代码固件
 

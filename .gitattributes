@@ -11,3 +11,6 @@ firmware/brookesia/components/brookesia_core/systems/speaker/widgets/quick_setti
 # Bundled Arduino libraries and this upstream-derived LVGL configuration retain upstream whitespace.
 examples/arduino/libraries/** whitespace=-trailing-space
 examples/arduino/LVGLV9_Arduino/lv_conf.h whitespace=-trailing-space
+
+# Checked-in delivery image; keep Git from interpreting raw flash bytes as text.
+firmware/ESP32-P4-WIFI6-Touch-LCD-4B-Brookesia-rev3_x-260821.bin -diff -text

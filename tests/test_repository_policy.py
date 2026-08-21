@@ -194,6 +194,21 @@ class RepositoryPolicyTests(unittest.TestCase):
         for name, size in (("nvsfactory", "200K"), ("nvs", "840K"), ("otadata", "0x2000"), ("phy_init", "0x1000"), ("model", "0xF0000"), ("storage", "6M")):
             self.assertRegex(partitions, rf"(?m)^{name},[^\n]*,\s*,\s*{re.escape(size)},")
 
+    def test_default_brookesia_image_is_one_documented_rev3_x_delivery_artifact(self) -> None:
+        self.assertEqual([], policy.check_default_brookesia_image_contract(ROOT))
+        image = ROOT / "firmware" / policy.DEFAULT_BROOKESIA_IMAGE
+        self.assertEqual(32 * 1024 * 1024, image.stat().st_size)
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            firmware = root / "firmware"; firmware.mkdir(parents=True)
+            (firmware / policy.DEFAULT_BROOKESIA_IMAGE).write_bytes(b"too small")
+            self.write_fixture(root, "docs/firmware.md", "\n")
+            self.write_fixture(root, "docs/firmware_ZH.md", "\n")
+            self.write_fixture(root, ".github/workflows/firmware.yml", "\n")
+            errors = policy.check_default_brookesia_image_contract(root)
+        self.assertTrue(any("32 MiB" in error for error in errors))
+
     def test_ci_artifact_contract_has_final_sha_and_non_erasing_flasher(self) -> None:
         expected = "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a"
         for name in ("esp-idf.yml", "arduino.yml", "firmware.yml"):

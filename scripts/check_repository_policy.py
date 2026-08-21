@@ -101,6 +101,9 @@ PRIVATE_TEXT_PATTERNS = (
 ARDUINO_SOURCE_SUFFIXES = {".c", ".cc", ".cpp", ".h", ".hh", ".hpp", ".ino"}
 ARDUINO_FIRST_PARTY_LIBRARY = "Waveshare_ESP32_P4_4B_Display"
 ARDUINO_SERIAL_TIMEOUT_MAX_MS = 5000
+DEFAULT_BROOKESIA_IMAGE = "ESP32-P4-WIFI6-Touch-LCD-4B-Brookesia-rev3_x-260821.bin"
+DEFAULT_BROOKESIA_IMAGE_SIZE = 32 * 1024 * 1024
+DEFAULT_BROOKESIA_SOURCE_COMMIT = "f417f6b764f06dddb89fd4f30730ecf4b1fc56d3"
 
 
 def tracked_markdown(root: Path) -> tuple[Path, ...]:
@@ -902,6 +905,38 @@ def check_revision_profile_contract(root: Path) -> list[str]:
     return errors
 
 
+def check_default_brookesia_image_contract(root: Path) -> list[str]:
+    """Keep the one authorized checked-in delivery image explicit and separate from CI ZIPs."""
+    errors: list[str] = []
+    firmware_root = root / "firmware"
+    image = firmware_root / DEFAULT_BROOKESIA_IMAGE
+    if not image.is_file():
+        return [f"firmware/{DEFAULT_BROOKESIA_IMAGE}: default rev3_x delivery image is missing"]
+    if image.stat().st_size != DEFAULT_BROOKESIA_IMAGE_SIZE:
+        errors.append(
+            f"firmware/{DEFAULT_BROOKESIA_IMAGE}: expected a complete 32 MiB whole-flash image"
+        )
+    root_images = sorted(path.name for path in firmware_root.glob("*.bin") if path.is_file())
+    if root_images != [DEFAULT_BROOKESIA_IMAGE]:
+        errors.append("firmware/: only the documented default source-built delivery image may be checked in at this level")
+
+    english = (root / "docs/firmware.md").read_text(encoding="utf-8")
+    chinese = (root / "docs/firmware_ZH.md").read_text(encoding="utf-8")
+    for text, language in ((english, "docs/firmware.md"), (chinese, "docs/firmware_ZH.md")):
+        for required in (DEFAULT_BROOKESIA_IMAGE, DEFAULT_BROOKESIA_SOURCE_COMMIT, "flasher_args.json", "ESP32-C6"):
+            if required not in text:
+                errors.append(f"{language}: default delivery-image contract is incomplete: {required}")
+    if "not a vendor factory/recovery image" not in english or "不是厂商工厂/恢复镜像" not in chinese:
+        errors.append("docs/firmware*: default image must remain distinguished from a vendor factory/recovery image")
+    if "whole-flash raw image" not in english or "整片 Flash 原始镜像" not in chinese:
+        errors.append("docs/firmware*: default image must document its whole-flash overwrite boundary")
+
+    workflow = (root / ".github/workflows/firmware.yml").read_text(encoding="utf-8")
+    if DEFAULT_BROOKESIA_IMAGE in workflow or '"firmware/*.bin"' in workflow:
+        errors.append("firmware.yml: checked-in delivery image must remain outside the source-firmware CI build")
+    return errors
+
+
 def check_idf_partition_contract(root: Path) -> list[str]:
     errors: list[str] = []
     shared_defaults = (root / "config/sdkconfig.defaults").read_text(encoding="utf-8")
@@ -931,6 +966,7 @@ def run_checks(root: Path) -> list[str]:
     errors.extend(check_ci_contract(root))
     errors.extend(check_arduino_serial_contract(root))
     errors.extend(check_revision_profile_contract(root))
+    errors.extend(check_default_brookesia_image_contract(root))
     errors.extend(check_idf_partition_contract(root))
     if (root / "SECURITY.md").exists():
         errors.append("SECURITY.md exists although no verified private vulnerability-reporting endpoint is configured")
