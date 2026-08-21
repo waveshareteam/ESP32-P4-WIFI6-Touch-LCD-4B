@@ -2,7 +2,7 @@
 
 [English](README.md)
 
-通过 `waveshare/esp32_p4_wifi6_touch_lcd_4b` 3.0.0 和 `espressif/esp_lvgl_adapter` 0.6.3，在 4 英寸 720 x 720 面板上运行 LVGL 9.3.0 基准测试。BSP 显示栈启动后，背光亮度设为 50%。
+通过 `waveshare/esp32_p4_wifi6_touch_lcd_4b` 3.0.1 和 `espressif/esp_lvgl_adapter` 0.6.3，在 4 英寸 720 x 720 面板上运行 LVGL 9.3.0 基准测试。BSP 显示栈启动后，背光亮度设为 50%。
 
 BSP 管理显示刷新、触摸注册和 LVGL 任务。创建应用程序 UI 时需要持有 BSP 显示锁。
 

@@ -35,20 +35,19 @@ on physical hardware.
 | --- | --- | --- |
 | LCD | Resolution | 720 x 720 |
 | LCD | Interface | Two-lane MIPI DSI |
-| LCD | DSI lane rate in Registry BSP 3.0.0 | 480 Mbit/s per lane |
+| LCD | DSI lane rate in Registry BSP 3.0.1 | 480 Mbit/s per lane |
 | LCD | Reset | GPIO27 |
 | LCD backlight | PWM | GPIO26 |
 | LCD backlight | Enable | GPIO33 |
 | Touch / shared control bus | SDA | GPIO7 |
 | Touch / shared control bus | SCL | GPIO8 |
-| Touch | Reset | GPIO23 is present in the schematic; the Arduino helper does not drive it, while the published BSP 3.0.0 still configures it |
-| Touch | Interrupt | Test point only; not connected to an MCU GPIO and not used by the Arduino helper or published BSP 3.0.0 |
+| Touch | Reset | GPIO23 is present in the schematic; neither the Arduino helper nor the published BSP 3.0.1 drives it |
+| Touch | Interrupt | Test point only; not connected to an MCU GPIO and not used by the Arduino helper or published BSP 3.0.1 |
 
 The LCD reset and touch reset are separate signals on this product. The Arduino
 helper deliberately does not drive either GT911 INT or RST: it probes I2C
 address `0x5D` first, then `0x14`, initializes the responding address, and
-polls touch state. The same behavior is proposed for BSP 3.0.1; the product
-continues to use published BSP 3.0.0 until the registry release. Do not copy a
+polls touch state. The published BSP 3.0.1 uses the same behavior. Do not copy a
 shared-reset assumption from another Waveshare board. Compilation does not
 validate address-selection timing or touch input on physical hardware.
 
@@ -146,7 +145,7 @@ direction control and bus ownership are understood.
 ## BSP baseline
 
 The repository migration baseline is the published
-`waveshare/esp32_p4_wifi6_touch_lcd_4b` version 3.0.0:
+`waveshare/esp32_p4_wifi6_touch_lcd_4b` version 3.0.1:
 
 - ESP-IDF `>=5.5`.
 - `espressif/esp_lvgl_adapter ~0.6`.
@@ -160,10 +159,8 @@ the maintained Brookesia firmware, resolve the reusable BSP and ST7703 driver
 from the ESP Component Registry. No local copy of either component is kept to
 shadow that resolution; only product-specific `bsp_extra` code remains local.
 
-The product manifests remain on the published BSP 3.0.0. The GT911 address-probe
-change is prepared as BSP 3.0.1, but product manifests must not move to that
-version until it is published in the Component Registry; do not use a Git URL
-as a substitute for a registry release.
+Product manifests resolve the published BSP 3.0.1 through the Component Registry.
+Do not use a Git URL as a substitute for a registry release.
 
 ## Validation status
 

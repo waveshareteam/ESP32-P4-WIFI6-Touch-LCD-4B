@@ -44,7 +44,9 @@ README_WORKFLOW_BADGES = (
 )
 README_H2_ICONS = ("🖥️", "🗂️", "🧪", "🚀", "📦", "📄")
 MANAGED_BSP_COMPONENT = "waveshare/esp32_p4_wifi6_touch_lcd_4b"
-MANAGED_BSP_VERSION = "3.0.0"
+MANAGED_BSP_VERSION = "3.0.1"
+MANAGED_BSP_SOURCE_GIT_SHA = "69b3e7ba512e3676519196f5d91680445600a101"
+MANAGED_BSP_COMPONENT_TREE_SHA = "cbab0682683616cb6cb1a4efc5c6641676bb5b59"
 FORBIDDEN_LOCAL_REUSABLE_COMPONENTS = (
     "firmware/brookesia/components/esp32_p4_wifi6_touch_lcd_4b",
     "firmware/brookesia/components/esp_lcd_st7703",
@@ -809,6 +811,13 @@ def check_ci_contract(root: Path) -> list[str]:
         errors.append("arduino.yml: compile must preserve core flash_args in an isolated build path")
     if any(option not in arduino for option in ("--bsp-version", "--bsp-source-git-sha", "--bsp-component-tree-sha")):
         errors.append("arduino.yml: package must bind exact BSP version, source Git SHA, and component tree SHA")
+    expected_bsp_environment = (
+        f'WAVESHARE_BSP_VERSION: "{MANAGED_BSP_VERSION}"',
+        f'WAVESHARE_BSP_SOURCE_GIT_SHA: "{MANAGED_BSP_SOURCE_GIT_SHA}"',
+        f'WAVESHARE_BSP_COMPONENT_TREE_SHA: "{MANAGED_BSP_COMPONENT_TREE_SHA}"',
+    )
+    if any(value not in arduino for value in expected_bsp_environment):
+        errors.append("arduino.yml: BSP package provenance must match the published Registry component")
     for required in (
         "arduino-cli config get directories.data",
         "arduino-cli config get directories.user",

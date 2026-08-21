@@ -23,9 +23,9 @@ env:
   ARDUINO_CORE_VERSION: "3.3.11"
   ARDUINO_GFX_VERSION: "1.6.6"
   LVGL_VERSION: "9.3.0"
-  WAVESHARE_BSP_VERSION: "3.0.0"
-  WAVESHARE_BSP_SOURCE_GIT_SHA: "32d86900af6916d5e6eb629741d57ee19a577740"
-  WAVESHARE_BSP_COMPONENT_TREE_SHA: "27a67ea44c29375d0309bb5e1dbef25a9c24d6c5"
+  WAVESHARE_BSP_VERSION: "3.0.1"
+  WAVESHARE_BSP_SOURCE_GIT_SHA: "69b3e7ba512e3676519196f5d91680445600a101"
+  WAVESHARE_BSP_COMPONENT_TREE_SHA: "cbab0682683616cb6cb1a4efc5c6641676bb5b59"
   ESP32_PACKAGE_INDEX: "https://espressif.github.io/arduino-esp32/package_esp32_index.json"
   ARDUINO_FQBN: >-
     esp32:esp32:esp32p4:UploadSpeed=921600,USBMode=default,CDCOnBoot=default,MSCOnBoot=default,DFUOnBoot=default,UploadMode=default,FlashFreq=80,FlashMode=qio,FlashSize=32M,PartitionScheme=app13M_data7M_32MB,DebugLevel=none,PSRAM=enabled,EraseFlash=none,JTAGAdapter=default,ChipVariant=postv3

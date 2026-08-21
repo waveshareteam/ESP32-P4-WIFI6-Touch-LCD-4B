@@ -42,9 +42,8 @@ idf.py -C examples/esp-idf/hello_world build
 
 ## 开发板支持
 
-显示、触摸和音频示例应使用已发布的 `waveshare/esp32_p4_wifi6_touch_lcd_4b` 3.0.0 BSP 及其受管依赖。项目本地代码仅适用于示例组合或产品专用胶水代码。
-GT911 地址探测的 BSP 3.0.1 更新必须先发布到 Component Registry，本仓库才可升级 manifest；
-不要将 Registry 依赖替换为 Git URL。
+显示、触摸和音频示例应使用已发布的 `waveshare/esp32_p4_wifi6_touch_lcd_4b` 3.0.1 BSP 及其受管依赖。项目本地代码仅适用于示例组合或产品专用胶水代码。
+已发布的 BSP 3.0.1 包含 GT911 地址探测；不要将 Registry 依赖替换为 Git URL。
 
 ## 硬件限制
 

@@ -79,13 +79,13 @@ PCB 电气版本；现有主板原理图不足以证明其名称之间存在电�
 生成的 `managed_components/`、`sdkconfig`、`dependencies.lock` 和 `build/`
 目录都不是源码输入。作业不得依赖开发者机器生成的副本。
 
-开发板迁移基线是托管组件 `waveshare/esp32_p4_wifi6_touch_lcd_4b` 3.0.0 BSP。
-待处理的 BSP 3.0.1 GT911 地址探测修改必须先发布到 Component Registry，产品 manifest
-才可升级；工作流不得使用未发布版本或 Git URL。Hosted Wi-Fi 示例固定使用
+开发板迁移基线是托管组件 `waveshare/esp32_p4_wifi6_touch_lcd_4b` 3.0.1 BSP，
+其中包含 GT911 地址探测行为。工作流必须解析已发布的 Registry 版本，不得使用 Git URL。
+Hosted Wi-Fi 示例固定使用
 `esp_wifi_remote` 1.6.3 和 `esp_hosted` 2.12.11。
 主机端编译成功不能证明其与板上 ESP32-C6 镜像兼容。
 
-使用 BSP 3.0.0 的 LVGL 工程将 `esp_lvgl_adapter` 固定为 0.6.3。LVGL 9 工程
+使用 BSP 3.0.1 的 LVGL 工程将 `esp_lvgl_adapter` 固定为 0.6.3。LVGL 9 工程
 使用 9.3.0，因为 adapter 0.6.3 调用了该版本才引入的 API；LVGL 8 工程继续使用
 8.4.0，并为 BSP 中 LVGL 9 的旋转类型拼写提供仅用于编译的等价别名。LVGL 9
 工程关闭可选的快速内存 IRAM 放置，因为 GCC 15 会拒绝 LVGL 9 重复声明中不同的

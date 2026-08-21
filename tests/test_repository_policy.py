@@ -141,7 +141,7 @@ class RepositoryPolicyTests(unittest.TestCase):
                 "firmware/brookesia/components/bsp_extra/idf_component.yml",
                 "dependencies:\n"
                 "  waveshare/esp32_p4_wifi6_touch_lcd_4b:\n"
-                '    version: "3.0.0"\n',
+                '    version: "3.0.1"\n',
             )
             self.write_fixture(
                 root,

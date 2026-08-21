@@ -36,7 +36,7 @@ CORE_SPEC.loader.exec_module(core)
 
 
 class CiFirmwarePackageTests(unittest.TestCase):
-    BSP_VERSION = "3.0.0"
+    BSP_VERSION = "3.0.1"
     BSP_SHA = "b" * 40
     BSP_TREE_SHA = "c" * 40
 
@@ -731,6 +731,9 @@ class CiFirmwarePackageTests(unittest.TestCase):
         self.assertNotIn("--export-binaries", arduino_workflow)
         self.assertIn("--bsp-source-git-sha", arduino_workflow)
         self.assertIn("--bsp-component-tree-sha", arduino_workflow)
+        self.assertIn('WAVESHARE_BSP_VERSION: "3.0.1"', arduino_workflow)
+        self.assertIn('WAVESHARE_BSP_SOURCE_GIT_SHA: "69b3e7ba512e3676519196f5d91680445600a101"', arduino_workflow)
+        self.assertIn('WAVESHARE_BSP_COMPONENT_TREE_SHA: "cbab0682683616cb6cb1a4efc5c6641676bb5b59"', arduino_workflow)
         for required in ("compiler.c.extra_flags=", "compiler.cpp.extra_flags=", "compiler.S.extra_flags=", "-ffile-prefix-map=", "-fmacro-prefix-map="):
             self.assertIn(required, arduino_workflow)
         self.assertNotIn("build.extra_flags=", arduino_workflow)
@@ -882,7 +885,7 @@ class CiFirmwareCoreTests(unittest.TestCase):
                 with mock.patch.dict(os.environ, {"PACKAGE_GIT_SHA": repo.head}):
                     package_zip = packager.package_arduino(
                         project, build, item.version, root / "package.zip", packager.ARDUINO_FQBN,
-                        item.profile, "3.0.0", "b" * 40, "c" * 40,
+                        item.profile, "3.0.1", "b" * 40, "c" * 40,
                     )
             finally:
                 os.chdir(old)

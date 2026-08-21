@@ -26,12 +26,12 @@ Wi-Fi paths.
 | Display / touch | 4-inch 720 x 720 MIPI DSI ST7703 / GT911 |
 | Framework | ESP-IDF v5.5.5 (`idf_component.yml` requires `>=5.5,<6.0`) |
 | UI | LVGL 9.4.0 with local ESP-Brookesia core 0.6.0-beta2 |
-| Board component | Registry-managed `waveshare/esp32_p4_wifi6_touch_lcd_4b` 3.0.0 |
+| Board component | Registry-managed `waveshare/esp32_p4_wifi6_touch_lcd_4b` 3.0.1 |
 | LVGL integration | `espressif/esp_lvgl_adapter` 0.6.2, not `esp_lvgl_port` |
 | Wireless | ESP32-C6 coprocessor over SDIO using ESP-Hosted / `esp_wifi_remote` |
 | Voice assistant | `espressif/esp_xiaozhi` 0.1.1, ESP-SR 2.4.7, Xiaozhi fonts 1.6.0 |
 
-The firmware resolves BSP 3.0.0 and its ST7703 2.0.0 dependency from the ESP
+The firmware resolves BSP 3.0.1 and its ST7703 2.0.0 dependency from the ESP
 Component Registry. It keeps only product-specific composition in `bsp_extra`;
 there are no same-name local reusable copies to shadow managed resolution.
 
@@ -405,7 +405,7 @@ shared hardware are involved.
   the firmware running on the ESP32-C6 coprocessor. A host-only dependency
   upgrade can break wireless operation even when it compiles.
 - **The BSP is Registry-managed.** Do not reintroduce a same-name component
-  directory, because project components override managed resolution. BSP 3.0.0
+  directory, because project components override managed resolution. BSP 3.0.1
   uses a 480 Mbps DSI lane rate; validate display behavior on both maintained
   hardware profiles before changing or upgrading it.
 - **RS485 receive is hardware-revision dependent.** Check transceiver direction

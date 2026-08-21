@@ -24,12 +24,12 @@ ESP32-C6 Hosted Wi-Fi。
 | 显示 / 触摸 | 4 英寸 720 x 720 MIPI DSI ST7703 / GT911 |
 | 开发框架 | ESP-IDF v5.5.5，`idf_component.yml` 要求 `>=5.5,<6.0` |
 | UI | LVGL 9.4.0，本地 ESP-Brookesia core 0.6.0-beta2 |
-| BSP | Registry 托管的 `waveshare/esp32_p4_wifi6_touch_lcd_4b` 3.0.0 |
+| BSP | Registry 托管的 `waveshare/esp32_p4_wifi6_touch_lcd_4b` 3.0.1 |
 | LVGL 适配 | `espressif/esp_lvgl_adapter` 0.6.2，不使用 `esp_lvgl_port` |
 | 无线网络 | ESP32-C6 协处理器，通过 SDIO 运行 ESP-Hosted / `esp_wifi_remote` |
 | 语音助手 | `espressif/esp_xiaozhi` 0.1.1、ESP-SR 2.4.7、xiaozhi-fonts 1.6.0 |
 
-固件从 ESP Component Registry 解析 BSP 3.0.0 及其 ST7703 2.0.0 依赖，
+固件从 ESP Component Registry 解析 BSP 3.0.1 及其 ST7703 2.0.0 依赖，
 本地只保留 `bsp_extra` 中的产品专用组合逻辑，不再保留会遮蔽托管解析的
 同名可复用副本。
 
@@ -354,7 +354,7 @@ MusicPlayer 枚举 `/spiffs/music` 中最多五首由集成方提供的 MP3，UI
 - **P4 本身没有 Wi-Fi。** Host 组件必须与 ESP32-C6 中运行的从机固件兼容；
   只升级 P4 依赖可能出现“能编译但无线不可用”。
 - **BSP 由 Registry 托管。** 不要重新加入同名组件目录，因为工程组件会覆盖
-  托管解析。BSP 3.0.0 使用 480 Mbps DSI 通道速率；修改或升级前，应在两个
+  托管解析。BSP 3.0.1 使用 480 Mbps DSI 通道速率；修改或升级前，应在两个
   受维护硬件 profile 上验证显示行为。
 - **RS485 接收取决于硬件版本。** 软件排障前先检查收发器方向引脚。
 

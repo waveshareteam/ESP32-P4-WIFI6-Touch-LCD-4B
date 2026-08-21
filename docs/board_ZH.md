@@ -33,19 +33,19 @@
 | --- | --- | --- |
 | LCD | 分辨率 | 720 x 720 |
 | LCD | 接口 | 双通道 MIPI DSI |
-| LCD | Registry BSP 3.0.0 中的 DSI 通道速率 | 每通道 480 Mbit/s |
+| LCD | Registry BSP 3.0.1 中的 DSI 通道速率 | 每通道 480 Mbit/s |
 | LCD | 复位 | GPIO27 |
 | LCD 背光 | PWM | GPIO26 |
 | LCD 背光 | 使能 | GPIO33 |
 | 触摸 / 共享控制总线 | SDA | GPIO7 |
 | 触摸 / 共享控制总线 | SCL | GPIO8 |
-| 触摸 | 复位 | 原理图有 GPIO23；Arduino 辅助库不驱动，但已发布 BSP 3.0.0 仍配置该引脚 |
-| 触摸 | 中断 | 仅测试点；未连接至 MCU GPIO，Arduino 辅助库与已发布 BSP 3.0.0 均不使用 |
+| 触摸 | 复位 | 原理图有 GPIO23；Arduino 辅助库与已发布 BSP 3.0.1 均不驱动该引脚 |
+| 触摸 | 中断 | 仅测试点；未连接至 MCU GPIO，Arduino 辅助库与已发布 BSP 3.0.1 均不使用 |
 
 本产品的 LCD 复位与触摸复位为独立信号。Arduino 辅助库有意不驱动 GT911 的 INT 或 RST：
-它先探测 I2C 地址 `0x5D`，再探测 `0x14`，以响应的地址初始化，并轮询触摸状态。BSP 3.0.1
-拟采用同样行为；在 Registry 发布前，产品继续使用已发布 BSP 3.0.0。不要从另一块 Waveshare
-开发板复制“共用复位”的假设。编译不能验证实体硬件上的地址选择时序或触摸输入。
+它先探测 I2C 地址 `0x5D`，再探测 `0x14`，以响应的地址初始化，并轮询触摸状态。已发布的 BSP
+3.0.1 使用同样行为。不要从另一块 Waveshare 开发板复制“共用复位”的假设。编译不能验证实体
+硬件上的地址选择时序或触摸输入。
 
 ### 音频
 
@@ -128,7 +128,7 @@ C6 的 SDIO/控制连接。信号级映射与时序由 Hosted 配置和匹配的
 
 ## BSP 基线
 
-仓库迁移基线是已发布的 `waveshare/esp32_p4_wifi6_touch_lcd_4b` 3.0.0 版本：
+仓库迁移基线是已发布的 `waveshare/esp32_p4_wifi6_touch_lcd_4b` 3.0.1 版本：
 
 - ESP-IDF `>=5.5`。
 - `espressif/esp_lvgl_adapter ~0.6`。
@@ -141,8 +141,7 @@ C6 的 SDIO/控制连接。信号级映射与时序由 Hosted 配置和匹配的
 ESP Component Registry 解析可复用的 BSP 与 ST7703 驱动。本地不再保留会遮蔽
 解析的同名副本，只保留产品专用的 `bsp_extra` 代码。
 
-产品 manifest 继续依赖已发布的 BSP 3.0.0。GT911 地址探测修改将作为 BSP 3.0.1 准备，
-但在该版本发布到 Component Registry 前，产品 manifest 不得升级；不能以 Git URL 替代
+产品 manifest 通过 Component Registry 解析已发布的 BSP 3.0.1。不能以 Git URL 替代
 Registry 发布版本。
 
 ## 验证状态

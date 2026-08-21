@@ -53,11 +53,10 @@ or `build/` output.
 ## Board support
 
 Display, touch, and audio examples should use the published
-`waveshare/esp32_p4_wifi6_touch_lcd_4b` 3.0.0 BSP and its managed dependencies.
+`waveshare/esp32_p4_wifi6_touch_lcd_4b` 3.0.1 BSP and its managed dependencies.
 Project-local code is appropriate only for example composition or
-product-specific glue. A BSP 3.0.1 GT911 address-probe update must be published
-to the Component Registry before this repository upgrades its manifest; do not
-replace the registry dependency with a Git URL.
+product-specific glue. The published BSP 3.0.1 includes GT911 address probing.
+Do not replace the Registry dependency with a Git URL.
 
 ## Hardware limits
 

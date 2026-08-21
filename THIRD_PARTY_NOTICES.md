@@ -21,7 +21,7 @@ before mirroring or publishing material that lacks individual terms.
 
 | Component | Version/baseline | Notice |
 | --- | --- | --- |
-| `waveshare/esp32_p4_wifi6_touch_lcd_4b` | 3.0.0 | Upstream package includes an Apache-2.0 license text; it applies to that component only |
+| `waveshare/esp32_p4_wifi6_touch_lcd_4b` | 3.0.1 | Upstream package includes an Apache-2.0 license text; it applies to that component only |
 | `waveshare/esp_lcd_st7703` | 2.0.0 | License metadata is inconsistent: manifest says MIT, supplied MIT text has unfilled placeholders, and source headers say Apache-2.0; upstream clarification is required |
 
 Managed dependencies may not be stored in the repository, but their licenses

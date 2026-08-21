@@ -5,7 +5,7 @@
 This ESP-IDF example turns the Waveshare ESP32-P4-WIFI6-Touch-LCD-4B into a
 fixed-size 720 x 720 USB auxiliary display. It is based on the Waveshare
 product example and the Espressif `usb_extend_screen` implementation, with the
-board integration normalized for the published Waveshare BSP 3.0.0.
+board integration normalized for the published Waveshare BSP 3.0.1.
 
 This is a vendor-specific USB display, not a USB Video Class (UVC) device and
 not a standards-based DisplayPort/USB display. A compatible Windows Indirect
@@ -38,7 +38,7 @@ disabled, the example uses the vendor-only product ID described below.
 - USB: the ESP32-P4 native USB 2.0 device/OTG connection, configured for the
   High-Speed UTMI PHY path.
 - ESP-IDF source range: `>=5.5,<7.0`.
-- Board component: `waveshare/esp32_p4_wifi6_touch_lcd_4b` 3.0.0.
+- Board component: `waveshare/esp32_p4_wifi6_touch_lcd_4b` 3.0.1.
 - LVGL: 9.3.0 with `espressif/esp_lvgl_adapter` 0.6.3.
 - UAC component: `espressif/usb_device_uac` 1.3.1.
 - TinyUSB component: `espressif/tinyusb` `0.19.0~3` (exact).
@@ -157,7 +157,7 @@ recorded in [the repository source record](../../../docs/sources.md). Useful
 upstream references are:
 
 - [Waveshare product documentation](https://docs.waveshare.com/ESP32-P4-WIFI6-Touch-LCD-4B)
-- [Waveshare BSP 3.0.0](https://components.espressif.com/components/waveshare/esp32_p4_wifi6_touch_lcd_4b/versions/3.0.0)
+- [Waveshare BSP 3.0.1](https://components.espressif.com/components/waveshare/esp32_p4_wifi6_touch_lcd_4b/versions/3.0.1)
 - [Espressif USB Device UAC 1.3.1](https://components.espressif.com/components/espressif/usb_device_uac/versions/1.3.1)
 
 Imported provenance does not imply runtime validation or permission to

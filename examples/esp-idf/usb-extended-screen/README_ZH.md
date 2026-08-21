@@ -2,7 +2,7 @@
 
 [English](README.md)
 
-此 ESP-IDF 示例将 Waveshare ESP32-P4-WIFI6-Touch-LCD-4B 变为固定尺寸的 720 x 720 USB 辅助显示器。它基于 Waveshare 产品示例和乐鑫 `usb_extend_screen` 实现，并针对已发布的 Waveshare BSP 3.0.0 规范化了开发板集成。
+此 ESP-IDF 示例将 Waveshare ESP32-P4-WIFI6-Touch-LCD-4B 变为固定尺寸的 720 x 720 USB 辅助显示器。它基于 Waveshare 产品示例和乐鑫 `usb_extend_screen` 实现，并针对已发布的 Waveshare BSP 3.0.1 规范化了开发板集成。
 
 这是一种厂商专用 USB 显示设备，不是 USB 视频类（UVC）设备，也不是基于标准的 DisplayPort/USB 显示器。兼容的 Windows 间接显示驱动程序（IDD）通过 TinyUSB 厂商端点发送压缩帧。
 
@@ -31,7 +31,7 @@ Windows 桌面
 - 触摸：GT911，HID 描述符表示五个触点。
 - USB：ESP32-P4 原生 USB 2.0 device/OTG 连接，配置为高速 UTMI PHY 路径。
 - ESP-IDF 源码范围：`>=5.5,<7.0`。
-- 开发板组件：`waveshare/esp32_p4_wifi6_touch_lcd_4b` 3.0.0。
+- 开发板组件：`waveshare/esp32_p4_wifi6_touch_lcd_4b` 3.0.1。
 - LVGL：9.3.0，搭配 `espressif/esp_lvgl_adapter` 0.6.3。
 - UAC 组件：`espressif/usb_device_uac` 1.3.1。
 - TinyUSB 组件：`espressif/tinyusb` `0.19.0~3`（精确版本）。
@@ -117,7 +117,7 @@ UAC 麦克风路径尚未验证。该开发板将 ES8311 播放与 ES7210 采集
 精确的 Waveshare 压缩包、获取日期、哈希和导入映射记录在 [仓库的源记录](../../../docs/sources_ZH.md)中。有用的上游参考资料包括：
 
 - [Waveshare 产品文档](https://docs.waveshare.com/ESP32-P4-WIFI6-Touch-LCD-4B)
-- [Waveshare BSP 3.0.0](https://components.espressif.com/components/waveshare/esp32_p4_wifi6_touch_lcd_4b/versions/3.0.0)
+- [Waveshare BSP 3.0.1](https://components.espressif.com/components/waveshare/esp32_p4_wifi6_touch_lcd_4b/versions/3.0.1)
 - [Espressif USB Device UAC 1.3.1](https://components.espressif.com/components/espressif/usb_device_uac/versions/1.3.1)
 
 导入来源不代表已进行运行时验证，也不代表获得再分发第三方二进制文件的许可。

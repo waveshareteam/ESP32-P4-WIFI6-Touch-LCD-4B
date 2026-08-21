@@ -2,7 +2,7 @@
 
 [English](README.md)
 
-通过 Waveshare BSP 3.0.0 音频 API 使用 ES8311 扬声器编解码器和 ES7210 麦克风 ADC。
+通过 Waveshare BSP 3.0.1 音频 API 使用 ES8311 扬声器编解码器和 ES7210 麦克风 ADC。
 
 - I2C 控制：SDA GPIO 7，SCL GPIO 8
 - I2S：DOUT 9，LRCK 10，DIN 11，BCLK 12，MCLK 13

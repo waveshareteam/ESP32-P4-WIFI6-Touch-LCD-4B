@@ -51,7 +51,7 @@ Managed dependencies remain separate works even when downloaded during a
 build or linked into a firmware image. Preserve their package licenses and
 notices in any distribution that requires them.
 
-The published Waveshare 4B BSP 3.0.0 package includes an Apache-2.0 license
+The published Waveshare 4B BSP 3.0.1 package includes an Apache-2.0 license
 text. That does not license this repository as a whole.
 
 The ST7703 2.0.0 material needs upstream clarification: its component manifest

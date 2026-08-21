@@ -95,14 +95,13 @@ directories are not source inputs. Jobs must not depend on copies produced by a
 developer machine.
 
 The board migration baseline is the managed
-`waveshare/esp32_p4_wifi6_touch_lcd_4b` 3.0.0 BSP. A pending BSP 3.0.1 GT911
-address-probe change must first be published to the Component Registry before
-the product manifest is updated; workflows must not use an unpublished version
-or a Git URL. The hosted Wi-Fi example pins
+`waveshare/esp32_p4_wifi6_touch_lcd_4b` 3.0.1 BSP, including the GT911
+address-probe behavior. Workflows must resolve published Registry versions and
+must not use a Git URL. The hosted Wi-Fi example pins
 `esp_wifi_remote` 1.6.3 with `esp_hosted` 2.12.11. A successful host compile
 does not prove compatibility with the ESP32-C6 image installed on a board.
 
-The BSP 3.0.0 LVGL projects constrain `esp_lvgl_adapter` to 0.6.3. LVGL 9
+The BSP 3.0.1 LVGL projects constrain `esp_lvgl_adapter` to 0.6.3. LVGL 9
 projects use 9.3.0 because adapter 0.6.3 consumes APIs introduced in that
 release; the LVGL 8 project retains 8.4.0 and supplies a compile-only alias for
 the BSP's LVGL 9 rotation type spelling. The LVGL 9 projects disable optional

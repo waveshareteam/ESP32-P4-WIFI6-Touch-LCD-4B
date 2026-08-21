@@ -116,9 +116,9 @@ PACKAGE_GIT_SHA="$(git rev-parse HEAD)" python scripts/package_ci_firmware.py ar
   --framework-version 3.3.11 \
   --fqbn "esp32:esp32:esp32p4:UploadSpeed=921600,USBMode=default,CDCOnBoot=default,MSCOnBoot=default,DFUOnBoot=default,UploadMode=default,FlashFreq=80,FlashMode=qio,FlashSize=32M,PartitionScheme=app13M_data7M_32MB,DebugLevel=none,PSRAM=enabled,EraseFlash=none,JTAGAdapter=default,ChipVariant=postv3" \
   --board-profile rev3_x \
-  --bsp-version 3.0.0 \
-  --bsp-source-git-sha 32d86900af6916d5e6eb629741d57ee19a577740 \
-  --bsp-component-tree-sha 27a67ea44c29375d0309bb5e1dbef25a9c24d6c5 \
+  --bsp-version 3.0.1 \
+  --bsp-source-git-sha 69b3e7ba512e3676519196f5d91680445600a101 \
+  --bsp-component-tree-sha cbab0682683616cb6cb1a4efc5c6641676bb5b59 \
   --output release-artifacts/firmware-arduino-HelloWorld-3.3.11-rev3_x.zip
 ```
 

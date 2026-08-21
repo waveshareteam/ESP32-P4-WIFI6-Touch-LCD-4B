@@ -25,10 +25,9 @@ This repository normalizes the first-party ESP-IDF and Arduino examples from
 the product resource package. The maintained ESP-Brookesia source remains a
 separate firmware surface. Reusable display, touch, audio, and board support
 for new ESP-IDF applications should resolve through the published
-[`waveshare/esp32_p4_wifi6_touch_lcd_4b` 3.0.0 BSP](https://components.espressif.com/components/waveshare/esp32_p4_wifi6_touch_lcd_4b/versions/3.0.0).
-The GT911 address-probe fix is queued as BSP 3.0.1; this product stays on 3.0.0
-until that version is published in the Component Registry, without Git URL
-dependencies.
+[`waveshare/esp32_p4_wifi6_touch_lcd_4b` 3.0.1 BSP](https://components.espressif.com/components/waveshare/esp32_p4_wifi6_touch_lcd_4b/versions/3.0.1).
+The published BSP 3.0.1 includes the GT911 address-probe fix. Resolve it through
+the Component Registry; do not use Git URL dependencies.
 
 ## 🖥️ Hardware scope
 
@@ -44,7 +43,7 @@ features. Review [`docs/board.md`](docs/board.md) and
 [`schematic/README.md`](schematic/README.md) before changing pins or carrying
 assumptions across hardware revisions.
 
-The Registry BSP 3.0.0 used by the ESP-IDF examples and maintained firmware
+The Registry BSP 3.0.1 used by the ESP-IDF examples and maintained firmware
 configures a 480 Mbps DSI lane rate. The Arduino helper imported from the
 product archive also uses 480 Mbps, but that agreement is a software
 configuration rather than hardware-validation evidence. Revalidate the display

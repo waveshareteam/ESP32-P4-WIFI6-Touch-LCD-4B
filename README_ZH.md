@@ -24,9 +24,9 @@
 本仓库整理了产品资源包中的首方 ESP-IDF 与 Arduino 示例，并将受维护的
 ESP-Brookesia 源码作为独立固件范围保留。新建 ESP-IDF 应用时，显示、触摸、
 音频和开发板支持应优先使用已发布的
-[`waveshare/esp32_p4_wifi6_touch_lcd_4b` 3.0.0 BSP](https://components.espressif.com/components/waveshare/esp32_p4_wifi6_touch_lcd_4b/versions/3.0.0)。
-GT911 地址探测修复将作为 BSP 3.0.1 提交；在该版本发布到 Component Registry 前，产品继续
-使用 3.0.0，不使用 Git URL 依赖。
+[`waveshare/esp32_p4_wifi6_touch_lcd_4b` 3.0.1 BSP](https://components.espressif.com/components/waveshare/esp32_p4_wifi6_touch_lcd_4b/versions/3.0.1)。
+已发布的 BSP 3.0.1 包含 GT911 地址探测修复。应通过 Component Registry 解析，
+不要使用 Git URL 依赖。
 
 ## 🖥️ 硬件范围
 
@@ -40,7 +40,7 @@ PSRAM、4 英寸 720 × 720 ST7703 双通道 MIPI DSI 屏、GT911 触摸、音�
 [`docs/board_ZH.md`](docs/board_ZH.md) 和
 [`schematic/README_ZH.md`](schematic/README_ZH.md)。
 
-ESP-IDF 示例和受维护固件使用的 Registry BSP 3.0.0 将 DSI 通道速率配置为
+ESP-IDF 示例和受维护固件使用的 Registry BSP 3.0.1 将 DSI 通道速率配置为
 480 Mbps。产品资源包导入的 Arduino 辅助库同样使用 480 Mbps，但配置一致并不
 等同于硬件验证；修改任一实现前，仍需在目标板卡版本上重新验证显示效果。
 

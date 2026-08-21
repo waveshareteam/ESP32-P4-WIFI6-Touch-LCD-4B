@@ -2,7 +2,7 @@
 
 [中文](README_ZH.md)
 
-Exercises the ES8311 speaker codec and ES7210 microphone ADC through the Waveshare BSP 3.0.0 audio API.
+Exercises the ES8311 speaker codec and ES7210 microphone ADC through the Waveshare BSP 3.0.1 audio API.
 
 - I2C control: SDA GPIO 7, SCL GPIO 8
 - I2S: DOUT 9, LRCK 10, DIN 11, BCLK 12, MCLK 13
