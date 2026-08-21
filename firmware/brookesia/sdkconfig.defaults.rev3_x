@@ -1,4 +1,5 @@
-# ESP32-P4 rev 3.x profile. No upper silicon revision is claimed by this profile.
+# ESP32-P4 rev 3.x profile: silicon 3.00-3.99 and 250 MHz PSRAM.
+# Kconfig encodes the 3.00 minimum; release/package/flasher reject v4+.
 CONFIG_ESP32P4_SELECTS_REV_LESS_V3=n
 CONFIG_ESP32P4_REV_MIN_300=y
 CONFIG_SPIRAM_SPEED_250M=y

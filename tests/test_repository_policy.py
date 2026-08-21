@@ -196,6 +196,11 @@ class RepositoryPolicyTests(unittest.TestCase):
         rev3_defaults = (ROOT / "firmware/brookesia/sdkconfig.defaults.rev3_x").read_text(encoding="utf-8")
         self.assertIn("CONFIG_BOOTLOADER_LOG_LEVEL_ERROR=y", rev3_defaults)
         self.assertIn("CONFIG_BOOTLOADER_LOG_LEVEL=1", rev3_defaults)
+        self.assertIn("silicon 3.00-3.99", rev3_defaults)
+        self.assertIn("release/package/flasher reject v4+", rev3_defaults)
+        rev1_defaults = (ROOT / "firmware/brookesia/sdkconfig.defaults.rev1_3").read_text(encoding="utf-8")
+        self.assertIn("silicon 1.00-1.99", rev1_defaults)
+        self.assertIn("release/package/flasher reject 2.x", rev1_defaults)
         display_helper = (ROOT / "examples/arduino/libraries/displays/displays_config.h").read_text(encoding="utf-8")
         self.assertIn("ledcOutputInvert(LCD4B_BACKLIGHT_PIN, true)", display_helper)
         partitions = (ROOT / "firmware/brookesia/partitions.csv").read_text(encoding="utf-8")
@@ -207,6 +212,12 @@ class RepositoryPolicyTests(unittest.TestCase):
         self.assertEqual([], policy.check_default_brookesia_image_contract(ROOT))
         image = ROOT / "firmware" / policy.DEFAULT_BROOKESIA_IMAGE
         self.assertEqual(32 * 1024 * 1024, image.stat().st_size)
+        readme = (ROOT / "firmware/brookesia/README.md").read_text(encoding="utf-8")
+        readme_zh = (ROOT / "firmware/brookesia/README_CN.md").read_text(encoding="utf-8")
+        self.assertIn("narrow, explicit publication authorization", readme)
+        self.assertIn("no hardware-in-the-loop (HIL) result is claimed", readme)
+        self.assertIn("精确发布授权", readme_zh)
+        self.assertIn("通过硬件在环（HIL）验证", readme_zh)
 
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

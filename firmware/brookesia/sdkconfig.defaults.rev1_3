@@ -1,4 +1,5 @@
-# ESP32-P4 rev 1.3 profile: pre-v3 silicon and the stable 200 MHz PSRAM baseline.
+# ESP32-P4 rev 1.3 profile: silicon 1.00-1.99 and stable 200 MHz PSRAM.
+# Kconfig selects the supported pre-v3 family; release/package/flasher reject 2.x.
 CONFIG_ESP32P4_SELECTS_REV_LESS_V3=y
 CONFIG_ESP32P4_REV_MIN_100=y
 CONFIG_SPIRAM_SPEED_200M=y

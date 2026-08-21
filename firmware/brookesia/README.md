@@ -423,7 +423,7 @@ load lines, camera V4L2 format, Ethernet link events, and the four ES7210 TDM
 peaks. Include those lines, the board revision, ESP-IDF version, and the exact
 reproduction sequence in bug reports.
 
-## Contributing, support, and release checklist
+## Contributing, support, and future qualified-release checklist
 
 Read the repository-level [contribution guide](../../CONTRIBUTING.md) and
 [support policy](../../SUPPORT.md) before opening a change. Keep reusable BSP
@@ -437,18 +437,28 @@ The local Brookesia core retains its
 [Apache-2.0 license](components/brookesia_core/license.txt). That license applies
 to that component; it does not select a license for the repository as a whole.
 
-Before publishing a release:
+The dated source-built recovery image checked into this repository has the
+narrow, explicit publication authorization and resource inventory recorded in
+the repository's third-party notices. It is not a vendor factory image or a
+hardware-qualified release, no hardware-in-the-loop (HIL) result is claimed,
+and no repository-wide license has been selected.
+
+The following checklist applies before describing a future image as a
+hardware-qualified or factory release, or before publishing a replacement
+outside that exact authorization:
 
 - Build from a clean checkout with the intended ESP-IDF version and regenerate
   dependencies from the committed component manifests.
-- Full-flash and verify display/touch, both microphones, speaker, Wi-Fi,
+- For a hardware-qualified claim, full-flash and verify display/touch, both
+  microphones, speaker, Wi-Fi,
   Ethernet, camera, SD/video, relays, RS485 constraints, and Xiaozhi activation
   plus a complete wake/conversation/stop cycle.
 - Record the compatible ESP32-C6 hosted firmware revision.
 - Package the complete flash set, not only the application binary.
 - Remove generated build output and inspect public text for machine-specific
   paths, usernames, credentials, activation identifiers, and Wi-Fi secrets.
-- Select and add a repository-level `LICENSE.txt` before public distribution,
-  then retain all component license files, SPDX headers, and required
-  third-party notices. Until that license is added, do not assume the entire
-  repository is covered by any one component's license.
+- Establish explicit publication authorization for the new release. A
+  repository-level `LICENSE.txt` may be selected by the maintainer; otherwise,
+  record the release-specific authorization and state that no repository-wide
+  license is granted. In either case, retain all component license files, SPDX
+  headers, and required third-party notices.

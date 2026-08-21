@@ -921,6 +921,14 @@ def check_revision_profile_contract(root: Path) -> list[str]:
         defaults = (root / f"firmware/brookesia/sdkconfig.defaults.{profile}").read_text(encoding="utf-8")
         if any(symbol not in defaults for symbol in symbols):
             errors.append(f"firmware/brookesia/sdkconfig.defaults.{profile}: profile symbols are incomplete")
+        range_markers = {
+            "rev1_3": ("silicon 1.00-1.99", "release/package/flasher reject 2.x"),
+            "rev3_x": ("silicon 3.00-3.99", "release/package/flasher reject v4+"),
+        }
+        if any(marker not in defaults for marker in range_markers[profile]):
+            errors.append(
+                f"firmware/brookesia/sdkconfig.defaults.{profile}: executable silicon range must be explicit"
+            )
     partitions = root / "firmware/brookesia/partitions.csv"
     expected_layout = {
         "nvsfactory": ("data", "nvs", "", "200K"),
@@ -1052,6 +1060,35 @@ def check_default_brookesia_image_contract(root: Path) -> list[str]:
         errors.append("docs/firmware*: default image must remain distinguished from a vendor factory/recovery image")
     if "whole-flash raw image" not in english or "整片 Flash 原始镜像" not in chinese:
         errors.append("docs/firmware*: default image must document its whole-flash overwrite boundary")
+
+    for language, markers in (
+        (
+            "firmware/brookesia/README.md",
+            (
+                "future qualified-release checklist",
+                "narrow, explicit publication authorization",
+                "no hardware-in-the-loop (HIL) result is claimed",
+                "release-specific authorization",
+            ),
+        ),
+        (
+            "firmware/brookesia/README_CN.md",
+            (
+                "未来硬件验收发布检查",
+                "精确发布授权",
+                "通过硬件在环（HIL）验证",
+                "该次发布的精确授权",
+            ),
+        ),
+    ):
+        path = root / language
+        if not path.is_file():
+            errors.append(f"{language}: checked-in image publication boundary is missing")
+            continue
+        text = path.read_text(encoding="utf-8")
+        for marker in markers:
+            if marker not in text:
+                errors.append(f"{language}: checked-in image publication boundary is incomplete: {marker}")
 
     notice_documents: list[tuple[str, str]] = []
     for language in ("THIRD_PARTY_NOTICES.md", "THIRD_PARTY_NOTICES_ZH.md"):
