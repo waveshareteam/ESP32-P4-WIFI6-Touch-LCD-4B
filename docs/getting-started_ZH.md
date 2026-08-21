@@ -80,16 +80,15 @@ idf.py -C firmware/brookesia -p PORT flash monitor
 
 - Arduino-ESP32 3.3.11。
 - FQBN `esp32:esp32:esp32p4`。
-- GFX Library for Arduino 1.6.6。
-- LVGL 草图使用 LVGL 9.3.0。
+- 随附的 GFX Library for Arduino 1.6.0。
+- LVGL 草图使用随附的 LVGL 9.3.0。
 
-如果尚未提供，请安装精确版本：
+安装 Arduino core；完整的 GFX 与 LVGL 库已随附在 `examples/arduino/libraries/` 下，
+不得替换：
 
 ```sh
 arduino-cli core update-index --additional-urls https://espressif.github.io/arduino-esp32/package_esp32_index.json
 arduino-cli core install esp32:esp32@3.3.11 --additional-urls https://espressif.github.io/arduino-esp32/package_esp32_index.json
-arduino-cli lib install "GFX Library for Arduino@1.6.6"
-arduino-cli lib install "lvgl@9.3.0"
 ```
 
 ## 编译并上传 Arduino 草图
@@ -97,9 +96,9 @@ arduino-cli lib install "lvgl@9.3.0"
 ```sh
 arduino-cli compile \
   --fqbn "esp32:esp32:esp32p4:UploadSpeed=921600,USBMode=default,CDCOnBoot=default,MSCOnBoot=default,DFUOnBoot=default,UploadMode=default,FlashFreq=80,FlashMode=qio,FlashSize=32M,PartitionScheme=app13M_data7M_32MB,DebugLevel=none,PSRAM=enabled,EraseFlash=none,JTAGAdapter=default,ChipVariant=postv3" \
-  --build-path build/arduino/HelloWorld \
-  --library examples/arduino/libraries/Waveshare_ESP32_P4_4B_Display \
-  examples/arduino/HelloWorld
+  --build-path build/arduino/01_HelloWorld \
+  --libraries examples/arduino/libraries \
+  examples/arduino/examples/01_HelloWorld
 ```
 
 确认正确端口后：
@@ -108,7 +107,7 @@ arduino-cli compile \
 arduino-cli upload \
   -p PORT \
   --fqbn "esp32:esp32:esp32p4:UploadSpeed=921600,USBMode=default,CDCOnBoot=default,MSCOnBoot=default,DFUOnBoot=default,UploadMode=default,FlashFreq=80,FlashMode=qio,FlashSize=32M,PartitionScheme=app13M_data7M_32MB,DebugLevel=none,PSRAM=enabled,EraseFlash=none,JTAGAdapter=default,ChipVariant=postv3" \
-  examples/arduino/HelloWorld
+  examples/arduino/examples/01_HelloWorld
 ```
 
 制作发布候选时，不得发布生成的整片镜像。请使用 `examples/arduino/README_ZH.md` 所述的

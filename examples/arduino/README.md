@@ -1,179 +1,73 @@
+[简体中文](README_ZH.md) · [Repository home](../../README.md)
+
 # Arduino Examples
 
-[中文](README_ZH.md)
+Arduino sketches and bundled libraries for the Waveshare ESP32-P4-WIFI6-Touch-LCD-4B
+(720 × 720 ST7703 MIPI-DSI display, GT911 capacitive touch, OV5647 MIPI-CSI camera).
 
-These five first-party sketches were imported from the official
-ESP32-P4-WIFI6-Touch-LCD-4B product example archive.
+## Board settings (Arduino IDE)
 
-| Sketch | Purpose | Additional requirements |
-| --- | --- | --- |
-| `AsciiTable` | Display and text-output demonstration | Display helper, GFX library, PSRAM |
-| `Drawing_board` | Touch drawing surface | Display/touch helper, GFX library, PSRAM |
-| `GFX_ESPWiFiAnalyzer` | Wi-Fi scan visualization | Display helper, GFX library, compatible ESP32-C6 firmware |
-| `HelloWorld` | Basic display bring-up | Display helper, GFX library, PSRAM |
-| `LVGLV9_Arduino` | LVGL v9 display and touch demo | Display/touch helper, GFX library, LVGL, local `lv_conf.h`, PSRAM |
+- Arduino-ESP32 3.3.11 (or newer 3.x).
+- Board: `ESP32P4 Dev Module` (`esp32:esp32:esp32p4`).
+- Menu options:
+  - `Chip Variant`: `v3.00 or newer` (rev3.x boards; default)
+  - `PSRAM`: `Enabled`
+  - `Flash Size`: `32 MB`
+  - `Flash Mode`: `QIO`
+  - `Flash Frequency`: `80 MHz`
+  - `Partition Scheme`: `13M APP / 7M data (32 MB)`
+- `Upload Mode`: `Default (USB-UART bridge)`
+- The default CI FQBN keeps `USBMode=default` and `CDCOnBoot=default`; use
+  `UART0` through the board's `CH343P` USB-UART bridge for serial output.
+- Enable PSRAM in the board settings; the display sketches require it.
+- For confirmed rev1.x ESP32-P4 silicon (including rev1.3), select
+  `Chip Variant: Before v3.00`; that legacy profile uses 200 MHz PSRAM. This is
+  a silicon setting, not a PCB revision. Do not mix the two profiles.
 
-Examples shipped inside third-party libraries are not first-party product
-sketches and are excluded from product CI.
+## Examples
 
-## Supported toolchain
+| Sketch | Description |
+| --- | --- |
+| `01_HelloWorld` | Minimal Arduino_GFX DSI display bring-up |
+| `02_AsciiTable` | Arduino_GFX capability/benchmark table |
+| `03_Drawing_board` | GT911 five-point capacitive touch drawing |
+| `04_LVGLV9_Arduino` | LVGL 9 widgets UI with touch input |
+| `05_GFX_ESPWiFiAnalyzer` | Graphical Wi-Fi scan (on-board ESP32-C6 coprocessor) |
+| `06_Camera_Preview` | OV5647 MIPI-CSI camera preview on the display |
+| `07_Camera_ISP_Tuning` | Live preview with interactive ISP/3A tuning over serial |
+| `08_SD_Card` | microSD read/write over the SDIO 3.0 slot |
+| `09_Audio_Playback` | ES8311 codec plays the opening of "Für Elise" as different-frequency tones |
+| `10_Mic_Record` | ES7210 quad-microphone capture; prints peak/RMS/decimated samples over serial |
 
-- Arduino-ESP32 3.3.11 (`esp32:esp32@3.3.11`)
-- FQBN: `esp32:esp32:esp32p4`
-- GFX Library for Arduino: `1.6.6`
-- LVGL: `9.3.0`
-- Local product helper: `libraries/Waveshare_ESP32_P4_4B_Display`
+## Audio notes
 
-The product helper wraps the ESP-IDF new I2C master driver used by current
-Arduino-ESP32 releases and contains the board-specific display/touch setup.
+`09_Audio_Playback` drives the ES8311 codec (I2C 0x18) over TX-only I2S
+(MCLK 13, BCLK 12, LRCK 10, DOUT 9) and enables the 2 W speaker via GPIO 53.
+`10_Mic_Record` captures the on-board ES7210 microphones (I2C 0x40) over RX-only
+I2S (DIN 11) at 16 kHz/16-bit and prints the recorded frames to the serial monitor.
 
-## Board options
+## Camera notes
 
-The compile baseline is derived from the maintained ESP-IDF board
-configuration:
+The `06_Camera_Preview` and `07_Camera_ISP_Tuning` sketches use the `ESP_Video` library
+bundled with the Arduino-ESP32 core (MIPI-CSI device). An OV5647 module must be
+connected to the board MIPI-CSI connector. The default sensor mode streams RAW8
+frames which the ISP pipeline converts to RGB565 for the display. `07_Camera_ISP_Tuning`
+adds interactive controls over the serial monitor: `g` gain, `e` exposure (µs),
+`a` AE target level, `v/h` flip, `t` test pattern, `s` status.
 
-```text
-UploadSpeed=921600
-FlashFreq=80
-FlashMode=qio
-FlashSize=32M
-PartitionScheme=app13M_data7M_32MB
-PSRAM=enabled
-ChipVariant=postv3
-USBMode=default
-CDCOnBoot=default
-MSCOnBoot=default
-DFUOnBoot=default
-UploadMode=default
-DebugLevel=none
-EraseFlash=none
-JTAGAdapter=default
-```
+## Touch notes
 
-The corresponding compile FQBN is:
+The bundled GT911 driver probes both legal I2C addresses, `0x5D` and `0x14`,
+because the current Arduino configuration does not actively drive touch RST/INT.
+If neither address responds, touch examples report the condition and continue
+without touch instead of aborting. Coordinate behavior still requires board testing.
 
-```text
-esp32:esp32:esp32p4:UploadSpeed=921600,USBMode=default,CDCOnBoot=default,MSCOnBoot=default,DFUOnBoot=default,UploadMode=default,FlashFreq=80,FlashMode=qio,FlashSize=32M,PartitionScheme=app13M_data7M_32MB,DebugLevel=none,PSRAM=enabled,EraseFlash=none,JTAGAdapter=default,ChipVariant=postv3
-```
+## Bundled libraries
 
-`ChipVariant=postv3` matches the default `rev3_x` example profile. It selects
-ESP32-P4 v3.00 or newer; confirm the actual silicon revision before changing
-the option. The retained `rev1_3` Brookesia profile is an opt-in pre-v3 profile
-and is not the example default.
+- `displays/` — board display/touch/I2C configuration and drivers (ST7703 DSI init,
+  GT911 touch, non-blocking serial log)
+- `GFX_Library_for_Arduino` — Arduino_GFX with ESP32-P4 MIPI-DSI panel support
+- `lvgl` + `lv_conf.h` — LVGL 9 for the `04_LVGLV9_Arduino` sketch
 
-With Arduino-ESP32 3.3.11, `USBMode=default` resolves to USB mode `0` and
-`CDCOnBoot=default` resolves to CDC-on-boot `0`; global `Serial` is therefore
-UART0, not native USB CDC. The board schematic labels U6 as the CH343P
-USB-to-UART bridge for the debug connector. None of the first-party sketches
-waits for `Serial`, DTR, or a monitor before starting, so leaving the monitor
-closed must not delay display or touch initialization.
-
-## Install dependencies
-
-Install the exact core and library versions when the generic libraries are not
-vendored locally:
-
-```sh
-arduino-cli core update-index --additional-urls https://espressif.github.io/arduino-esp32/package_esp32_index.json
-arduino-cli core install esp32:esp32@3.3.11 --additional-urls https://espressif.github.io/arduino-esp32/package_esp32_index.json
-arduino-cli lib install "GFX Library for Arduino@1.6.6"
-arduino-cli lib install "lvgl@9.3.0"
-```
-
-## Compile
-
-Pass the repository library directory so the product helper is discoverable:
-
-```sh
-repository_root="$(git rev-parse --show-toplevel)"
-arduino_data_root="$(arduino-cli config get directories.data)"
-arduino_user_root="$(arduino-cli config get directories.user)"
-build_temp_root="${TMPDIR:?export TMPDIR as an absolute temporary directory}"
-prefix_map_flags="-ffile-prefix-map=${repository_root}=REPOSITORY -fmacro-prefix-map=${repository_root}=REPOSITORY -ffile-prefix-map=${arduino_data_root}=ARDUINO_DATA -fmacro-prefix-map=${arduino_data_root}=ARDUINO_DATA -ffile-prefix-map=${arduino_user_root}=ARDUINO_USER -fmacro-prefix-map=${arduino_user_root}=ARDUINO_USER -ffile-prefix-map=${build_temp_root}=BUILD_TEMP -fmacro-prefix-map=${build_temp_root}=BUILD_TEMP"
-arduino-cli compile \
-  --fqbn "esp32:esp32:esp32p4:UploadSpeed=921600,USBMode=default,CDCOnBoot=default,MSCOnBoot=default,DFUOnBoot=default,UploadMode=default,FlashFreq=80,FlashMode=qio,FlashSize=32M,PartitionScheme=app13M_data7M_32MB,DebugLevel=none,PSRAM=enabled,EraseFlash=none,JTAGAdapter=default,ChipVariant=postv3" \
-  --build-path build/arduino/HelloWorld \
-  --build-property "compiler.c.extra_flags=${prefix_map_flags}" \
-  --build-property "compiler.cpp.extra_flags=${prefix_map_flags}" \
-  --build-property "compiler.S.extra_flags=${prefix_map_flags}" \
-  --library examples/arduino/libraries/Waveshare_ESP32_P4_4B_Display \
-  examples/arduino/HelloWorld
-```
-
-Replace `HelloWorld` with any first-party sketch directory. Compilation checks
-source compatibility; it does not prove display, touch, Wi-Fi, or other
-hardware behavior. The dynamic file/macro prefix maps remove private workspace,
-Arduino data/user, and temporary roots from every packaged segment without
-overriding the board's `build.extra_flags` (including its USB/CDC defines).
-
-## Segmented package and flash
-
-The build path contains core-generated `flash_args` and `build.options.json`.
-The release packager verifies the latter's exact FQBN and core 3.3.11 path but
-does not archive it because it contains host paths. Instead, the ZIP carries a
-canonical, whitelisted `metadata/arduino_build_identity.json` plus raw source
-filename/size/SHA-256 evidence; its size and hash are declared in the manifest.
-The packager derives every offset,
-filename, and safe flash option only from `flash_args`; a generated 16 MiB or
-32 MiB `*.merged.bin` is never a release artifact or a single-file offset-zero
-flash path. A bootloader at offset zero remains valid on a target whose real
-metadata says so.
-
-For the currently published Registry BSP evidence binding, package the build
-with the exact product SHA, BSP source commit, and component tree:
-
-```sh
-PACKAGE_GIT_SHA="$(git rev-parse HEAD)" python scripts/package_ci_firmware.py arduino \
-  --project examples/arduino/HelloWorld \
-  --build-dir build/arduino/HelloWorld \
-  --framework-version 3.3.11 \
-  --fqbn "esp32:esp32:esp32p4:UploadSpeed=921600,USBMode=default,CDCOnBoot=default,MSCOnBoot=default,DFUOnBoot=default,UploadMode=default,FlashFreq=80,FlashMode=qio,FlashSize=32M,PartitionScheme=app13M_data7M_32MB,DebugLevel=none,PSRAM=enabled,EraseFlash=none,JTAGAdapter=default,ChipVariant=postv3" \
-  --board-profile rev3_x \
-  --bsp-version 3.0.1 \
-  --bsp-source-git-sha 69b3e7ba512e3676519196f5d91680445600a101 \
-  --bsp-component-tree-sha cbab0682683616cb6cb1a4efc5c6641676bb5b59 \
-  --output release-artifacts/firmware-arduino-HelloWorld-3.3.11-rev3_x.zip
-```
-
-The ZIP contains `metadata/flash_args`, per-segment sizes and SHA-256 values,
-and `flash.sh`/`flash.cmd`. Those scripts reproduce the metadata-derived
-segmented `esptool write_flash` command, including bootloader, partition table,
-`boot_app0` only when present, application, and any other core-required segment.
-Extract one package, inspect `manifest.json`, then run one of:
-
-```sh
-sh flash.sh --port PORT
-```
-
-```bat
-flash.cmd --port PORT
-```
-
-Do not replace this with a merged image or an erase/whole-flash command.
-The manifest fields `flash.segmented_bytes` and
-`flash.segmented_payload_total` both equal the sum of actual segment sizes. The
-release gate requires this total to be no more than half of the 32 MiB flash,
-which proves that a nominal whole-flash write is not being disguised as a
-segmented package. Every Arduino ZIP member is also scanned for private host,
-workspace, cache, and tool paths; rebuild with the prefix maps if any remain.
-
-## Monitor-disconnected HIL check
-
-Compilation, package validation, and a successful write do not prove cold
-startup. Disconnect or close the serial monitor, power-cycle the board, and
-confirm that the selected sketch reaches normal display/touch/Wi-Fi behavior.
-Only then connect the CH343P debug port and open the UART0 monitor; confirm that
-the board neither resets nor hangs and that logs appear as designed. Record the
-product Git SHA, BSP version/source/tree SHAs, package SHA-256, board revision,
-and result. Native USB CDC is disabled by this FQBN, so this check must not be
-reported as native-CDC HIL coverage.
-
-## Wi-Fi boundary
-
-ESP32-P4 has no integrated Wi-Fi. `GFX_ESPWiFiAnalyzer` depends on the
-ESP32-C6 coprocessor and its installed slave firmware. The official example
-archive does not include that firmware or its build instructions. See
-`docs/p4-c6-hosted-wifi.md`.
-
-Source and library provenance is recorded in `docs/sources.md`; licensing
-boundaries are recorded in `docs/licensing.md`.
+See the [main README](../../README.md) and the [official product documentation]
+(https://docs.waveshare.com/ESP32-P4-WIFI6-Touch-LCD-4B) for hardware details.

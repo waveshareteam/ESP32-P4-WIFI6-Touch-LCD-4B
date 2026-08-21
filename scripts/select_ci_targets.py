@@ -2,9 +2,9 @@
 """Select first-party CI targets from a complete Git changed-file scope.
 
 The selector deliberately keeps maintained firmware outside example CI.  It
-discovers only immediate ESP-IDF projects and Arduino sketches, routes direct
-example changes narrowly, and falls back to the complete framework matrix for
-unknown non-documentation inputs.
+discovers immediate ESP-IDF projects and recursive first-party Arduino sketches,
+routes direct example changes narrowly, and falls back to the complete framework
+matrix for unknown non-documentation inputs.
 """
 
 from __future__ import annotations
@@ -106,7 +106,7 @@ def normalize_path(raw: str) -> str:
 
 
 def discover_inventory(root: Path) -> Inventory:
-    """Discover immediate first-party projects and sketches."""
+    """Discover immediate ESP-IDF projects and nested first-party sketches."""
 
     idf_root = root / "examples" / "esp-idf"
     arduino_root = root / "examples" / "arduino"
@@ -118,11 +118,11 @@ def discover_inventory(root: Path) -> Inventory:
     )
 
     arduino_sketches: list[str] = []
-    for path in sorted(arduino_root.iterdir(), key=lambda item: item.name.casefold()):
-        if not path.is_dir() or path.name == "libraries":
+    for sketch in sorted(arduino_root.rglob("*.ino"), key=lambda item: item.as_posix().casefold()):
+        relative = sketch.relative_to(arduino_root)
+        if "libraries" in relative.parts or sketch.stem != sketch.parent.name:
             continue
-        if (path / f"{path.name}.ino").is_file():
-            arduino_sketches.append(path.relative_to(root).as_posix())
+        arduino_sketches.append(sketch.parent.relative_to(root).as_posix())
 
     if not idf_projects:
         raise RoutingError("No first-party ESP-IDF projects were discovered.")

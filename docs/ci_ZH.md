@@ -8,7 +8,7 @@ CI 将首方示例、受维护源码固件和仓库策略划分为明确的独�
 ## 🧭 范围与边界
 
 - `examples/esp-idf/` 包含 13 个直属首方工程。
-- `examples/arduino/` 包含 5 个直属首方草图。随附库以及库自身的示例不属于独立
+- `examples/arduino/examples/` 包含 10 个首方草图。完整随附库以及库自身的示例不属于独立
   产品目标。
 - `firmware/brookesia/` 是受维护源码固件，不是示例。它使用独立的源码影响/手动
   作业，绝不由示例 CI 自动发现。
@@ -24,10 +24,10 @@ CI 将首方示例、受维护源码固件和仓库策略划分为明确的独�
 | --- | --- | --- | ---: |
 | 13 个 ESP-IDF 示例 | [ESP-IDF v5.5.5](https://github.com/espressif/esp-idf/releases/tag/v5.5.5) | `esp32p4` | 13 |
 | 13 个 ESP-IDF 示例 | [ESP-IDF v6.0.2](https://github.com/espressif/esp-idf/releases/tag/v6.0.2) | `esp32p4` | 13 |
-| 5 个 Arduino 草图 | [Arduino-ESP32 3.3.11](https://github.com/espressif/arduino-esp32/releases/tag/3.3.11) | `esp32:esp32:esp32p4` | 5 |
+| 10 个 Arduino 草图 | [Arduino-ESP32 3.3.11](https://github.com/espressif/arduino-esp32/releases/tag/3.3.11) | `esp32:esp32:esp32p4` | 10 |
 | Brookesia 固件 | ESP-IDF v5.5.5 | `esp32p4` | 两个隔离 profile：`rev1_3`、`rev3_x` |
 
-因此，影响完整构建范围的变更会生成 26 个默认 ESP-IDF 构建和 5 个 Arduino 编译。
+因此，影响完整构建范围的变更会生成 26 个默认 ESP-IDF 构建和 10 个 Arduino 编译。
 Brookesia 的源码、资源或工作流变更通过独立 `Firmware Build` 中两个隔离作业验证，也可手动
 选择；该受维护固件的 IDF v6 支持仍处于待办状态，不能从示例矩阵推断。
 
@@ -45,11 +45,11 @@ Alpha 或 Preview 版本。
 | Markdown、原理图、结构图、截图、治理文件、模板 | 不构建 | 不构建 |
 | 单个首方示例下的源码或配置 | 该示例的两个固定 IDF 版本 | 该草图 |
 | `config/` 共享默认值 | 13 个工程的两个版本 | 不构建 |
-| 产品 Arduino 辅助库 | 不构建 | 全部 5 个草图 |
+| 产品 Arduino 辅助库 | 不构建 | 全部 10 个草图 |
 | 框架工作流定义 | 受影响框架的完整矩阵 | 受影响框架的完整矩阵 |
-| 选择器、CI 烧录器、打包器或其测试 | 全部 26 个构建 | 全部 5 个编译 |
+| 选择器、CI 烧录器、打包器或其测试 | 全部 26 个构建 | 全部 10 个编译 |
 | `firmware/` 源码、媒体、归档或二进制 | 报告固件已变更；不构建示例 | 报告固件已变更；不构建示例 |
-| 未识别的非文档输入 | 全部 26 个构建 | 全部 5 个编译 |
+| 未识别的非文档输入 | 全部 26 个构建 | 全部 10 个编译 |
 
 空的变更文件输入属于运行错误，不能作为成功的免构建判定。保守回退规则可在维护者
 为新共享文件添加更精确规则之前提供保护。

@@ -749,7 +749,7 @@ class CiFirmwarePackageTests(unittest.TestCase):
         import subprocess
 
         expected = self.expected_list_only_items()
-        self.assertEqual(33, len(expected))
+        self.assertEqual(38, len(expected))
         self.assert_static_list_only_contract(expected)
 
     def test_list_only_static_contract_is_available_without_powershell(self) -> None:
@@ -783,9 +783,9 @@ class CiFirmwareCoreTests(unittest.TestCase):
         self.assertEqual(("owner", "repo"), core.parse_github_origin("https://github.com/owner/repo.git"))
         with self.assertRaises(core.CiFirmwareError): core.parse_github_origin("https://gitlab.com/owner/repo")
         items = core.expected_items(ROOT)
-        self.assertEqual(33, len(items))
+        self.assertEqual(38, len(items))
         self.assertEqual(26, sum(item.workflow == "esp-idf.yml" for item in items))
-        self.assertEqual(5, sum(item.workflow == "arduino.yml" for item in items))
+        self.assertEqual(10, sum(item.workflow == "arduino.yml" for item in items))
         self.assertEqual(2, sum(item.workflow == "firmware.yml" for item in items))
 
     def test_select_runs_never_falls_back_from_newer_partial_exact_sha(self) -> None:

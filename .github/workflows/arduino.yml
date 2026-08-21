@@ -21,8 +21,6 @@ concurrency:
 
 env:
   ARDUINO_CORE_VERSION: "3.3.11"
-  ARDUINO_GFX_VERSION: "1.6.6"
-  LVGL_VERSION: "9.3.0"
   WAVESHARE_BSP_VERSION: "3.0.1"
   WAVESHARE_BSP_SOURCE_GIT_SHA: "69b3e7ba512e3676519196f5d91680445600a101"
   WAVESHARE_BSP_COMPONENT_TREE_SHA: "cbab0682683616cb6cb1a4efc5c6641676bb5b59"
@@ -84,16 +82,12 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - uses: arduino/setup-arduino-cli@81d310742121c928ea9c8bbd407b4217b432ae02 # v2.0.0
-      - name: Install pinned platform and libraries
+      - name: Install pinned platform
         shell: bash
         run: |
           arduino-cli core update-index --additional-urls "$ESP32_PACKAGE_INDEX"
           arduino-cli core install "esp32:esp32@$ARDUINO_CORE_VERSION" \
             --additional-urls "$ESP32_PACKAGE_INDEX"
-          arduino-cli lib update-index
-          arduino-cli lib install \
-            "GFX Library for Arduino@$ARDUINO_GFX_VERSION" \
-            "lvgl@$LVGL_VERSION"
       - name: Compile for ESP32-P4
         shell: bash
         run: |
@@ -122,7 +116,7 @@ jobs:
             --build-property "compiler.c.extra_flags=${prefix_map_flags}" \
             --build-property "compiler.cpp.extra_flags=${prefix_map_flags}" \
             --build-property "compiler.S.extra_flags=${prefix_map_flags}" \
-            --library examples/arduino/libraries/Waveshare_ESP32_P4_4B_Display \
+            --libraries "$repository_root/examples/arduino/libraries" \
             --warnings all \
             "${{ matrix.sketch }}"
       - name: Package CI firmware

@@ -767,7 +767,7 @@ def self_test() -> None:
         pass
     else:
         raise AssertionError("non-GitHub origin accepted")
-    assert len(expected_items(ROOT)) == 33
+    assert len(expected_items(ROOT)) == 38
     assert profile_for_major(2) == "rev1_3" and profile_for_major(3) == "rev3_x"
     assert parse_flash_size("Detected flash size: 32MB") == 32 * 1024 * 1024
     with tempfile.TemporaryDirectory() as temporary:
@@ -776,7 +776,7 @@ def self_test() -> None:
         try: safe_extract(source, destination)
         except CiFirmwareError: pass
         else: raise AssertionError("unsafe ZIP accepted")
-    print("SELF_TEST_OK items=33 origin=ok safe-zip=ok profiles=ok no-auto-next=ok")
+    print("SELF_TEST_OK items=38 origin=ok safe-zip=ok profiles=ok no-auto-next=ok")
 
 
 def main(argv: Sequence[str] | None = None) -> int:

@@ -63,16 +63,20 @@
 | `ESP-IDF/12_usb_extend_screen` | `examples/esp-idf/usb-extended-screen` | 规范化名称 |
 | `ESP-IDF/13_ethernetbasic` | `examples/esp-idf/ethernet` | 规范化名称 |
 | `ESP-IDF/14_RS485_Test` | `examples/esp-idf/rs485` | 规范化名称 |
-| `Arduino/AsciiTable` | `examples/arduino/AsciiTable` | 导入的第一方草图 |
-| `Arduino/Drawing_board` | `examples/arduino/Drawing_board` | 导入的第一方草图 |
-| `Arduino/GFX_ESPWiFiAnalyzer` | `examples/arduino/GFX_ESPWiFiAnalyzer` | 导入的第一方草图 |
-| `Arduino/HelloWorld` | `examples/arduino/HelloWorld` | 导入的第一方草图 |
-| `Arduino/LVGLV9_Arduino` | `examples/arduino/LVGLV9_Arduino` | 导入的第一方草图 |
+| `Arduino/01_HelloWorld` | `examples/arduino/examples/01_HelloWorld` | 导入的第一方草图 |
+| `Arduino/02_AsciiTable` | `examples/arduino/examples/02_AsciiTable` | 导入的第一方草图 |
+| `Arduino/03_Drawing_board` | `examples/arduino/examples/03_Drawing_board` | 导入的第一方草图 |
+| `Arduino/04_LVGLV9_Arduino` | `examples/arduino/examples/04_LVGLV9_Arduino` | 导入的第一方草图 |
+| `Arduino/05_GFX_ESPWiFiAnalyzer` | `examples/arduino/examples/05_GFX_ESPWiFiAnalyzer` | 导入的第一方草图 |
+| `Arduino/06_Camera_Preview` | `examples/arduino/examples/06_Camera_Preview` | 导入的第一方草图 |
+| `Arduino/07_Camera_ISP_Tuning` | `examples/arduino/examples/07_Camera_ISP_Tuning` | 导入的第一方草图 |
+| `Arduino/08_SD_Card` | `examples/arduino/examples/08_SD_Card` | 导入的第一方草图 |
+| `Arduino/09_Audio_Playback` | `examples/arduino/examples/09_Audio_Playback` | 导入的第一方草图 |
+| `Arduino/10_Mic_Record` | `examples/arduino/examples/10_Mic_Record` | 导入的第一方草图 |
 
-官方 Arduino 归档捆绑 GFX Library for Arduino 1.6.0 和 LVGL 9.3.0。仓库将 GFX Library for Arduino
-固定为 1.6.6，以遵循当前上游 ESP32-P4 时钟分频 API，同时保留 LVGL 9.3.0。本仓库将产品专用的
-显示/触摸辅助库保留在 `examples/arduino/libraries/` 下。无论这些大型通用库是随仓库提供还是由构建环境安装，
-均不改变仓库矩阵选择的版本。
+Arduino 树完整随附 GFX Library for Arduino 1.6.0 和 LVGL 9.3.0，包含各自的许可证文件。CI 使用
+随附的 `examples/arduino/libraries/` 目录进行编译。产品专用的 `displays/` 辅助库仍保留在本地，
+使 LCD-4B 显示与 GT911 配置能够独立于随附库维护。
 
 ## 来源与验证
 

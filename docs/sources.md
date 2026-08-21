@@ -67,19 +67,22 @@ reference, not presented as the current download.
 | `ESP-IDF/12_usb_extend_screen` | `examples/esp-idf/usb-extended-screen` | Normalized name |
 | `ESP-IDF/13_ethernetbasic` | `examples/esp-idf/ethernet` | Normalized name |
 | `ESP-IDF/14_RS485_Test` | `examples/esp-idf/rs485` | Normalized name |
-| `Arduino/AsciiTable` | `examples/arduino/AsciiTable` | Imported first-party sketch |
-| `Arduino/Drawing_board` | `examples/arduino/Drawing_board` | Imported first-party sketch |
-| `Arduino/GFX_ESPWiFiAnalyzer` | `examples/arduino/GFX_ESPWiFiAnalyzer` | Imported first-party sketch |
-| `Arduino/HelloWorld` | `examples/arduino/HelloWorld` | Imported first-party sketch |
-| `Arduino/LVGLV9_Arduino` | `examples/arduino/LVGLV9_Arduino` | Imported first-party sketch |
+| `Arduino/01_HelloWorld` | `examples/arduino/examples/01_HelloWorld` | Imported first-party sketch |
+| `Arduino/02_AsciiTable` | `examples/arduino/examples/02_AsciiTable` | Imported first-party sketch |
+| `Arduino/03_Drawing_board` | `examples/arduino/examples/03_Drawing_board` | Imported first-party sketch |
+| `Arduino/04_LVGLV9_Arduino` | `examples/arduino/examples/04_LVGLV9_Arduino` | Imported first-party sketch |
+| `Arduino/05_GFX_ESPWiFiAnalyzer` | `examples/arduino/examples/05_GFX_ESPWiFiAnalyzer` | Imported first-party sketch |
+| `Arduino/06_Camera_Preview` | `examples/arduino/examples/06_Camera_Preview` | Imported first-party sketch |
+| `Arduino/07_Camera_ISP_Tuning` | `examples/arduino/examples/07_Camera_ISP_Tuning` | Imported first-party sketch |
+| `Arduino/08_SD_Card` | `examples/arduino/examples/08_SD_Card` | Imported first-party sketch |
+| `Arduino/09_Audio_Playback` | `examples/arduino/examples/09_Audio_Playback` | Imported first-party sketch |
+| `Arduino/10_Mic_Record` | `examples/arduino/examples/10_Mic_Record` | Imported first-party sketch |
 
-The official Arduino archive bundles GFX Library for Arduino 1.6.0 and LVGL
-9.3.0. The repository pins GFX Library for Arduino 1.6.6 to follow the current
-upstream ESP32-P4 clock-divider API while retaining LVGL 9.3.0. This repository
-keeps the product-specific display/touch helper under
-`examples/arduino/libraries/`. Whether those large generic libraries are
-vendored or installed by the build environment does not change the versions
-selected by the repository matrix.
+The Arduino tree bundles complete copies of GFX Library for Arduino 1.6.0 and
+LVGL 9.3.0, including their license files. CI compiles against that bundled
+`examples/arduino/libraries/` directory. The product-specific `displays/`
+helper remains local so its LCD-4B display and GT911 configuration can be
+maintained separately from the bundled libraries.
 
 ## Provenance versus validation
 

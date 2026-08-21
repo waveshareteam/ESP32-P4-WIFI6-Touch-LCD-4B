@@ -3,7 +3,7 @@
     {
       "category": "first_party_wrapper",
       "patterns": [
-        "examples/arduino/libraries/Waveshare_ESP32_P4_4B_Display/**"
+        "examples/arduino/libraries/displays/**"
       ]
     }
   ],
@@ -13,13 +13,17 @@
       "chinese": "firmware/brookesia/README_CN.md"
     },
     {
-      "english": "examples/arduino/libraries/Waveshare_ESP32_P4_4B_Display/README.md",
-      "chinese": "examples/arduino/libraries/Waveshare_ESP32_P4_4B_Display/README_ZH.md"
+      "english": "examples/arduino/libraries/displays/README.md",
+      "chinese": "examples/arduino/libraries/displays/README_ZH.md"
     }
   ],
   "pair_exempt_patterns": [
     "firmware/brookesia/README.md",
     "firmware/brookesia/README_CN.md"
+  ],
+  "exclude_patterns": [
+    "examples/arduino/libraries/GFX_Library_for_Arduino/**",
+    "examples/arduino/libraries/lvgl/**"
   ],
   "homepage_pairs": [
     {

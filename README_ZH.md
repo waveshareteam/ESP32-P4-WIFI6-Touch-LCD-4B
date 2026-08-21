@@ -49,7 +49,7 @@ ESP-IDF 示例和受维护固件使用的 Registry BSP 3.0.1 将 DSI 通道速�
 | 路径 | 用途 |
 | --- | --- |
 | `examples/esp-idf/` | 13 个已整理的首方 ESP-IDF 工程 |
-| `examples/arduino/` | 5 个首方 Arduino 草图和 1 个产品辅助库 |
+| `examples/arduino/` | 10 个首方 Arduino 草图、一个板级辅助库与完整随附库 |
 | `firmware/brookesia/` | 受维护的 ESP-Brookesia 源码；不属于示例 CI 目标 |
 | `config/` | 共享 ESP-IDF 配置默认值 |
 | `docs/` | 开发板、来源、CI、固件与许可说明 |
@@ -69,7 +69,7 @@ ESP-IDF 示例和受维护固件使用的 Registry BSP 3.0.1 将 DSI 通道速�
 | 范围 | 受维护版本 | 默认 Actions 覆盖 | 运行边界 |
 | --- | --- | ---: | --- |
 | 13 个 ESP-IDF 示例 | ESP-IDF v5.5.5 与 v6.0.2 | 26 个构建 | 仅提供编译证据 |
-| 5 个 Arduino 草图 | Arduino-ESP32 3.3.11 | 5 个编译 | 仅提供编译证据 |
+| 10 个 Arduino 草图 | Arduino-ESP32 3.3.11 | 10 个编译 | 仅提供编译证据 |
 | Brookesia 固件 | ESP-IDF v5.5.5 | 与默认示例 CI 分离 | IDF v6 仍待支持 |
 
 CI 会先分类完整的变更文件范围：单个示例的源码变更只选择受影响工程；共享构建

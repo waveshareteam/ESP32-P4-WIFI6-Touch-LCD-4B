@@ -28,17 +28,18 @@ class SelectorTests(unittest.TestCase):
 
     def test_repository_inventory_has_expected_first_party_targets(self) -> None:
         self.assertEqual(13, len(self.inventory.idf_projects))
-        self.assertEqual(5, len(self.inventory.arduino_sketches))
+        self.assertEqual(10, len(self.inventory.arduino_sketches))
         self.assertNotIn("firmware/brookesia", self.inventory.idf_projects)
         self.assertFalse(any("/libraries/" in path for path in self.inventory.arduino_sketches))
+        self.assertIn("examples/arduino/examples/10_Mic_Record", self.inventory.arduino_sketches)
 
     def test_documentation_and_governance_do_not_build(self) -> None:
         paths = (
             "README.md",
             "docs/ci.md",
             "examples/esp-idf/hello_world/README.md",
-            "examples/arduino/HelloWorld/README.md",
-            "examples/arduino/libraries/Waveshare_ESP32_P4_4B_Display/README.md",
+            "examples/arduino/examples/01_HelloWorld/README.md",
+            "examples/arduino/libraries/displays/README.md",
             ".github/ISSUE_TEMPLATE/bug_report.md",
         )
         self.assertFalse(self.route("esp-idf", *paths).builds)
@@ -46,26 +47,26 @@ class SelectorTests(unittest.TestCase):
 
     def test_direct_example_source_routes_only_that_example(self) -> None:
         idf = self.route("esp-idf", "examples/esp-idf/hello_world/main/hello_world_main.c")
-        arduino = self.route("arduino", "examples/arduino/HelloWorld/HelloWorld.ino")
+        arduino = self.route("arduino", "examples/arduino/examples/01_HelloWorld/01_HelloWorld.ino")
         self.assertEqual(("examples/esp-idf/hello_world",), idf.selected)
         self.assertEqual(2, len(idf.builds))
         self.assertTrue(all("@sha256:" in build["idf_image"] for build in idf.builds))
-        self.assertEqual(("examples/arduino/HelloWorld",), arduino.selected)
+        self.assertEqual(("examples/arduino/examples/01_HelloWorld",), arduino.selected)
         self.assertEqual(1, len(arduino.builds))
 
     def test_shared_inputs_route_complete_affected_framework(self) -> None:
         idf = self.route("esp-idf", "config/sdkconfig.defaults")
         arduino = self.route(
             "arduino",
-            "examples/arduino/libraries/Waveshare_ESP32_P4_4B_Display/displays_config.h",
+            "examples/arduino/libraries/displays/displays_config.h",
         )
         self.assertEqual(26, len(idf.builds))
-        self.assertEqual(5, len(arduino.builds))
+        self.assertEqual(10, len(arduino.builds))
 
     def test_workflow_changes_route_only_its_framework(self) -> None:
         self.assertEqual(26, len(self.route("esp-idf", ".github/workflows/esp-idf.yml").builds))
         self.assertFalse(self.route("arduino", ".github/workflows/esp-idf.yml").builds)
-        self.assertEqual(5, len(self.route("arduino", ".github/workflows/arduino.yml").builds))
+        self.assertEqual(10, len(self.route("arduino", ".github/workflows/arduino.yml").builds))
         self.assertFalse(self.route("esp-idf", ".github/workflows/arduino.yml").builds)
 
     def test_routing_helpers_and_their_tests_route_both_frameworks(self) -> None:
@@ -76,7 +77,7 @@ class SelectorTests(unittest.TestCase):
             "tests/test_select_ci_targets.py",
         ):
             self.assertEqual(26, len(self.route("esp-idf", path).builds), path)
-            self.assertEqual(5, len(self.route("arduino", path).builds), path)
+            self.assertEqual(10, len(self.route("arduino", path).builds), path)
 
     def test_ci_flasher_packager_and_tests_are_global_build_inputs(self) -> None:
         for path in (
@@ -89,13 +90,13 @@ class SelectorTests(unittest.TestCase):
             "tests/test_ci_firmware.py",
         ):
             self.assertEqual(26, len(self.route("esp-idf", path).builds), path)
-            self.assertEqual(5, len(self.route("arduino", path).builds), path)
+            self.assertEqual(10, len(self.route("arduino", path).builds), path)
 
     def test_matrix_uses_safe_immediate_target_names(self) -> None:
         idf = self.route("esp-idf", "examples/esp-idf/hello_world/main/hello_world_main.c")
-        arduino = self.route("arduino", "examples/arduino/HelloWorld/HelloWorld.ino")
+        arduino = self.route("arduino", "examples/arduino/examples/01_HelloWorld/01_HelloWorld.ino")
         self.assertEqual("hello_world", idf.builds[0]["name"])
-        self.assertEqual("HelloWorld", arduino.builds[0]["name"])
+        self.assertEqual("01_HelloWorld", arduino.builds[0]["name"])
 
     def test_policy_and_manual_firmware_workflows_do_not_build_examples(self) -> None:
         paths = (
@@ -119,7 +120,7 @@ class SelectorTests(unittest.TestCase):
 
     def test_unknown_non_documentation_input_fails_safe_to_full_matrix(self) -> None:
         self.assertEqual(26, len(self.route("esp-idf", "tools/new-generator.py").builds))
-        self.assertEqual(5, len(self.route("arduino", "tools/new-generator.py").builds))
+        self.assertEqual(10, len(self.route("arduino", "tools/new-generator.py").builds))
 
     def test_name_status_parser_keeps_deletions_and_both_rename_paths(self) -> None:
         payload = (
@@ -177,7 +178,7 @@ class SelectorTests(unittest.TestCase):
                 selector.normalize_path(invalid)
 
     def test_github_output_is_single_line_json_and_boolean_text(self) -> None:
-        selection = self.route("arduino", "examples/arduino/HelloWorld/HelloWorld.ino")
+        selection = self.route("arduino", "examples/arduino/examples/01_HelloWorld/01_HelloWorld.ino")
         with tempfile.TemporaryDirectory() as directory:
             output = Path(directory) / "github-output.txt"
             selector.write_github_output(output, selection)

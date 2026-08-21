@@ -99,11 +99,15 @@ PRIVATE_TEXT_PATTERNS = (
     ),
 )
 ARDUINO_SOURCE_SUFFIXES = {".c", ".cc", ".cpp", ".h", ".hh", ".hpp", ".ino"}
-ARDUINO_FIRST_PARTY_LIBRARY = "Waveshare_ESP32_P4_4B_Display"
+ARDUINO_FIRST_PARTY_LIBRARY = "displays"
 ARDUINO_SERIAL_TIMEOUT_MAX_MS = 5000
 DEFAULT_BROOKESIA_IMAGE = "ESP32-P4-WIFI6-Touch-LCD-4B-Brookesia-rev3_x-260821.bin"
 DEFAULT_BROOKESIA_IMAGE_SIZE = 32 * 1024 * 1024
 DEFAULT_BROOKESIA_SOURCE_COMMIT = "f417f6b764f06dddb89fd4f30730ecf4b1fc56d3"
+BUNDLED_ARDUINO_MARKDOWN_ROOTS = (
+    "examples/arduino/libraries/GFX_Library_for_Arduino",
+    "examples/arduino/libraries/lvgl",
+)
 
 
 def tracked_markdown(root: Path) -> tuple[Path, ...]:
@@ -118,20 +122,25 @@ def tracked_markdown(root: Path) -> tuple[Path, ...]:
         ignored_generated = {".git", "build", "managed_components", "release-artifacts"}
         return tuple(path for path in root.rglob("*.md") if not ignored_generated.intersection(path.parts))
     paths = [item for item in completed.stdout.split(b"\0") if item]
-    return tuple(candidate for item in paths if (candidate := root / item.decode("utf-8", errors="surrogateescape")).is_file())
+    return tuple(
+        candidate
+        for item in paths
+        if (candidate := root / item.decode("utf-8", errors="surrogateescape")).is_file()
+        and not any(candidate.is_relative_to(root / bundled) for bundled in BUNDLED_ARDUINO_MARKDOWN_ROOTS)
+    )
 
 
 def first_party_arduino_sources(root: Path) -> tuple[Path, ...]:
-    """Return sketches and the product-owned Arduino helper, never vendored libraries."""
+    """Return sketches and the product-owned display helper, never bundled libraries."""
     arduino_root = root / "examples" / "arduino"
     paths: set[Path] = set()
     if arduino_root.is_dir():
-        for child in arduino_root.iterdir():
-            if child.is_dir() and child.name != "libraries":
-                paths.update(
-                    path for path in child.rglob("*")
-                    if path.is_file() and path.suffix.casefold() in ARDUINO_SOURCE_SUFFIXES
-                )
+        paths.update(
+            path for path in arduino_root.rglob("*")
+            if path.is_file()
+            and "libraries" not in path.relative_to(arduino_root).parts
+            and path.suffix.casefold() in ARDUINO_SOURCE_SUFFIXES
+        )
     library = arduino_root / "libraries" / ARDUINO_FIRST_PARTY_LIBRARY
     if library.is_dir():
         paths.update(
@@ -420,11 +429,11 @@ def first_party_markdown(root: Path) -> tuple[Path, ...]:
         for name in ("README.md", "README_ZH.md"):
             add(example_root / name)
         if example_root.is_dir():
-            for child in example_root.iterdir():
-                if child.is_dir() and child.name != "libraries":
+            for child in example_root.rglob("*"):
+                if child.is_dir() and "libraries" not in child.relative_to(example_root).parts:
                     add(child / "README.md")
                     add(child / "README_ZH.md")
-    wrapper_root = root / "examples/arduino/libraries/Waveshare_ESP32_P4_4B_Display"
+    wrapper_root = root / "examples/arduino/libraries/displays"
     for name in ("README.md", "README_ZH.md"):
         add(wrapper_root / name)
     for name in ("README.md", "README_CN.md"):
@@ -681,7 +690,7 @@ def check_homepage_contract(root: Path) -> list[str]:
         errors.append("config/markdown-audit.json: README homepage must require a build badge")
     if homepage.get("required_h2_icons") != list(README_H2_ICONS):
         errors.append("config/markdown-audit.json: README H2-icon contract differs from policy")
-    wrapper_pattern = "examples/arduino/libraries/Waveshare_ESP32_P4_4B_Display/**"
+    wrapper_pattern = "examples/arduino/libraries/displays/**"
     rules = config.get("classification_rules", [])
     if not any(
         isinstance(rule, dict)
@@ -691,11 +700,17 @@ def check_homepage_contract(root: Path) -> list[str]:
     ):
         errors.append("config/markdown-audit.json: Arduino display helper must be a first_party_wrapper")
     wrapper_pair = {
-        "english": "examples/arduino/libraries/Waveshare_ESP32_P4_4B_Display/README.md",
-        "chinese": "examples/arduino/libraries/Waveshare_ESP32_P4_4B_Display/README_ZH.md",
+        "english": "examples/arduino/libraries/displays/README.md",
+        "chinese": "examples/arduino/libraries/displays/README_ZH.md",
     }
     if wrapper_pair not in config.get("bilingual_pairs", []):
         errors.append("config/markdown-audit.json: Arduino display helper bilingual pair is missing")
+    bundled_library_patterns = {
+        "examples/arduino/libraries/GFX_Library_for_Arduino/**",
+        "examples/arduino/libraries/lvgl/**",
+    }
+    if not bundled_library_patterns <= set(config.get("exclude_patterns", [])):
+        errors.append("config/markdown-audit.json: bundled Arduino library Markdown must remain excluded")
     return errors
 
 
@@ -812,6 +827,10 @@ def check_ci_contract(root: Path) -> list[str]:
         errors.append("repository-policy.yml: checkout is not pinned to the event final SHA")
     if "--build-path" not in arduino or "--output-dir" in arduino:
         errors.append("arduino.yml: compile must preserve core flash_args in an isolated build path")
+    if '--libraries "$repository_root/examples/arduino/libraries"' not in arduino:
+        errors.append("arduino.yml: compile must use the complete bundled Arduino libraries directory")
+    if "arduino-cli lib install" in arduino:
+        errors.append("arduino.yml: bundled Arduino libraries must not be replaced with registry installs")
     if any(option not in arduino for option in ("--bsp-version", "--bsp-source-git-sha", "--bsp-component-tree-sha")):
         errors.append("arduino.yml: package must bind exact BSP version, source Git SHA, and component tree SHA")
     expected_bsp_environment = (

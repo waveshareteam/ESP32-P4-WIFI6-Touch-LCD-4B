@@ -1,156 +1,69 @@
+[English](README.md) · [仓库主页](../../README_ZH.md)
+
 # Arduino 示例
 
-[English](README.md)
+Waveshare ESP32-P4-WIFI6-Touch-LCD-4B（720 × 720 ST7703 MIPI-DSI 屏、GT911 电容触摸、
+OV5647 MIPI-CSI 摄像头)的 Arduino 草图与随仓库。
 
-这五个首方草图从官方 ESP32-P4-WIFI6-Touch-LCD-4B 产品示例归档包导入。
+## 开发板设置(Arduino IDE)
 
-| 草图 | 用途 | 额外要求 |
-| --- | --- | --- |
-| `AsciiTable` | 显示和文本输出演示 | 显示辅助库、GFX 库、PSRAM |
-| `Drawing_board` | 触摸绘图界面 | 显示/触摸辅助库、GFX 库、PSRAM |
-| `GFX_ESPWiFiAnalyzer` | Wi-Fi 扫描可视化 | 显示辅助库、GFX 库、兼容的 ESP32-C6 固件 |
-| `HelloWorld` | 基础显示初始化 | 显示辅助库、GFX 库、PSRAM |
-| `LVGLV9_Arduino` | LVGL v9 显示和触摸演示 | 显示/触摸辅助库、GFX 库、LVGL、本地 `lv_conf.h`、PSRAM |
+- Arduino-ESP32 3.3.11（或更新 3.x）。
+- 开发板:`ESP32P4 Dev Module`(`esp32:esp32:esp32p4`)。
+- 菜单选项:
+  - `Chip Variant`:`v3.00 or newer`(rev3.x 板,默认)
+  - `PSRAM`:`Enabled`
+  - `Flash Size`:`32 MB`
+  - `Flash Mode`:`QIO`
+  - `Flash Frequency`:`80 MHz`
+  - `Partition Scheme`:`13M APP / 7M data (32 MB)`
+  - `Upload Mode`:`Default (USB-UART 桥接)`
+- 默认 CI FQBN 保持 `USBMode=default` 与 `CDCOnBoot=default`；串口输出使用开发板
+  `CH343P` USB-UART 桥接的 `UART0`。
+- 显示类草图要求启用 PSRAM。
+- 对于已确认的 rev1.x ESP32-P4 芯片（包括 rev1.3），请选择
+  `Chip Variant: Before v3.00`；该旧 profile 使用 200 MHz PSRAM。这是芯片设置，
+  不是 PCB revision。两个 profile 不能混用。
 
-随第三方库提供的示例不属于首方产品草图，因此未纳入产品 CI。
+## 示例
 
-## 支持的工具链
+| 草图 | 说明 |
+| --- | --- |
+| `01_HelloWorld` | Arduino_GFX DSI 显示最小点亮 |
+| `02_AsciiTable` | Arduino_GFX 能力/基准表 |
+| `03_Drawing_board` | GT911 五点电容触摸画板 |
+| `04_LVGLV9_Arduino` | LVGL 9 控件界面 + 触摸 |
+| `05_GFX_ESPWiFiAnalyzer` | 图形化 Wi-Fi 扫描(板载 ESP32-C6 协处理器) |
+| `06_Camera_Preview` | OV5647 MIPI-CSI 摄像头实时上屏 |
+| `07_Camera_ISP_Tuning` | 实时预览 + 串口交互 ISP/3A 调参 |
+| `08_SD_Card` | microSD SDIO 3.0 读写 |
+| `09_Audio_Playback` | ES8311 编解码器以不同频率音色演奏《致爱丽丝》开篇 |
+| `10_Mic_Record` | ES7210 四麦克风采集,串口打印峰值/RMS/抽样数据 |
 
-- Arduino-ESP32 3.3.11（`esp32:esp32@3.3.11`）
-- FQBN：`esp32:esp32:esp32p4`
-- GFX Library for Arduino：`1.6.6`
-- LVGL：`9.3.0`
-- 本地产品辅助库：`libraries/Waveshare_ESP32_P4_4B_Display`
+## 音频说明
 
-该产品辅助库封装了当前 Arduino-ESP32 版本使用的 ESP-IDF 新版 I2C 主机驱动，并包含开发板专用的显示/触摸设置。
+`09_Audio_Playback` 通过纯发送 I2S(MCLK 13、BCLK 12、LRCK 10、DOUT 9)驱动
+ES8311 编解码器(I2C 0x18),并经 GPIO 53 使能 2 W 扬声器。`10_Mic_Record` 通过
+纯接收 I2S(DIN 11)以 16 kHz/16 位采集板载 ES7210(I2C 0x40)麦克风,并把帧数据
+打印到串口监视器。
 
-## 开发板选项
+## 摄像头说明
 
-编译基线来自维护中的 ESP-IDF 开发板配置：
+`06_Camera_Preview` 与 `07_Camera_ISP_Tuning` 使用 Arduino-ESP32 core 自带的 `ESP_Video`
+库(MIPI-CSI 设备)。需将 OV5647 模组接到板载 MIPI-CSI 连接器。默认传感器模式输出
+RAW8,由 ISP 管线转换为 RGB565 上屏。`07_Camera_ISP_Tuning` 支持串口交互调参:
+`g` 增益、`e` 曝光(µs)、`a` AE 目标、`v/h` 翻转、`t` 测试图案、`s` 状态。
 
-```text
-UploadSpeed=921600
-FlashFreq=80
-FlashMode=qio
-FlashSize=32M
-PartitionScheme=app13M_data7M_32MB
-PSRAM=enabled
-ChipVariant=postv3
-USBMode=default
-CDCOnBoot=default
-MSCOnBoot=default
-DFUOnBoot=default
-UploadMode=default
-DebugLevel=none
-EraseFlash=none
-JTAGAdapter=default
-```
+## 触摸说明
 
-对应的编译 FQBN 为：
+当前 Arduino 配置不主动驱动触摸 RST/INT，因此随仓库的 GT911 驱动会探测两个合法
+I2C 地址：`0x5D` 和 `0x14`。若两个地址均无响应，触摸示例会报告该状态并在无触摸模式
+下继续运行，不会直接终止。坐标行为仍须使用实物开发板验证。
 
-```text
-esp32:esp32:esp32p4:UploadSpeed=921600,USBMode=default,CDCOnBoot=default,MSCOnBoot=default,DFUOnBoot=default,UploadMode=default,FlashFreq=80,FlashMode=qio,FlashSize=32M,PartitionScheme=app13M_data7M_32MB,DebugLevel=none,PSRAM=enabled,EraseFlash=none,JTAGAdapter=default,ChipVariant=postv3
-```
+## 随仓库
 
-`ChipVariant=postv3` 与默认 `rev3_x` 示例 profile 相符，选择 ESP32-P4 v3.00 或更高版本。
-修改此选项前，请确认实际芯片版本。保留的 `rev1_3` Brookesia profile 是可选的 pre-v3 profile，
-不是示例默认值。
+- `displays/` — 板级显示/触摸/I2C 配置与驱动（ST7703 DSI 初始化、GT911 触摸、非阻塞串口日志）
+- `GFX_Library_for_Arduino` — 支持 ESP32-P4 MIPI-DSI 的 Arduino_GFX
+- `lvgl` + `lv_conf.h` — `04_LVGLV9_Arduino` 使用的 LVGL 9
 
-在 Arduino-ESP32 3.3.11 中，`USBMode=default` 解析为 USB mode `0`，
-`CDCOnBoot=default` 解析为 CDC-on-boot `0`；全局 `Serial` 因此是 UART0，
-而不是原生 USB CDC。开发板原理图将 U6 标为调试接口使用的 CH343P USB 转串口桥。
-所有首方草图均不等待 `Serial`、DTR 或串口监视器后才启动，因此关闭监视器不得延迟
-显示或触摸初始化。
-
-## 安装依赖
-
-当通用库未在本地随仓库提供时，请安装精确的 core 和库版本：
-
-```sh
-arduino-cli core update-index --additional-urls https://espressif.github.io/arduino-esp32/package_esp32_index.json
-arduino-cli core install esp32:esp32@3.3.11 --additional-urls https://espressif.github.io/arduino-esp32/package_esp32_index.json
-arduino-cli lib install "GFX Library for Arduino@1.6.6"
-arduino-cli lib install "lvgl@9.3.0"
-```
-
-## 编译
-
-传入仓库库目录，以便找到产品辅助库：
-
-```sh
-repository_root="$(git rev-parse --show-toplevel)"
-arduino_data_root="$(arduino-cli config get directories.data)"
-arduino_user_root="$(arduino-cli config get directories.user)"
-build_temp_root="${TMPDIR:?请将 TMPDIR 设为绝对临时目录}"
-prefix_map_flags="-ffile-prefix-map=${repository_root}=REPOSITORY -fmacro-prefix-map=${repository_root}=REPOSITORY -ffile-prefix-map=${arduino_data_root}=ARDUINO_DATA -fmacro-prefix-map=${arduino_data_root}=ARDUINO_DATA -ffile-prefix-map=${arduino_user_root}=ARDUINO_USER -fmacro-prefix-map=${arduino_user_root}=ARDUINO_USER -ffile-prefix-map=${build_temp_root}=BUILD_TEMP -fmacro-prefix-map=${build_temp_root}=BUILD_TEMP"
-arduino-cli compile \
-  --fqbn "esp32:esp32:esp32p4:UploadSpeed=921600,USBMode=default,CDCOnBoot=default,MSCOnBoot=default,DFUOnBoot=default,UploadMode=default,FlashFreq=80,FlashMode=qio,FlashSize=32M,PartitionScheme=app13M_data7M_32MB,DebugLevel=none,PSRAM=enabled,EraseFlash=none,JTAGAdapter=default,ChipVariant=postv3" \
-  --build-path build/arduino/HelloWorld \
-  --build-property "compiler.c.extra_flags=${prefix_map_flags}" \
-  --build-property "compiler.cpp.extra_flags=${prefix_map_flags}" \
-  --build-property "compiler.S.extra_flags=${prefix_map_flags}" \
-  --library examples/arduino/libraries/Waveshare_ESP32_P4_4B_Display \
-  examples/arduino/HelloWorld
-```
-
-将 `HelloWorld` 替换为任意首方草图目录。编译只检查源码兼容性；并不能证明显示、触摸、Wi-Fi 或其他硬件行为。
-动态 file/macro prefix map 会从每个待打包分段中移除私有工作区、Arduino data/user 与临时目录，
-且不会覆盖开发板 `build.extra_flags`（包括 USB/CDC 定义）。
-
-## 分段打包与烧录
-
-构建路径包含 core 生成的 `flash_args` 和 `build.options.json`。发布打包器会核验后者的
-精确 FQBN 与 core 3.3.11 路径，但不会将其归档，因为其中包含主机路径。ZIP 改为携带只含
-白名单字段的 `metadata/arduino_build_identity.json`，并记录原始来源文件名/大小/SHA-256；
-清单声明 canonical 文件自身的大小与哈希。所有偏移、文件名和
-安全烧录选项都只从 `flash_args` 推导；生成的 16 MiB 或 32 MiB `*.merged.bin` 绝不作为
-发布制品，也不会成为 offset 0 的单文件烧录路径。如果某一目标的真实元数据将 bootloader
-放在 offset 0，该合法情况仍会被接受。
-
-使用当前已发布 Registry BSP 的精确证据绑定打包时，请同时记录产品 SHA、BSP 源提交与组件 tree：
-
-```sh
-PACKAGE_GIT_SHA="$(git rev-parse HEAD)" python scripts/package_ci_firmware.py arduino \
-  --project examples/arduino/HelloWorld \
-  --build-dir build/arduino/HelloWorld \
-  --framework-version 3.3.11 \
-  --fqbn "esp32:esp32:esp32p4:UploadSpeed=921600,USBMode=default,CDCOnBoot=default,MSCOnBoot=default,DFUOnBoot=default,UploadMode=default,FlashFreq=80,FlashMode=qio,FlashSize=32M,PartitionScheme=app13M_data7M_32MB,DebugLevel=none,PSRAM=enabled,EraseFlash=none,JTAGAdapter=default,ChipVariant=postv3" \
-  --board-profile rev3_x \
-  --bsp-version 3.0.1 \
-  --bsp-source-git-sha 69b3e7ba512e3676519196f5d91680445600a101 \
-  --bsp-component-tree-sha cbab0682683616cb6cb1a4efc5c6641676bb5b59 \
-  --output release-artifacts/firmware-arduino-HelloWorld-3.3.11-rev3_x.zip
-```
-
-ZIP 包含 `metadata/flash_args`、逐段大小与 SHA-256，以及 `flash.sh`/`flash.cmd`。
-这些脚本会复现元数据导出的分段 `esptool write_flash` 命令，包括 bootloader、分区表、
-仅在实际存在时的 `boot_app0`、应用程序和 core 要求的其他段。解压一个包并检查
-`manifest.json` 后，运行以下任一命令：
-
-```sh
-sh flash.sh --port PORT
-```
-
-```bat
-flash.cmd --port PORT
-```
-
-不得改用 merged 镜像或擦除/整片烧录命令。
-清单中的 `flash.segmented_bytes` 与 `flash.segmented_payload_total` 都等于实际分段大小之和。
-发布门禁要求该总数不超过 32 MiB Flash 的一半，以证明没有用名义上的分段包伪装整片写入。
-打包器还会扫描每个 Arduino ZIP member 中的私有主机、工作区、cache 与工具路径；如有残留，
-必须使用上述 prefix map 重新构建。
-
-## 断开监视器的 HIL 检查
-
-编译、包校验和成功写入都不能证明冷启动。断开或关闭串口监视器后给开发板重新上电，
-确认所选草图进入正常的显示/触摸/Wi-Fi 功能；随后再连接 CH343P 调试口并打开 UART0
-监视器，确认系统不重启、不卡死且日志符合设计。记录产品 Git SHA、BSP 版本/source/tree
-SHA、软件包 SHA-256、开发板版本和结果。此 FQBN 禁用了原生 USB CDC，因此该检查不得
-宣称覆盖了原生 CDC 的 HIL。
-
-## Wi-Fi 边界
-
-ESP32-P4 没有集成 Wi-Fi。`GFX_ESPWiFiAnalyzer` 依赖 ESP32-C6 协处理器及其已安装的从机固件。官方示例归档包不包含该固件或其构建说明。请参阅 `docs/p4-c6-hosted-wifi_ZH.md`。
-
-源码和库来源记录在 `docs/sources_ZH.md`；许可边界记录在 `docs/licensing_ZH.md`。
+硬件细节见[主 README](../../README_ZH.md)与[官方产品文档]
+(https://docs.waveshare.com/ESP32-P4-WIFI6-Touch-LCD-4B)。

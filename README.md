@@ -54,7 +54,7 @@ on the intended board revision before changing either implementation.
 | Path | Purpose |
 | --- | --- |
 | `examples/esp-idf/` | Thirteen normalized first-party ESP-IDF projects |
-| `examples/arduino/` | Five first-party Arduino sketches and one product helper library |
+| `examples/arduino/` | Ten first-party Arduino sketches, a board helper, and complete bundled libraries |
 | `firmware/brookesia/` | Maintained ESP-Brookesia source firmware; not an example-CI target |
 | `config/` | Shared ESP-IDF configuration defaults |
 | `docs/` | Board, source, CI, firmware, and licensing notes |
@@ -75,7 +75,7 @@ The pinned default matrix was rechecked against stable upstream releases on
 | Surface | Maintained version | Default Actions coverage | Runtime boundary |
 | --- | --- | ---: | --- |
 | 13 ESP-IDF examples | ESP-IDF v5.5.5 and v6.0.2 | 26 builds | Compile evidence only |
-| 5 Arduino sketches | Arduino-ESP32 3.3.11 | 5 compiles | Compile evidence only |
+| 10 Arduino sketches | Arduino-ESP32 3.3.11 | 10 compiles | Compile evidence only |
 | Brookesia firmware | ESP-IDF v5.5.5 | Separate from default example CI | IDF v6 remains pending |
 
 CI first classifies the complete changed-file scope. Direct example changes

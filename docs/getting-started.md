@@ -89,16 +89,15 @@ The maintained Arduino matrix uses:
 
 - Arduino-ESP32 3.3.11.
 - FQBN `esp32:esp32:esp32p4`.
-- GFX Library for Arduino 1.6.6.
-- LVGL 9.3.0 for the LVGL sketch.
+- Bundled GFX Library for Arduino 1.6.0.
+- Bundled LVGL 9.3.0 for the LVGL sketch.
 
-Install the exact versions when they are not already available:
+Install the Arduino core; the complete GFX and LVGL libraries are already
+bundled under `examples/arduino/libraries/` and must not be replaced:
 
 ```sh
 arduino-cli core update-index --additional-urls https://espressif.github.io/arduino-esp32/package_esp32_index.json
 arduino-cli core install esp32:esp32@3.3.11 --additional-urls https://espressif.github.io/arduino-esp32/package_esp32_index.json
-arduino-cli lib install "GFX Library for Arduino@1.6.6"
-arduino-cli lib install "lvgl@9.3.0"
 ```
 
 ## Compile and upload an Arduino sketch
@@ -106,9 +105,9 @@ arduino-cli lib install "lvgl@9.3.0"
 ```sh
 arduino-cli compile \
   --fqbn "esp32:esp32:esp32p4:UploadSpeed=921600,USBMode=default,CDCOnBoot=default,MSCOnBoot=default,DFUOnBoot=default,UploadMode=default,FlashFreq=80,FlashMode=qio,FlashSize=32M,PartitionScheme=app13M_data7M_32MB,DebugLevel=none,PSRAM=enabled,EraseFlash=none,JTAGAdapter=default,ChipVariant=postv3" \
-  --build-path build/arduino/HelloWorld \
-  --library examples/arduino/libraries/Waveshare_ESP32_P4_4B_Display \
-  examples/arduino/HelloWorld
+  --build-path build/arduino/01_HelloWorld \
+  --libraries examples/arduino/libraries \
+  examples/arduino/examples/01_HelloWorld
 ```
 
 After identifying the correct port:
@@ -117,7 +116,7 @@ After identifying the correct port:
 arduino-cli upload \
   -p PORT \
   --fqbn "esp32:esp32:esp32p4:UploadSpeed=921600,USBMode=default,CDCOnBoot=default,MSCOnBoot=default,DFUOnBoot=default,UploadMode=default,FlashFreq=80,FlashMode=qio,FlashSize=32M,PartitionScheme=app13M_data7M_32MB,DebugLevel=none,PSRAM=enabled,EraseFlash=none,JTAGAdapter=default,ChipVariant=postv3" \
-  examples/arduino/HelloWorld
+  examples/arduino/examples/01_HelloWorld
 ```
 
 For a release candidate, do not publish the generated whole-flash image. Use

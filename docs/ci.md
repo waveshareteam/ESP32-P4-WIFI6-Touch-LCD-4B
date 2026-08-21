@@ -9,8 +9,8 @@ contract; an exact Actions job on an exact commit is the compile evidence.
 ## 🧭 Scope and boundaries
 
 - `examples/esp-idf/` contains 13 immediate first-party projects.
-- `examples/arduino/` contains 5 immediate first-party sketches. Bundled
-  libraries and any library-owned examples are not independent product targets.
+- `examples/arduino/examples/` contains 10 first-party sketches. The complete
+  bundled libraries and any library-owned examples are not independent product targets.
 - `firmware/brookesia/` is maintained source firmware, not an example. It has a
   separate source-impact/manual workflow and is never auto-discovered by example CI.
 - Documentation, governance, and repository templates retain visible policy and
@@ -28,11 +28,11 @@ referenced through moving aliases:
 | --- | --- | --- | ---: |
 | 13 ESP-IDF examples | [ESP-IDF v5.5.5](https://github.com/espressif/esp-idf/releases/tag/v5.5.5) | `esp32p4` | 13 |
 | 13 ESP-IDF examples | [ESP-IDF v6.0.2](https://github.com/espressif/esp-idf/releases/tag/v6.0.2) | `esp32p4` | 13 |
-| 5 Arduino sketches | [Arduino-ESP32 3.3.11](https://github.com/espressif/arduino-esp32/releases/tag/3.3.11) | `esp32:esp32:esp32p4` | 5 |
+| 10 Arduino sketches | [Arduino-ESP32 3.3.11](https://github.com/espressif/arduino-esp32/releases/tag/3.3.11) | `esp32:esp32:esp32p4` | 10 |
 | Brookesia firmware | ESP-IDF v5.5.5 | `esp32p4` | 2 isolated profiles: `rev1_3`, `rev3_x` |
 
 A complete build-impacting change therefore produces 26 default ESP-IDF builds
-and 5 Arduino compiles. Brookesia runs through two isolated jobs in the separate `Firmware Build`
+and 10 Arduino compiles. Brookesia runs through two isolated jobs in the separate `Firmware Build`
 workflow when its source/resources or workflow change, and can also be selected
 manually. IDF v6 support for that maintained firmware remains pending and must
 not be inferred from the example matrix.
@@ -52,11 +52,11 @@ applies these rules:
 | Markdown, schematics, drawings, screenshots, governance, templates | No build | No build |
 | Source/configuration below one first-party example | That example on both pinned IDF versions | That sketch |
 | `config/` shared defaults | All 13 projects on both versions | No build |
-| Product Arduino helper library | No build | All 5 sketches |
+| Product Arduino helper library | No build | All 10 sketches |
 | Framework workflow definition | Complete affected framework matrix | Complete affected framework matrix |
-| Selector, CI flasher, packager, or their tests | All 26 builds | All 5 compiles |
+| Selector, CI flasher, packager, or their tests | All 26 builds | All 10 compiles |
 | `firmware/` source, media, archive, or binary | Report firmware touched; no example build | Report firmware touched; no example build |
-| Unknown non-documentation input | All 26 builds | All 5 compiles |
+| Unknown non-documentation input | All 26 builds | All 10 compiles |
 
 An empty changed-file input is an operational error, not a successful no-build
 decision. The conservative fallback protects new shared files until maintainers
