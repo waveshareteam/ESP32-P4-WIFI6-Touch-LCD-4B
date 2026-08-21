@@ -1,0 +1,4 @@
+## IDF Component Manager Manifest File
+dependencies:
+  idf: ">=5.5,<7.0"
+  waveshare/esp_lcd_st7703: "2.0.0"

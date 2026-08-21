@@ -1,0 +1,24 @@
+menu "Audio Codec Example Configuration"
+
+    choice EXAMPLE_MODE
+        prompt "Example mode"
+        default EXAMPLE_MODE_MUSIC
+        help
+            Play the bundled PCM sample, or route the ES7210 FL/FR microphones
+            through the BSP 24 kHz TDM voice profile to the ES8311 speaker.
+
+        config EXAMPLE_MODE_MUSIC
+            bool "Play bundled PCM sample"
+
+        config EXAMPLE_MODE_ECHO
+            bool "Echo FL/FR microphones to speaker (24 kHz TDM)"
+    endchoice
+
+    config EXAMPLE_VOICE_VOLUME
+        int "Playback volume"
+        range 0 100
+        default 60
+        help
+            Set the ES8311 playback volume.
+
+endmenu

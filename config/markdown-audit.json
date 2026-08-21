@@ -1,0 +1,65 @@
+{
+  "classification_rules": [
+    {
+      "category": "first_party_wrapper",
+      "patterns": [
+        "examples/arduino/libraries/displays/**"
+      ]
+    }
+  ],
+  "bilingual_pairs": [
+    {
+      "english": "firmware/brookesia/README.md",
+      "chinese": "firmware/brookesia/README_CN.md"
+    },
+    {
+      "english": "examples/arduino/libraries/displays/README.md",
+      "chinese": "examples/arduino/libraries/displays/README_ZH.md"
+    }
+  ],
+  "pair_exempt_patterns": [
+    "firmware/brookesia/README.md",
+    "firmware/brookesia/README_CN.md"
+  ],
+  "exclude_patterns": [
+    "examples/arduino/libraries/GFX_Library_for_Arduino/**",
+    "examples/arduino/libraries/lvgl/**"
+  ],
+  "homepage_pairs": [
+    {
+      "english": "README.md",
+      "chinese": "README_ZH.md",
+      "profile": "single-product",
+      "required_components": [
+        "centered_header",
+        "html_h1",
+        "subtitle",
+        "badges",
+        "language_switch",
+        "quick_links",
+        "hero_image",
+        "separator",
+        "h2"
+      ],
+      "required_quick_links": [
+        "product",
+        "documentation",
+        "firmware",
+        "quick_start",
+        "esp_idf",
+        "arduino"
+      ],
+      "required_badges": [
+        "build"
+      ],
+      "required_h2_icons": [
+        "🖥️",
+        "🗂️",
+        "🧪",
+        "🚀",
+        "📦",
+        "📄"
+      ]
+    }
+  ]
+}

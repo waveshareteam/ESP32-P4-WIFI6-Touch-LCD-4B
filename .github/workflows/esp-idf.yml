@@ -1,0 +1,104 @@
+name: ESP-IDF Build
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      example:
+        description: "all, a project name, or a repository-relative path"
+        required: false
+        default: "all"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: esp-idf-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  discover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      builds: ${{ steps.projects.outputs.builds }}
+      has_builds: ${{ steps.projects.outputs.has_builds }}
+      firmware_touched: ${{ steps.projects.outputs.firmware_touched }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - id: projects
+        name: Route changed files to first-party projects
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          REQUESTED_EXAMPLE: ${{ inputs.example || 'all' }}
+        shell: bash
+        run: |
+          if [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" ]]; then
+            python scripts/select_ci_targets.py \
+              --framework esp-idf \
+              --all \
+              --requested "$REQUESTED_EXAMPLE"
+            exit 0
+          fi
+
+          changed_file="$RUNNER_TEMP/esp-idf-name-status.z"
+          python scripts/collect_ci_changes.py \
+            --base "$BASE_SHA" \
+            --head "$HEAD_SHA" \
+            --output "$changed_file"
+
+          python scripts/select_ci_targets.py \
+            --framework esp-idf \
+            --changed-files-from "$changed_file"
+
+  build:
+    if: needs.discover.outputs.has_builds == 'true'
+    needs: discover
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(needs.discover.outputs.builds) }}
+    container:
+      image: ${{ matrix.idf_image }}
+    name: ${{ matrix.project }} (${{ matrix.idf_version }})
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Trust checkout inside IDF container
+        shell: bash
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+      - name: Build for ESP32-P4
+        shell: bash
+        run: |
+          . "$IDF_PATH/export.sh"
+          idf.py -C "${{ matrix.project }}" set-target esp32p4
+          idf.py -C "${{ matrix.project }}" build
+      - name: Package CI firmware
+        env:
+          CI: "true"
+          PACKAGE_GIT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        shell: bash
+        run: |
+          mkdir -p release-artifacts
+          python scripts/package_ci_firmware.py esp-idf \
+            --project "${{ matrix.project }}" \
+            --build-dir "${{ matrix.project }}/build" \
+            --framework-version "${{ matrix.idf_version }}" \
+            --board-profile rev3_x \
+            --output "release-artifacts/firmware-esp-idf-${{ matrix.name }}-${{ matrix.idf_version }}-rev3_x.zip"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: firmware-esp-idf-${{ matrix.name }}-${{ matrix.idf_version }}-rev3_x
+          path: release-artifacts/firmware-esp-idf-${{ matrix.name }}-${{ matrix.idf_version }}-rev3_x.zip
+          if-no-files-found: error
+          retention-days: 14

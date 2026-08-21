@@ -1,0 +1,36 @@
+menu "Xiaozhi Application"
+
+    config XIAOZHI_OTA_URL
+        string "Xiaozhi service URL"
+        default "https://api.tenclass.net/xiaozhi/ota/"
+        help
+            Endpoint used to fetch activation and protocol configuration.
+
+    config XIAOZHI_INFO_TIMEOUT_MS
+        int "Service request timeout (ms)"
+        range 1000 30000
+        default 30000
+
+    config XIAOZHI_INFO_BUFFER_SIZE
+        int "Service request buffer size (bytes)"
+        range 512 8192
+        default 4096
+        help
+            Kept for sdkconfig compatibility with earlier firmware.
+
+    config XIAOZHI_INFO_MAX_RESPONSE_SIZE
+        int "Maximum service response size (bytes)"
+        range 1024 16384
+        default 8192
+
+    config AICHATS_WEBSOCKET_HANDSHAKE_TIMEOUT_MS
+        int "WebSocket hello timeout (ms)"
+        range 1000 30000
+        default 10000
+
+    config AICHATS_WEBSOCKET_MAX_MESSAGE_SIZE
+        int "Maximum WebSocket message size (bytes)"
+        range 2048 65536
+        default 16384
+
+endmenu

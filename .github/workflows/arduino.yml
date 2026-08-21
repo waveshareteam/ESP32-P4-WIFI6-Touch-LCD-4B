@@ -1,0 +1,144 @@
+name: Arduino Build
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      example:
+        description: "all, a sketch name, or a repository-relative sketch path"
+        required: false
+        default: "all"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: arduino-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  ARDUINO_CORE_VERSION: "3.3.11"
+  WAVESHARE_BSP_VERSION: "3.0.1"
+  WAVESHARE_BSP_SOURCE_GIT_SHA: "69b3e7ba512e3676519196f5d91680445600a101"
+  WAVESHARE_BSP_COMPONENT_TREE_SHA: "cbab0682683616cb6cb1a4efc5c6641676bb5b59"
+  ESP32_PACKAGE_INDEX: "https://espressif.github.io/arduino-esp32/package_esp32_index.json"
+  ARDUINO_FQBN: >-
+    esp32:esp32:esp32p4:UploadSpeed=921600,USBMode=default,CDCOnBoot=default,MSCOnBoot=default,DFUOnBoot=default,UploadMode=default,FlashFreq=80,FlashMode=qio,FlashSize=32M,PartitionScheme=app13M_data7M_32MB,DebugLevel=none,PSRAM=enabled,EraseFlash=none,JTAGAdapter=default,ChipVariant=postv3
+
+jobs:
+  discover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      builds: ${{ steps.sketches.outputs.builds }}
+      has_builds: ${{ steps.sketches.outputs.has_builds }}
+      firmware_touched: ${{ steps.sketches.outputs.firmware_touched }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - id: sketches
+        name: Route changed files to first-party sketches
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          REQUESTED_EXAMPLE: ${{ inputs.example || 'all' }}
+        shell: bash
+        run: |
+          if [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" ]]; then
+            python scripts/select_ci_targets.py \
+              --framework arduino \
+              --all \
+              --requested "$REQUESTED_EXAMPLE"
+            exit 0
+          fi
+
+          changed_file="$RUNNER_TEMP/arduino-name-status.z"
+          python scripts/collect_ci_changes.py \
+            --base "$BASE_SHA" \
+            --head "$HEAD_SHA" \
+            --output "$changed_file"
+
+          python scripts/select_ci_targets.py \
+            --framework arduino \
+            --changed-files-from "$changed_file"
+
+  build:
+    if: needs.discover.outputs.has_builds == 'true'
+    needs: discover
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(needs.discover.outputs.builds) }}
+    name: ${{ matrix.sketch }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: arduino/setup-arduino-cli@81d310742121c928ea9c8bbd407b4217b432ae02 # v2.0.0
+      - name: Install pinned platform
+        shell: bash
+        run: |
+          arduino-cli core update-index --additional-urls "$ESP32_PACKAGE_INDEX"
+          arduino-cli core install "esp32:esp32@$ARDUINO_CORE_VERSION" \
+            --additional-urls "$ESP32_PACKAGE_INDEX"
+      - name: Compile for ESP32-P4
+        shell: bash
+        run: |
+          repository_root="$(git rev-parse --show-toplevel)"
+          arduino_data_root="$(arduino-cli config get directories.data)"
+          arduino_user_root="$(arduino-cli config get directories.user)"
+          build_temp_root="${RUNNER_TEMP:?RUNNER_TEMP is required}"
+          prefix_map_flags=""
+          add_prefix_map() {
+            source_root="$1"
+            replacement="$2"
+            if [[ -z "$source_root" || "$source_root" != /* || "$source_root" == *" "* ]]; then
+              echo "Unsafe prefix-map source root" >&2
+              exit 2
+            fi
+            prefix_map_flags+=" -ffile-prefix-map=${source_root}=${replacement}"
+            prefix_map_flags+=" -fmacro-prefix-map=${source_root}=${replacement}"
+          }
+          add_prefix_map "$repository_root" REPOSITORY
+          add_prefix_map "$arduino_data_root" ARDUINO_DATA
+          add_prefix_map "$arduino_user_root" ARDUINO_USER
+          add_prefix_map "$build_temp_root" BUILD_TEMP
+          arduino-cli compile \
+            --fqbn "$ARDUINO_FQBN" \
+            --build-path "build/arduino/${{ matrix.name }}" \
+            --build-property "compiler.c.extra_flags=${prefix_map_flags}" \
+            --build-property "compiler.cpp.extra_flags=${prefix_map_flags}" \
+            --build-property "compiler.S.extra_flags=${prefix_map_flags}" \
+            --libraries "$repository_root/examples/arduino/libraries" \
+            --warnings all \
+            "${{ matrix.sketch }}"
+      - name: Package CI firmware
+        env:
+          CI: "true"
+          PACKAGE_GIT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        shell: bash
+        run: |
+          mkdir -p release-artifacts
+          python scripts/package_ci_firmware.py arduino \
+            --project "${{ matrix.sketch }}" \
+            --build-dir "build/arduino/${{ matrix.name }}" \
+            --framework-version "$ARDUINO_CORE_VERSION" \
+            --fqbn "$ARDUINO_FQBN" \
+            --board-profile rev3_x \
+            --bsp-version "$WAVESHARE_BSP_VERSION" \
+            --bsp-source-git-sha "$WAVESHARE_BSP_SOURCE_GIT_SHA" \
+            --bsp-component-tree-sha "$WAVESHARE_BSP_COMPONENT_TREE_SHA" \
+            --output "release-artifacts/firmware-arduino-${{ matrix.name }}-3.3.11-rev3_x.zip"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: firmware-arduino-${{ matrix.name }}-3.3.11-rev3_x
+          path: release-artifacts/firmware-arduino-${{ matrix.name }}-3.3.11-rev3_x.zip
+          if-no-files-found: error
+          retention-days: 14

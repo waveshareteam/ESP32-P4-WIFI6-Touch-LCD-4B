@@ -1,0 +1,75 @@
+name: Firmware Build
+
+on:
+  pull_request:
+    paths:
+      - "firmware/brookesia/**"
+      - "!firmware/brookesia/**/*.md"
+      - ".github/workflows/firmware.yml"
+      - "Flash-CI-Firmware.cmd"
+      - "Flash-CI-Firmware.sh"
+      - "scripts/Flash-CI-Firmware.ps1"
+      - "scripts/ci_firmware.py"
+      - "scripts/package_ci_firmware.py"
+      - "tests/test_ci_firmware.py"
+      - "scripts/check_repository_policy.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: firmware-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    container:
+      image: espressif/idf:v5.5.5@sha256:a9231d0697ab8f7517cc072e93b7c83e04907bfbfba80b6440d7dbbf90665cf2
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - profile: rev1_3
+            defaults: sdkconfig.defaults.rev1_3
+          - profile: rev3_x
+            defaults: sdkconfig.defaults.rev3_x
+    name: firmware/brookesia (v5.5.5, ${{ matrix.profile }})
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Trust checkout inside IDF container
+        shell: bash
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+      - name: Build maintained firmware for ESP32-P4
+        shell: bash
+        run: |
+          . "$IDF_PATH/export.sh"
+          idf.py -C "$GITHUB_WORKSPACE/firmware/brookesia" -B "$GITHUB_WORKSPACE/firmware/brookesia/build-${{ matrix.profile }}" \
+            -D SDKCONFIG="$RUNNER_TEMP/brookesia-${{ matrix.profile }}.sdkconfig" \
+            -D SDKCONFIG_DEFAULTS="$GITHUB_WORKSPACE/firmware/brookesia/sdkconfig.defaults;$GITHUB_WORKSPACE/firmware/brookesia/${{ matrix.defaults }}" set-target esp32p4
+          idf.py -C "$GITHUB_WORKSPACE/firmware/brookesia" -B "$GITHUB_WORKSPACE/firmware/brookesia/build-${{ matrix.profile }}" \
+            -D SDKCONFIG="$RUNNER_TEMP/brookesia-${{ matrix.profile }}.sdkconfig" \
+            -D SDKCONFIG_DEFAULTS="$GITHUB_WORKSPACE/firmware/brookesia/sdkconfig.defaults;$GITHUB_WORKSPACE/firmware/brookesia/${{ matrix.defaults }}" build
+      - name: Package CI firmware
+        env:
+          CI: "true"
+          PACKAGE_GIT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        shell: bash
+        run: |
+          mkdir -p release-artifacts
+          python scripts/package_ci_firmware.py esp-idf \
+            --project firmware/brookesia \
+            --build-dir "$GITHUB_WORKSPACE/firmware/brookesia/build-${{ matrix.profile }}" \
+            --framework-version v5.5.5 \
+            --board-profile "${{ matrix.profile }}" \
+            --output "release-artifacts/firmware-brookesia-v5.5.5-${{ matrix.profile }}.zip"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: firmware-brookesia-v5.5.5-${{ matrix.profile }}
+          path: release-artifacts/firmware-brookesia-v5.5.5-${{ matrix.profile }}.zip
+          if-no-files-found: error
+          retention-days: 14

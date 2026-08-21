@@ -1,0 +1,237 @@
+# Firmware and Flash Artifacts
+
+[English](firmware.md) · [简体中文](firmware_ZH.md)
+
+This repository distinguishes source firmware, source-built packages, and
+factory or recovery images. These terms are not interchangeable.
+
+## Artifact classes
+
+| Class | Repository location | Meaning |
+| --- | --- | --- |
+| Source firmware | `firmware/brookesia/` | Maintained ESP-IDF source project for the board |
+| Source-built package | Ignored output such as `release-artifacts/` or `releases/dist/` | Reproducible output built from a specific repository revision |
+| Checked-in default source-built image | `firmware/ESP32-P4-WIFI6-Touch-LCD-4B-Brookesia-rev3_x-260821.bin` | Complete 32 MiB Brookesia image for ESP32-P4 rev3.x silicon |
+| Factory or recovery image | Not included at present | Vendor-provided image intended for production or recovery, if added later |
+| ESP32-C6 slave firmware | Not included at present | Separate coprocessor image that must match the P4 Hosted stack |
+
+The official product archive's `11_esp_brookesia_phone` project is represented
+by the maintained `firmware/brookesia/` tree rather than copied as a second
+source project. Calling this source “factory firmware” does not make a locally
+built binary identical to a vendor-programmed production image.
+
+Factory/recovery images and C6 source/build instructions are not included in
+this repository yet and may be added in a later update. Their absence must not
+be described as proof that they are closed or permanently unavailable.
+
+## Checked-in default source-built image
+
+[`ESP32-P4-WIFI6-Touch-LCD-4B-Brookesia-rev3_x-260821.bin`](../firmware/ESP32-P4-WIFI6-Touch-LCD-4B-Brookesia-rev3_x-260821.bin)
+is the default checked-in image for ESP32-P4 rev3.x silicon (v3.00-v3.99).
+It is a source-built Brookesia image, not a vendor factory/recovery image and
+not one of the segmented CI ZIP artifacts. It was built from source commit
+`f417f6b764f06dddb89fd4f30730ecf4b1fc56d3` with ESP-IDF v5.5.5 and the
+`firmware/brookesia/sdkconfig.defaults.rev3_x` profile (250 MHz PSRAM).
+
+The file is a 32 MiB whole-flash raw image. Its layout was created from the
+build's `flasher_args.json`: bootloader at `0x2000`, partition table at
+`0x8000`, OTA data at `0x10d000`, ESP-SR model at `0x110000`, application at
+`0x200000`, and storage at `0xa00000`. Write it at flash offset `0x0` only
+when replacing the complete 32 MiB flash contents. This destructive
+first-install/recovery-style source build is not a safe in-place update: the
+`nvsfactory`, runtime `nvs`, `otadata`, and `phy_init` partition ranges are
+blank (`0xFF`) in the image, so writing it erases their existing contents as
+well as replacing application data and storage. Back up any data that must be
+kept.
+
+The image contains no ESP32-C6 coprocessor firmware. Hosted Wi-Fi operation
+still requires a compatible C6 firmware/runtime combination described in
+[P4/C6 Hosted Wi-Fi](p4-c6-hosted-wifi.md). The image has passed source build
+and segment-layout checks only; it has not received a hardware flash, display,
+touch, audio, camera, SD, or Wi-Fi HIL validation in this repository.
+
+Its exact embedded component, OGG prompt, font, model, and product-resource
+inventory is recorded in [Third-Party Notices](../THIRD_PARTY_NOTICES.md).
+Those notices preserve upstream terms for this dated build; they do not grant a
+repository-wide license or cover a later rebuild.
+
+`rev1_3` remains available as a separate segmented CI build profile for
+rev1.x silicon (v1.00-v1.99). It is intentionally not represented by a second checked-in
+default whole-flash image, and the two profiles must not be interchanged.
+
+## Brookesia source firmware
+
+The Brookesia project currently targets ESP-IDF v5.5.5 and ESP32-P4. It uses a
+custom partition table with an application, ESP-SR model image, and SPIFFS
+storage image. A complete first installation must use the project-generated
+flash arguments so every required image is written at the correct offset.
+
+Brookesia has two incompatible silicon/configuration profiles: `rev1_3` is the
+default rev1.x profile (minimum silicon revision 1.00, maximum exclusive 2.00,
+200 MHz PSRAM), while `rev3_x` covers rev3.x only (minimum 3.00, maximum
+exclusive 4.00, 250 MHz PSRAM). They
+use separate SDKCONFIG and build directories in CI and must never share a
+binary. The v3.x profile requires ESP-IDF 5.5.3+ or 6.0+; v5.5.5 meets that
+software prerequisite but does not prove hardware compatibility. The available
+main-board schematics do not establish a PCB/electrical difference between the
+profile names.
+
+```sh
+idf.py -C firmware/brookesia -p PORT flash monitor
+```
+
+Use `app-flash` only when the partition table, model configuration, and SPIFFS
+assets have not changed. It does not update `srmodels.bin`, `storage.bin`, or
+the partition table.
+
+Brookesia IDF v6 support is not claimed. The P4/C6 wireless compatibility
+contract is documented separately in `p4-c6-hosted-wifi.md`.
+
+## Source-built packages
+
+`scripts/package_esp_idf_firmware.py` packages every image referenced by an
+ESP-IDF build directory's `flasher_args.json`. It creates a ZIP containing:
+
+- `manifest.json` with target, framework version, repository-relative project
+  path, source revision, timestamp, flash settings, offsets, sizes, and SHA-256 hashes.
+- `flash.py`, which validates the package files and command mapping before
+  executing the manifest argument array without a shell.
+- `flash.sh` and `flash.cmd`, which enter the package directory and invoke the
+  Python runner without embedding image names in shell commands.
+- `bin/` with every referenced image, preserving nested build paths where
+  needed.
+
+Example, after a successful build:
+
+```sh
+python scripts/package_esp_idf_firmware.py \
+  examples/esp-idf/hello_world/build \
+  --output-dir release-artifacts \
+  --project hello_world \
+  --idf-version v5.5.5
+```
+
+The helper requires the Python `esptool` module when a recipient runs the
+included flash script. Details are in `../releases/README.md`.
+
+Package directory names include a short source-revision label. Existing
+archives are not replaced unless `--overwrite` is provided, and unknown
+`extra_esptool_args` fields cause packaging to stop rather than emit an
+incomplete flash command.
+
+
+Arduino CI packages are flashable only when the actual build's
+`build.options.json` proves the exact ESP32-P4 FQBN and core 3.3.11, and every
+safe option, segment, offset, size, and hash matches core-generated `flash_args`
+on an exact-SHA Actions run. The host-path-bearing build options file is not
+archived; a canonical whitelisted identity carries its filename/size/SHA-256
+evidence. Dynamic C/C++/assembly file and macro prefix maps remove build roots,
+and packaging scans every Arduino member for remaining private host paths.
+A compile alone is not a package, flash, or runtime-validation result.
+
+## CI firmware packages and cross-platform flashing
+
+Successful CI builds package a schema-1 ZIP for every matrix item. The package
+records the exact full source SHA, board `ESP32-P4-WIFI6-Touch-LCD-4B`,
+`esp32p4`, explicit `rev1_3` or `rev3_x` board profile and auditable chip-revision
+bounds, 32 MiB flash bound, source project, offsets,
+sizes, and SHA-256 values. It contains no ESP32-C6 coprocessor image and the
+Windows flasher rejects a manifest that says otherwise.
+
+Use the repository-level wrapper from a clean, non-detached checkout. Windows
+uses `Flash-CI-Firmware.cmd` (which forwards through PowerShell); Linux uses
+`./Flash-CI-Firmware.sh`. Git, Python with `esptool`, and either authenticated
+GitHub CLI or `GH_TOKEN`/`GITHUB_TOKEN` are required. The repository owner/name
+is discovered from `origin`, never copied into the command.
+
+```text
+Flash-CI-Firmware.cmd -SelfTest
+Flash-CI-Firmware.cmd -List
+Flash-CI-Firmware.cmd -Preflight
+Flash-CI-Firmware.cmd -Item 1 -Port COMx
+./Flash-CI-Firmware.sh --self-test
+./Flash-CI-Firmware.sh --list
+./Flash-CI-Firmware.sh --preflight
+./Flash-CI-Firmware.sh --item 1 --port /dev/ttyUSB0
+```
+
+`SelfTest` is offline. `List` authenticates and lists only packages available
+from complete successful workflow runs at the current branch's exact local HEAD.
+`Preflight` checks Git/origin/authentication, Python `esptool`, exact-HEAD runs,
+and non-expired non-empty artifact metadata without downloading an artifact or
+opening a serial port. Both modes reject incomplete or old-SHA runs.
+For each workflow the newest completed/successful exact-HEAD run is the only
+candidate: if its artifact set is partial, expired, empty, missing, or duplicate,
+the command fails and never falls back to an older run.
+
+Normal use first performs the same preflight, then lets the operator select any
+of the dynamically derived 38 artifacts (26 ESP-IDF, ten Arduino, two
+Brookesia profiles). It downloads into an OS-user cache, verifies the schema-1
+manifest, paths, hashes, offsets, capacity, and canonical non-erasing command,
+then probes the selected port. Chip major revision 1 requires `rev1_3`; major
+revision 3 requires `rev3_x`; all other major revisions are rejected as
+unvalidated. This is a silicon/configuration selection, not
+evidence of a PCB/electrical difference. The operator must type exact `FLASH`;
+one write runs, must report
+`Hash of data verified`, and then the program exits. It never auto-advances.
+
+For ESP-IDF packages, each verified manifest file also carries its original
+`flasher_args.json` metadata path. The flasher requires that mapping to match
+the package's bundled `metadata/flasher_args.json` exactly, so a missing model,
+storage, bootloader, partition, or application image is rejected. Arduino
+packages bundle `metadata/flash_args` and exactly its referenced bootloader,
+partition table, optional `boot_app0`, application, and other segments. The
+flasher verifies metadata/segment hashes, safe paths, non-overlap, capacity,
+effective-byte totals, product SHA, FQBN, target, and BSP version/source/tree
+binding before preserving the metadata-derived write options and offsets. A
+merged or whole-flash single-file path is rejected; a bootloader at offset zero
+is legal only when the real metadata says so. `segmented_bytes` and
+`segmented_payload_total` both equal the sum of segment sizes and must not exceed
+half of the 32 MiB flash.
+The ZIP validator also regenerates `flash.sh` and `flash.cmd` byte-for-byte from
+that verified plan. Each helper accepts exactly `--port PORT`, rejects all other
+argument shapes, and preserves every option and ordered offset/file pair.
+
+Arduino runtime acceptance requires a separate cold-start HIL check. Close and
+disconnect the monitor, power-cycle, and confirm normal application entry.
+Then attach the board's CH343P UART0 monitor and confirm no reset or hang and the
+expected logs. The pinned Arduino-ESP32 3.3.11 FQBN resolves
+`USBMode=default`/`CDCOnBoot=default` to native-CDC disabled, so this check does
+not claim native USB CDC coverage.
+
+The local `package_esp_idf_firmware.py` package format and historical local
+package examples are separate from the CI schema-1 artifact contract above.
+
+## Factory and recovery images
+
+If authorized vendor images are added later:
+
+- Store them separately from source projects and CI output.
+- Record product, main-board revision, bottom-board revision when relevant,
+  ESP32-P4 silicon revision, C6 firmware relationship, flash size, offsets,
+  version, source URL, retrieval date, and SHA-256.
+- Include vendor flashing and recovery instructions without rewriting offsets
+  from memory.
+- Do not rebuild or repackage them in CI as though they were source-built.
+- Preserve their original license and redistribution terms.
+
+## Validation state
+
+This source change and its static checks do not themselves prove that Actions
+produced a package, that it was flashed, or that hardware ran correctly. Use the
+exact committed SHA's Actions evidence and a named board test record for those
+claims. Ignored exploratory build output is not release evidence.
+
+A release record should distinguish:
+
+1. Source commit and exact toolchain versions.
+2. Successful compile evidence.
+3. Package-content verification against `flasher_args.json`.
+4. Flash and runtime results on a named hardware revision.
+
+## Sensitive data
+
+Before distributing a package, verify that it does not contain Wi-Fi
+credentials, API keys, certificates, activation identifiers, user data, or
+host-local paths. Generated manifests must use repository-relative project
+paths and generic commands.
