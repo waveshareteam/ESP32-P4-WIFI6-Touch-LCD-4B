@@ -4,8 +4,9 @@
 
 This product-owned helper supplies the LCD-4B board layer used by the bundled
 Arduino sketches. It configures the 720 x 720 ST7703 two-lane MIPI-DSI panel,
-LCD reset on GPIO27, PWM backlight on GPIO26 with enable GPIO33, and the shared
-I2C bus on GPIO7/GPIO8.
+LCD reset on GPIO27, active-low PWM backlight on GPIO26 with enable GPIO33, and
+the shared I2C bus on GPIO7/GPIO8. The helper applies Arduino-ESP32 LEDC output
+inversion so its brightness polarity matches the published LCD-4B BSP.
 
 The GT911 helper deliberately does not drive the touch INT or RST pins. It
 probes I2C address `0x5D` and then `0x14`, uses the responding address, and

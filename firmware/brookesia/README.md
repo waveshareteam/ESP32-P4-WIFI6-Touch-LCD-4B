@@ -45,10 +45,10 @@ Hardware pin details and the P4/C6 compatibility notes live in
 
 ## Hardware revision profiles
 
-The default Brookesia profile is `rev1_3`: pre-v3 ESP32-P4 with
+The default Brookesia profile is `rev1_3`: ESP32-P4 rev1.x (v1.00-v1.99) with
 `CONFIG_ESP32P4_SELECTS_REV_LESS_V3=y`, `CONFIG_ESP32P4_REV_MIN_100=y`, and the
 200 MHz PSRAM baseline. `rev3_x` explicitly selects
-`CONFIG_ESP32P4_SELECTS_REV_LESS_V3=n`, has a 3.0 minimum, and retains 250 MHz
+`CONFIG_ESP32P4_SELECTS_REV_LESS_V3=n`, covers v3.00-v3.99, and retains 250 MHz
 PSRAM. They are separate, incompatible binaries; do not flash either profile to
 the other silicon range. CI uses `sdkconfig.defaults.rev1_3` or
 `sdkconfig.defaults.rev3_x` with independent SDKCONFIG/build paths. The v3.x

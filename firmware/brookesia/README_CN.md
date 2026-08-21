@@ -43,10 +43,10 @@ ESP32-C6 Hosted Wi-Fi。
 
 ## 硬件修订 profile
 
-Brookesia 默认 profile 是 `rev1_3`：pre-v3 ESP32-P4，使用
+Brookesia 默认 profile 是 `rev1_3`：ESP32-P4 rev1.x（v1.00-v1.99），使用
 `CONFIG_ESP32P4_SELECTS_REV_LESS_V3=y`、`CONFIG_ESP32P4_REV_MIN_100=y` 和
 200 MHz PSRAM 基线。`rev3_x` 明确使用 `CONFIG_ESP32P4_SELECTS_REV_LESS_V3=n`，
-最低版本为 3.0，并保留 250 MHz PSRAM。二者是独立且不兼容的二进制，不能交叉烧录。
+覆盖 v3.00-v3.99，并保留 250 MHz PSRAM。二者是独立且不兼容的二进制，不能交叉烧录。
 CI 使用 `sdkconfig.defaults.rev1_3` 或 `sdkconfig.defaults.rev3_x`，各自拥有独立
 SDKCONFIG/build 路径。v3.x profile 需要 ESP-IDF 5.5.3+ 或 6.0+，但编译成功不能证明
 硬件运行正常。这些是芯片/配置 profile；现有主板原理图不足以证明其名称之间存在 PCB/电气差异。

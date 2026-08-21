@@ -10,7 +10,8 @@ Arduino sketches and bundled libraries for the Waveshare ESP32-P4-WIFI6-Touch-LC
 - Arduino-ESP32 3.3.11 (or newer 3.x).
 - Board: `ESP32P4 Dev Module` (`esp32:esp32:esp32p4`).
 - Menu options:
-  - `Chip Variant`: `v3.00 or newer` (rev3.x boards; default)
+  - `Chip Variant`: `v3.00 or newer` (the Arduino menu label for the default
+    `postv3` setting; this repository validates rev3.x, v3.00-v3.99)
   - `PSRAM`: `Enabled`
   - `Flash Size`: `32 MB`
   - `Flash Mode`: `QIO`
@@ -21,7 +22,8 @@ Arduino sketches and bundled libraries for the Waveshare ESP32-P4-WIFI6-Touch-LC
   `UART0` through the board's `CH343P` USB-UART bridge for serial output.
 - Enable PSRAM in the board settings; the display sketches require it.
 - For confirmed rev1.x ESP32-P4 silicon (including rev1.3), select
-  `Chip Variant: Before v3.00`; that legacy profile uses 200 MHz PSRAM. This is
+  `Chip Variant: Before v3.00`; this repository validates that setting only for
+  rev1.x silicon (v1.00-v1.99), and it uses 200 MHz PSRAM. This is
   a silicon setting, not a PCB revision. Do not mix the two profiles.
 
 ## Examples

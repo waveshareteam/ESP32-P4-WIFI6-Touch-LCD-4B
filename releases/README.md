@@ -123,10 +123,10 @@ when promoting a CI artifact to a release.
 ## Revision profiles
 
 All example and Arduino packages are `rev3_x`/post-v3 only; the example matrices
-remain 26 ESP-IDF builds and five Arduino builds rather than being doubled.
+remain 26 ESP-IDF builds and ten Arduino builds rather than being doubled.
 Brookesia is the only maintained product firmware with two profile-safe
-artifacts. `rev1_3` is pre-v3 with a 1.00 minimum and 200 MHz PSRAM baseline;
-`rev3_x` is post-v3 with a 3.00 minimum and 250 MHz PSRAM baseline. Never
+artifacts. `rev1_3` covers rev1.x (1.00-1.99) with a 200 MHz PSRAM baseline;
+`rev3_x` covers rev3.x (3.00-3.99) with a 250 MHz PSRAM baseline. Never
 cross-flash the profiles. They are silicon/configuration profiles: the available
 main-board schematics do not establish a PCB/electrical difference between them.
 

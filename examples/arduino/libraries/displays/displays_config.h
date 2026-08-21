@@ -33,18 +33,26 @@ struct DisplayConfig
     int8_t lcd_rst;
 };
 
-// The panel backlight is driven by PWM on GPIO26. GPIO33 is the board-level
-// enable signal; it must be asserted before the PWM output is enabled.
+// The panel backlight is driven by active-low PWM on GPIO26. GPIO33 is the
+// board-level enable signal; assert it only after the PWM output is ready.
 #define LCD4B_BACKLIGHT_PIN ((int8_t)26)
 #define LCD4B_BACKLIGHT_ENABLE_PIN ((int8_t)33)
 #define LCD4B_BACKLIGHT_FREQ 5000
 #define LCD4B_BACKLIGHT_RES 10
 
 inline void display_cfg_backlight(bool on) {
+    static bool pwm_ready = false;
     pinMode(LCD4B_BACKLIGHT_ENABLE_PIN, OUTPUT);
-    digitalWrite(LCD4B_BACKLIGHT_ENABLE_PIN, on ? HIGH : LOW);
-    ledcAttach(LCD4B_BACKLIGHT_PIN, LCD4B_BACKLIGHT_FREQ, LCD4B_BACKLIGHT_RES);
+    if (!pwm_ready) {
+        pwm_ready = ledcAttach(LCD4B_BACKLIGHT_PIN, LCD4B_BACKLIGHT_FREQ, LCD4B_BACKLIGHT_RES) &&
+                    ledcOutputInvert(LCD4B_BACKLIGHT_PIN, true);
+    }
+    if (!pwm_ready) {
+        digitalWrite(LCD4B_BACKLIGHT_ENABLE_PIN, LOW);
+        return;
+    }
     ledcWrite(LCD4B_BACKLIGHT_PIN, on ? ((1 << LCD4B_BACKLIGHT_RES) - 1) : 0);
+    digitalWrite(LCD4B_BACKLIGHT_ENABLE_PIN, on ? HIGH : LOW);
 }
 
 static const lcd_init_cmd_t vendor_specific_init_default[] = {

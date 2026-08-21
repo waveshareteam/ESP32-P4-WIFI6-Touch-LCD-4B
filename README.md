@@ -118,8 +118,8 @@ recorded in [`docs/sources.md`](docs/sources.md). CI-built packages and future
 factory or recovery images are different artifact classes; see
 [`docs/firmware.md`](docs/firmware.md). The default checked-in
 [`Brookesia rev3_x image`](firmware/ESP32-P4-WIFI6-Touch-LCD-4B-Brookesia-rev3_x-260821.bin)
-is source-built for ESP32-P4 silicon v3.00 or newer, not a factory image or CI
-ZIP; it replaces the complete 32 MiB flash. Generated build trees, dependency
+is source-built for ESP32-P4 rev3.x silicon (v3.00-v3.99), not a factory image
+or CI ZIP; it replaces the complete 32 MiB flash. Generated build trees, dependency
 caches, lock files, and CI release packages are intentionally excluded from
 source control.
 

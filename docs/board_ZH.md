@@ -15,7 +15,7 @@
 | --- | --- |
 | 产品 | ESP32-P4-WIFI6-Touch-LCD-4B |
 | ESP-IDF 目标 | `esp32p4` |
-| 默认示例基线 | ESP32-P4 rev3.x / post-v3（`SELECTS_REV_LESS_V3=n`、最低 3.0、250 MHz PSRAM） |
+| 默认示例基线 | ESP32-P4 rev3.x / `postv3` 设置（`SELECTS_REV_LESS_V3=n`、3.00-3.99、250 MHz PSRAM） |
 | 维护固件 profile | 独立的 `rev1_3` 与 `rev3_x` Brookesia 芯片/配置 profile |
 | Flash | 32 MB |
 | PSRAM | 32 MB；维护的 Brookesia 默认配置中为 Hex 模式 |
@@ -147,8 +147,8 @@ Registry 发布版本。
 ## 验证状态
 
 `rev1_3` 与 `rev3_x` 是芯片/配置 profile，不是已经验证的 PCB 电气版本。`rev1_3` 为
-pre-v3、最低芯片版本 1.00、200 MHz PSRAM 基线；`rev3_x` 为 post-v3、最低芯片版本
-3.00、250 MHz PSRAM 基线。二者的二进制不能交叉烧录。默认 ESP-IDF 示例和 Arduino 草图
+覆盖芯片版本 1.00 至 1.99、使用 200 MHz PSRAM 基线；`rev3_x` 覆盖芯片版本 3.00 至 3.99
+（最高排他版本 4.00）、使用 250 MHz PSRAM 基线。二者的二进制不能交叉烧录。默认 ESP-IDF 示例和 Arduino 草图
 使用 `rev3_x`/post-v3，不会扩展为双矩阵；只有 Brookesia 继续构建两个 profile。v3.x
 profile 需要 ESP-IDF 5.5.3 或更高版本（或 6.0 及更高版本），本仓库的受维护固件工作流
 当前固定为 v5.5.5。现有主板原理图不足以证明这两个 profile 名称之间存在 PCB/电气差异；

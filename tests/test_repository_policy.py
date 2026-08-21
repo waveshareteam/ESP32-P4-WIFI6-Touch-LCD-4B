@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib.util
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -195,6 +196,8 @@ class RepositoryPolicyTests(unittest.TestCase):
         rev3_defaults = (ROOT / "firmware/brookesia/sdkconfig.defaults.rev3_x").read_text(encoding="utf-8")
         self.assertIn("CONFIG_BOOTLOADER_LOG_LEVEL_ERROR=y", rev3_defaults)
         self.assertIn("CONFIG_BOOTLOADER_LOG_LEVEL=1", rev3_defaults)
+        display_helper = (ROOT / "examples/arduino/libraries/displays/displays_config.h").read_text(encoding="utf-8")
+        self.assertIn("ledcOutputInvert(LCD4B_BACKLIGHT_PIN, true)", display_helper)
         partitions = (ROOT / "firmware/brookesia/partitions.csv").read_text(encoding="utf-8")
         self.assertIn("factory,  app,  factory,        0x00200000,     8M,", partitions)
         for name, size in (("nvsfactory", "200K"), ("nvs", "840K"), ("otadata", "0x2000"), ("phy_init", "0x1000"), ("model", "0xF0000"), ("storage", "6M")):
@@ -215,6 +218,36 @@ class RepositoryPolicyTests(unittest.TestCase):
             errors = policy.check_default_brookesia_image_contract(root)
         self.assertTrue(any("32 MiB" in error for error in errors))
 
+    def test_default_brookesia_image_rejects_same_size_structural_drift(self) -> None:
+        source = ROOT / "firmware" / policy.DEFAULT_BROOKESIA_IMAGE
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            zero = root / "zero.bin"
+            with zero.open("wb") as output:
+                output.truncate(policy.DEFAULT_BROOKESIA_IMAGE_SIZE)
+            self.assertTrue(policy.check_default_brookesia_image_structure(zero))
+
+            candidate = root / "candidate.bin"
+            shutil.copyfile(source, candidate)
+            mutations = (
+                (0x200000 + 15, b"\x64\x00", "application header"),
+                (0x8000 + 4, b"\x01", "partition table"),
+                (0x9000, b"\x00", "expected erased range"),
+                (0x200030, b"x", "source revision"),
+            )
+            with candidate.open("r+b") as output:
+                for offset, replacement, expected_error in mutations:
+                    output.seek(offset)
+                    original = output.read(len(replacement))
+                    output.seek(offset)
+                    output.write(replacement)
+                    output.flush()
+                    errors = policy.check_default_brookesia_image_structure(candidate)
+                    self.assertTrue(any(expected_error in error for error in errors), errors)
+                    output.seek(offset)
+                    output.write(original)
+                    output.flush()
+
     def test_ci_artifact_contract_has_final_sha_and_non_erasing_flasher(self) -> None:
         expected = "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a"
         for name in ("esp-idf.yml", "arduino.yml", "firmware.yml"):
@@ -229,7 +262,7 @@ class RepositoryPolicyTests(unittest.TestCase):
         flasher = (ROOT / "scripts/ci_firmware.py").read_text(encoding="utf-8")
         self.assertIn("Hash of data verified", flasher)
         self.assertIn("c6_firmware_included", flasher)
-        self.assertIn("silicon revision v3.00 or newer", flasher)
+        self.assertIn("silicon revision v3.x (3.00-3.99)", flasher)
         self.assertIn("no PCB revision is inferred", flasher)
         self.assertNotIn("confirm matching rev3_x PCB/electrical revision", flasher)
         self.assertNotIn("erase_flash", flasher)

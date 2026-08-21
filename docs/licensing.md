@@ -62,15 +62,15 @@ correction and preserve all notices in the meantime.
 
 ## Third-party source and libraries
 
-- The official example archive bundles GFX Library for Arduino 1.6.0, while
-  repository CI installs 1.6.6. Both upstream packages include a BSD-style
-  license file; release notices must match the version actually distributed.
+- The official example archive and repository CI use the complete bundled GFX
+  Library for Arduino 1.6.0 tree. Its BSD-style license file is preserved in
+  the bundled directory.
 - LVGL 9.3.0 includes an MIT license file and additional licenses for bundled
   fonts and optional libraries.
 - The local Brookesia core includes Apache-2.0 terms that apply to that
   component.
 - The Xiaozhi third-party directory includes MIT terms that apply to that
-  directory.
+  directory and explicitly records the imported OGG prompt provenance.
 - Espressif-derived example files may carry individual SPDX identifiers; keep
   those headers intact.
 
@@ -84,18 +84,28 @@ Treat audio, fonts, icons, generated C arrays, and model data separately from
 source code. In particular:
 
 - Confirm provenance and redistribution terms for `canon.pcm`.
-- Confirm the OGG prompts under `firmware/brookesia/spiffs/`.
+- Keep the recorded Xiaozhi OGG prompt provenance and MIT license with source
+  or binary distributions that contain those prompts.
 - Do not add MP3 tracks until their redistribution rights are recorded.
 - Retain font licenses and notices when font binaries or generated arrays are
   redistributed.
 - Record the source and license for application icons and other artwork.
 
+The dated checked-in Brookesia rev3_x image has an exact release inventory in
+`../THIRD_PARTY_NOTICES.md`. It records `78/xiaozhi-fonts` 1.6.0,
+`espressif/esp-sr` 2.4.7, `lvgl/lvgl` 9.4.0, the Xiaozhi prompt source commit,
+and the relevant local component notices. The Registry metadata recorded for
+`xiaozhi-fonts` does not create an additional downstream license; rebuilds must
+be reviewed against their newly resolved packages and payload.
+
 A file being usable at runtime does not establish permission to distribute it.
 
 ## Before publication or release
 
-1. Select the repository-wide license through the project owner.
-2. Resolve or remove files with unknown or conflicting terms.
+1. Record whether the project owner has selected a repository-wide license;
+   absence of one grants no general downstream permission.
+2. Resolve, remove, or explicitly preserve and escalate files with unknown or
+   conflicting terms before distributing them.
 3. Preserve all per-file SPDX headers and bundled license files.
 4. Update `../THIRD_PARTY_NOTICES.md` with the exact versions and materials
    included in the distribution.
@@ -104,6 +114,7 @@ A file being usable at runtime does not establish permission to distribute it.
 7. Confirm that no local paths, credentials, or user data appear in public
    text or artifacts.
 
-Until those steps are complete, the absence of a root license should be read
-as “no repository-wide permission has been granted,” not as a choice of a
-default license.
+The checked-in image inventory closes the component/media accounting step for
+that exact dated source build; it does not waive upstream terms or authorize a
+different build. The absence of a root license means no repository-wide
+permission has been granted, not that a default license was selected.

@@ -181,7 +181,11 @@ class CiFirmwarePackageTests(unittest.TestCase):
             self.assertEqual("esp32p4", document["chip"])
             self.assertEqual("rev3_x", document["board_profile"])
             self.assertEqual("3.0", document["chip_revision"]["minimum"])
-            self.assertIsNone(document["chip_revision"]["maximum_exclusive"])
+            self.assertEqual("4.0", document["chip_revision"]["maximum_exclusive"])
+            self.assertEqual(
+                packager.BOARD_PROFILES["rev3_x"]["maximum_note"],
+                document["chip_revision"]["maximum_note"],
+            )
             self.assertEqual(32 * 1024 * 1024, document["flash"]["size_bytes"])
             self.assertFalse(document["c6_firmware_included"])
             self.assertNotIn("erase_flash", document["flash"]["command"])
@@ -812,6 +816,8 @@ class CiFirmwareCoreTests(unittest.TestCase):
         with self.assertRaises(core.CiFirmwareError): core.artifact_for(core.RunSelection("x", 1, "", "", ({"name": "a", "size_in_bytes": 0, "expired": False},)), item)
         self.assertEqual(item, core.resolve_item((item,), "1"))
         self.assertEqual("rev3_x", core.profile_for_major(3))
+        with self.assertRaises(core.CiFirmwareError):
+            core.profile_for_major(2)
         self.assertEqual(32 * 1024 * 1024, core.parse_flash_size("Detected flash size: 32MB"))
         self.assertEqual(32 * 1024 * 1024, core.parse_flash_size("Flash size: 32MiB"))
         self.assertEqual(16 * 1024 * 1024, core.parse_flash_size("Flash size: 128Mbit"))

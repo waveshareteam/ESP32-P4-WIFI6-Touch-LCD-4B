@@ -104,9 +104,9 @@ gh run download RUN_ID --name ARTIFACT_NAME --dir releases/downloads
 ## 修订 profile
 
 所有示例和 Arduino 软件包仅为 `rev3_x`/post-v3；示例矩阵仍为 26 个 ESP-IDF 构建和
-5 个 Arduino 构建，不会翻倍。只有 Brookesia 是提供双 profile 安全构件的受维护产品固件。
-`rev1_3` 为 pre-v3（最低 1.00、200 MHz PSRAM 基线）；`rev3_x` 为 post-v3（最低
-3.00、250 MHz PSRAM 基线）。不得交叉烧录两个 profile。它们是芯片/配置 profile；现有
+10 个 Arduino 构建，不会翻倍。只有 Brookesia 是提供双 profile 安全构件的受维护产品固件。
+`rev1_3` 覆盖 rev1.x（1.00-1.99、200 MHz PSRAM 基线）；`rev3_x` 覆盖 rev3.x
+（3.00-3.99、250 MHz PSRAM 基线）。不得交叉烧录两个 profile。它们是芯片/配置 profile；现有
 主板原理图不足以证明两者之间存在 PCB/电气差异。
 
 ## Arduino 边界

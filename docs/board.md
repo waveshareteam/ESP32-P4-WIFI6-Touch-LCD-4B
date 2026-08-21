@@ -17,7 +17,7 @@ on physical hardware.
 | --- | --- |
 | Product | ESP32-P4-WIFI6-Touch-LCD-4B |
 | ESP-IDF target | `esp32p4` |
-| Default example baseline | ESP32-P4 rev3.x / post-v3 (`SELECTS_REV_LESS_V3=n`, 3.0 minimum, 250 MHz PSRAM) |
+| Default example baseline | ESP32-P4 rev3.x / `postv3` setting (`SELECTS_REV_LESS_V3=n`, 3.00-3.99, 250 MHz PSRAM) |
 | Maintained firmware profiles | Separate `rev1_3` and `rev3_x` Brookesia silicon/configuration profiles |
 | Flash | 32 MB |
 | PSRAM | 32 MB, Hex mode in the maintained Brookesia defaults |
@@ -165,9 +165,9 @@ Do not use a Git URL as a substitute for a registry release.
 ## Validation status
 
 `rev1_3` and `rev3_x` name silicon/configuration profiles, not verified PCB
-electrical revisions. `rev1_3` is pre-v3, minimum silicon revision 1.00, with
-a 200 MHz PSRAM baseline; `rev3_x` is post-v3, minimum silicon revision 3.00,
-with a 250 MHz PSRAM baseline. Do not cross-flash their binaries. The default
+electrical revisions. `rev1_3` covers silicon revision 1.00 through 1.99 with
+a 200 MHz PSRAM baseline; `rev3_x` covers silicon revision 3.00 through 3.99
+(maximum exclusive 4.00) with a 250 MHz PSRAM baseline. Do not cross-flash their binaries. The default
 ESP-IDF examples and Arduino sketches use `rev3_x`/post-v3 and are not doubled
 into a second matrix. Brookesia alone continues to build both profiles. Its
 v3.x profile requires ESP-IDF 5.5.3 or newer (or 6.0 or newer), while this

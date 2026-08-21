@@ -24,7 +24,7 @@
 ## 已提交的默认源码构建镜像
 
 [`ESP32-P4-WIFI6-Touch-LCD-4B-Brookesia-rev3_x-260821.bin`](../firmware/ESP32-P4-WIFI6-Touch-LCD-4B-Brookesia-rev3_x-260821.bin)
-是面向 ESP32-P4 芯片版本 v3.00 或更高版本的默认已提交镜像。它是由源码构建的 Brookesia 镜像，
+是面向 ESP32-P4 rev3.x 芯片（v3.00-v3.99）的默认已提交镜像。它是由源码构建的 Brookesia 镜像，
 不是厂商工厂/恢复镜像，也不是 CI 生成的分段 ZIP 构件。该镜像由源提交
 `f417f6b764f06dddb89fd4f30730ecf4b1fc56d3` 使用 ESP-IDF v5.5.5 和
 `firmware/brookesia/sdkconfig.defaults.rev3_x` profile（250 MHz PSRAM）构建。
@@ -32,13 +32,19 @@
 该文件是 32 MiB 的整片 Flash 原始镜像。其布局来自构建输出的 `flasher_args.json`：bootloader 位于
 `0x2000`，分区表位于 `0x8000`，OTA 数据位于 `0x10d000`，ESP-SR 模型位于 `0x110000`，
 应用程序位于 `0x200000`，存储位于 `0xa00000`。仅在需要替换完整 32 MiB Flash 内容时才从
-Flash 偏移 `0x0` 写入。该操作会覆盖现有分区、应用数据和存储；请先备份需要保留的数据。
+Flash 偏移 `0x0` 写入。该镜像是具有破坏性的首次安装/恢复式源码构建，不是安全的原位升级：镜像中的
+`nvsfactory`、运行时 `nvs`、`otadata` 与 `phy_init` 分区范围均为空白（`0xFF`），写入时会清除
+这些分区的原有内容，并替换应用数据和存储。请先备份需要保留的数据。
 
 镜像不包含 ESP32-C6 协处理器固件。Hosted Wi-Fi 运行仍需要与之兼容的 C6 固件/运行时组合，
 详见 [P4/C6 Hosted Wi-Fi](p4-c6-hosted-wifi_ZH.md)。该镜像仅完成源码构建和分段布局检查；
 本仓库尚未对它执行硬件烧录、显示、触摸、音频、摄像头、SD 或 Wi-Fi 的 HIL 验证。
 
-`rev1_3` 仍作为面向 pre-v3 芯片的独立分段 CI 构建 profile 保留。它不会添加第二个已提交的
+镜像内精确的组件、OGG 提示音、字体、模型与产品资源清单记录在
+[第三方声明](../THIRD_PARTY_NOTICES_ZH.md) 中。这些声明为该定版构建保留上游条款，不授予仓库范围
+许可证，也不覆盖后续重建。
+
+`rev1_3` 仍作为面向 rev1.x 芯片（v1.00-v1.99）的独立分段 CI 构建 profile 保留。它不会添加第二个已提交的
 默认整片镜像，且两个 profile 不能交叉使用。
 
 ## Brookesia 源代码固件
@@ -47,9 +53,9 @@ Brookesia 项目当前面向 ESP-IDF v5.5.5 与 ESP32-P4。它使用包含应用
 SPIFFS 存储镜像的自定义分区表。完整的首次安装必须使用项目生成的烧录参数，以便将每个必需镜像写入
 正确偏移量。
 
-Brookesia 有两个不兼容的芯片/配置 profile：`rev1_3` 是默认 pre-v3 profile（最低芯片版本
-1.00、最高排他版本 3.00、200 MHz PSRAM）；`rev3_x` 是 post-v3 profile（最低 3.00、
-250 MHz PSRAM）。CI 为二者使用独立 SDKCONFIG 和 build 目录，不能共用二进制。v3.x
+Brookesia 有两个不兼容的芯片/配置 profile：`rev1_3` 是默认 rev1.x profile（最低芯片版本
+1.00、最高排他版本 2.00、200 MHz PSRAM）；`rev3_x` 仅覆盖 rev3.x（最低 3.00、
+最高排他版本 4.00、250 MHz PSRAM）。CI 为二者使用独立 SDKCONFIG 和 build 目录，不能共用二进制。v3.x
 profile 需要 ESP-IDF 5.5.3+ 或 6.0+；v5.5.5 满足软件前提但不能证明硬件兼容性。现有主板
 原理图不足以证明这些 profile 名称之间存在 PCB/电气差异。
 
@@ -124,10 +130,11 @@ Flash-CI-Firmware.cmd -Item 1 -Port COMx
 对于每个 workflow，最新的 completed/successful 且 exact-HEAD 的运行是唯一候选；如果其构件集合不完整、
 过期、为空、缺失或重复，命令会失败，绝不会回退到较旧运行。
 
-普通使用先执行同样的预检，随后可以自由选择动态推导出的 33 个产物（26 个 ESP-IDF、5 个 Arduino、
+普通使用先执行同样的预检，随后可以自由选择动态推导出的 38 个产物（26 个 ESP-IDF、10 个 Arduino、
 2 个 Brookesia profile）。程序下载到操作系统用户缓存，并验证 schema-1 清单、路径、哈希、偏移量、
-容量及规范的非擦除命令，再探测所选端口。芯片 major revision 小于 3 时必须使用 `rev1_3`，3 或更高
-时必须使用 `rev3_x`；这是芯片/配置选择，不构成 PCB/电气差异的证据。操作员必须精确输入 `FLASH`；单项写入必须输出
+容量及规范的非擦除命令，再探测所选端口。芯片 major revision 1 必须使用 `rev1_3`，major revision 3
+必须使用 `rev3_x`；其他 major revision 会因尚未验证而被拒绝。这是芯片/配置选择，不构成
+PCB/电气差异的证据。操作员必须精确输入 `FLASH`；单项写入必须输出
 `Hash of data verified` 后程序即退出，绝不会自动前进。
 
 对于 ESP-IDF 包，每个通过验证的清单文件还带有其原始 `flasher_args.json` 元数据路径。烧录器要求该

@@ -26,8 +26,8 @@
 
 仓库面向每个首方示例支持 ESP-IDF v5.5.5 和 v6.0.2。Brookesia 在确认 v6 兼容性前继续使用 v5.5.5。
 
-默认示例配置使用 `rev3_x`/post-v3 芯片 profile：最低 ESP32-P4 版本 3.00，并以 250 MHz
-PSRAM 为基线。保留的 `rev1_3` Brookesia profile 是可选的 pre-v3 profile（最低 1.00、
+默认示例配置使用 `rev3_x`/post-v3 芯片 profile：ESP32-P4 版本 3.00-3.99，并以 250 MHz
+PSRAM 为基线。保留的 `rev1_3` Brookesia profile 是可选的 rev1.x profile（1.00-1.99、
 200 MHz PSRAM）；二者是芯片/配置 profile，不是已文档化的 PCB 电气版本。
 
 显式激活所需 IDF 版本，然后构建一个示例：

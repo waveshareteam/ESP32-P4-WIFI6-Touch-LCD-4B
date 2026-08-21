@@ -62,9 +62,9 @@ Alpha 或 Preview 版本。
 
 共享默认配置使所有示例默认面向 `rev3_x` post-v3：
 `CONFIG_ESP32P4_SELECTS_REV_LESS_V3=n` 与 `CONFIG_ESP32P4_REV_MIN_300=y`，并以
-250 MHz PSRAM 为基线。Arduino 使用 `ChipVariant=postv3`。示例仍保持 26/5 矩阵，
-不会翻倍。Brookesia 继续构建两个隔离 profile：`rev1_3` 为 pre-v3（最低 1.00、
-200 MHz PSRAM），`rev3_x` 为 post-v3（最低 3.00、250 MHz PSRAM）。这两个 profile
+250 MHz PSRAM 为基线。Arduino 使用 `ChipVariant=postv3`。示例仍保持 26/10 矩阵，
+不会翻倍。Brookesia 继续构建两个隔离 profile：`rev1_3` 覆盖 rev1.x（1.00-1.99、
+200 MHz PSRAM），`rev3_x` 覆盖 rev3.x（3.00-3.99、250 MHz PSRAM）。这两个 profile
 软件不兼容；v3.x 需要 ESP-IDF 5.5.3+ 或 6.0+。它们是芯片/配置 profile，不是已验证的
 PCB 电气版本；现有主板原理图不足以证明其名称之间存在电气差异。
 
@@ -150,8 +150,8 @@ build identity 会记录原始文件名/大小/SHA-256，其自身大小/SHA-256
 逐段记录绑定产品 SHA、FQBN、target、BSP 版本、BSP 源提交和 BSP 组件 tree；ZIP 写完后还会
 复核哈希、大小、安全路径、不重叠、容量和总有效字节。`segmented_bytes` 与
 `segmented_payload_total` 均等于实际段大小总和，且不得超过 32 MiB Flash 的一半。
-烧录前会校验清单 profile 与芯片 major revision：低于 3 只允许 `rev1_3`，3 或更高只允许
-`rev3_x`；这是芯片/配置检查，不构成 PCB 电气差异的证据。
+烧录前会校验清单 profile 与芯片 major revision：1 只允许 `rev1_3`，3 只允许 `rev3_x`，
+其他 major revision 会因尚未验证而被拒绝；这是芯片/配置检查，不构成 PCB 电气差异的证据。
 
 `Flash-CI-Firmware.cmd` 是 Windows 上按顺序进行人工测试的入口。它不会使用过期 SHA 构件、脏或
 分离的检出、草稿/缺失 PR 或未验证的软件包。Arduino 烧录命令保留已验证 `flash_args` 中的

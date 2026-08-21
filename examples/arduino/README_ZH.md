@@ -10,7 +10,8 @@ OV5647 MIPI-CSI 摄像头)的 Arduino 草图与随仓库。
 - Arduino-ESP32 3.3.11（或更新 3.x）。
 - 开发板:`ESP32P4 Dev Module`(`esp32:esp32:esp32p4`)。
 - 菜单选项:
-  - `Chip Variant`:`v3.00 or newer`(rev3.x 板,默认)
+  - `Chip Variant`:`v3.00 or newer`（Arduino 菜单中的默认 `postv3` 名称；本仓库验证范围为
+    rev3.x，即 v3.00-v3.99）
   - `PSRAM`:`Enabled`
   - `Flash Size`:`32 MB`
   - `Flash Mode`:`QIO`
@@ -21,7 +22,8 @@ OV5647 MIPI-CSI 摄像头)的 Arduino 草图与随仓库。
   `CH343P` USB-UART 桥接的 `UART0`。
 - 显示类草图要求启用 PSRAM。
 - 对于已确认的 rev1.x ESP32-P4 芯片（包括 rev1.3），请选择
-  `Chip Variant: Before v3.00`；该旧 profile 使用 200 MHz PSRAM。这是芯片设置，
+  `Chip Variant: Before v3.00`；本仓库仅为 rev1.x 芯片（v1.00-v1.99）验证该设置，
+  该旧 profile 使用 200 MHz PSRAM。这是芯片设置，
   不是 PCB revision。两个 profile 不能混用。
 
 ## 示例

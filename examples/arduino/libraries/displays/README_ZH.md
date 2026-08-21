@@ -3,8 +3,9 @@
 # LCD-4B Arduino 显示辅助库
 
 此首方辅助库提供随附 Arduino 草图使用的 LCD-4B 板级层：720 x 720 ST7703 双通道
-MIPI-DSI 面板、GPIO27 LCD 复位、GPIO26 PWM 背光与 GPIO33 使能，以及 GPIO7/GPIO8
-共享 I2C 总线。
+MIPI-DSI 面板、GPIO27 LCD 复位、GPIO26 低有效 PWM 背光与 GPIO33 使能，以及 GPIO7/GPIO8
+共享 I2C 总线。辅助库通过 Arduino-ESP32 LEDC 输出反相，使亮度极性与已发布的 LCD-4B BSP
+保持一致。
 
 GT911 辅助库刻意不驱动触摸 INT 或 RST。它先探测 I2C 地址 `0x5D`，再探测 `0x14`，
 使用响应的地址并以轮询方式读取触摸状态。编译成功不代表已在硬件上验证触摸行为。

@@ -72,9 +72,9 @@ its own firmware workflow, not through an example selector.
 The shared defaults make every example a `rev3_x` post-v3 target with
 `CONFIG_ESP32P4_SELECTS_REV_LESS_V3=n` and `CONFIG_ESP32P4_REV_MIN_300=y`, plus
 a 250 MHz PSRAM baseline. Arduino uses `ChipVariant=postv3`. Examples retain
-the 26/5 matrix rather than being doubled. Brookesia continues to build both
-isolated profiles: `rev1_3` is pre-v3 (minimum 1.00, 200 MHz PSRAM) and
-`rev3_x` is post-v3 (minimum 3.00, 250 MHz PSRAM). The profiles are
+the 26/10 matrix rather than being doubled. Brookesia continues to build both
+isolated profiles: `rev1_3` covers rev1.x (1.00-1.99, 200 MHz PSRAM) and
+`rev3_x` covers rev3.x (minimum 3.00, maximum exclusive 4.00, 250 MHz PSRAM). The profiles are
 software-incompatible; v3.x needs ESP-IDF 5.5.3+ or 6.0+. They are
 silicon/configuration profiles, not verified PCB electrical revisions; the
 available main-board schematics do not prove an electrical difference between
@@ -189,8 +189,8 @@ non-overlap, capacity, and total effective bytes are rechecked after ZIP write.
 `segmented_bytes` and `segmented_payload_total` both equal the exact sum of
 segment sizes and must be no more than half of the 32 MiB flash.
 Manifest profile and chip-revision bounds are checked before flashing; a chip
-major revision below 3 accepts only `rev1_3`, and major revision 3 or later only
-accepts `rev3_x`. This is a silicon/configuration check, not evidence of a PCB
+major revision 1 accepts only `rev1_3`, major revision 3 accepts only
+`rev3_x`, and every other major revision is rejected as unvalidated. This is a silicon/configuration check, not evidence of a PCB
 electrical distinction.
 
 `Flash-CI-Firmware.cmd` is the Windows sequential manual-test entry point. It

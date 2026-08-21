@@ -32,8 +32,8 @@ The repository targets ESP-IDF v5.5.5 and v6.0.2 for every first-party example.
 Brookesia remains on v5.5.5 until its v6 compatibility is verified.
 
 The default example configuration is the `rev3_x`/post-v3 silicon profile:
-minimum ESP32-P4 revision 3.00 and a 250 MHz PSRAM baseline. The retained
-`rev1_3` Brookesia profile is an opt-in pre-v3 profile (minimum 1.00, 200 MHz
+ESP32-P4 revisions 3.00-3.99 and a 250 MHz PSRAM baseline. The retained
+`rev1_3` Brookesia profile is an opt-in rev1.x profile (1.00-1.99, 200 MHz
 PSRAM); these are silicon/configuration profiles, not documented PCB electrical
 revisions.
 

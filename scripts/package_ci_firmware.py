@@ -54,12 +54,14 @@ PRIVATE_ARTIFACT_PATTERNS = (
 BOARD_PROFILES = {
     "rev1_3": {
         "minimum": "1.0",
-        "maximum_exclusive": "3.0",
+        "maximum_exclusive": "2.0",
+        "maximum_note": "ESP32-P4 rev1.x silicon profile: 1.00 through 1.99.",
         "symbols": {"CONFIG_ESP32P4_SELECTS_REV_LESS_V3": "y", "CONFIG_ESP32P4_REV_MIN_100": "y"},
     },
     "rev3_x": {
         "minimum": "3.0",
-        "maximum_exclusive": None,
+        "maximum_exclusive": "4.0",
+        "maximum_note": "ESP32-P4 rev3.x silicon profile: 3.00 through 3.99.",
         "symbols": {"CONFIG_ESP32P4_SELECTS_REV_LESS_V3": "n", "CONFIG_ESP32P4_REV_MIN_300": "y"},
     },
 }
@@ -489,7 +491,7 @@ def manifest(framework: str, version: str, project: Path, records: list[dict[str
     if source_sha is not None and source_sha != trusted_head:
         raise ValueError("Manifest source SHA differs from the clean trusted repository HEAD")
     contract = BOARD_PROFILES[profile]
-    document: dict[str, object] = {"schema_version": 1, "board": BOARD, "chip": CHIP, "board_profile": profile, "chip_revision": {"minimum": contract["minimum"], "maximum_exclusive": contract["maximum_exclusive"], "maximum_note": "No validated hardware upper bound is claimed." if contract["maximum_exclusive"] is None else None}, "c6_firmware_included": False, "framework": framework, "framework_version": version, "source_project": repository_relative(project, trusted_root), "git_sha": trusted_head, "generated_at_utc": datetime.now(timezone.utc).isoformat(), "flash": {"baud": DEFAULT_BAUD, "size_bytes": FLASH_SIZE, "segmented_bytes": sum(int(record["size"]) for record in records), "command": command}, "files": records}
+    document: dict[str, object] = {"schema_version": 1, "board": BOARD, "chip": CHIP, "board_profile": profile, "chip_revision": {"minimum": contract["minimum"], "maximum_exclusive": contract["maximum_exclusive"], "maximum_note": contract["maximum_note"]}, "c6_firmware_included": False, "framework": framework, "framework_version": version, "source_project": repository_relative(project, trusted_root), "git_sha": trusted_head, "generated_at_utc": datetime.now(timezone.utc).isoformat(), "flash": {"baud": DEFAULT_BAUD, "size_bytes": FLASH_SIZE, "segmented_bytes": sum(int(record["size"]) for record in records), "command": command}, "files": records}
     if fqbn:
         document["fqbn"] = fqbn
     return document
@@ -579,7 +581,7 @@ def _validate_arduino_written_bundle(
             or set(revision) != {"minimum", "maximum_exclusive", "maximum_note"}
             or revision.get("minimum") != BOARD_PROFILES["rev3_x"]["minimum"]
             or revision.get("maximum_exclusive") != BOARD_PROFILES["rev3_x"]["maximum_exclusive"]
-            or revision.get("maximum_note") != "No validated hardware upper bound is claimed."
+            or revision.get("maximum_note") != BOARD_PROFILES["rev3_x"]["maximum_note"]
             or document.get("framework") != "arduino-esp32"
             or document.get("framework_version") != ARDUINO_CORE_VERSION
             or document.get("fqbn") != ARDUINO_FQBN

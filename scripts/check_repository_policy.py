@@ -8,6 +8,7 @@ import csv
 import html
 import json
 import re
+import struct
 import subprocess
 import sys
 from pathlib import Path
@@ -104,6 +105,23 @@ ARDUINO_SERIAL_TIMEOUT_MAX_MS = 5000
 DEFAULT_BROOKESIA_IMAGE = "ESP32-P4-WIFI6-Touch-LCD-4B-Brookesia-rev3_x-260821.bin"
 DEFAULT_BROOKESIA_IMAGE_SIZE = 32 * 1024 * 1024
 DEFAULT_BROOKESIA_SOURCE_COMMIT = "f417f6b764f06dddb89fd4f30730ecf4b1fc56d3"
+DEFAULT_BROOKESIA_PARTITIONS = (
+    (1, 2, "nvsfactory", 0x00009000, 0x00032000),
+    (1, 2, "nvs", 0x0003B000, 0x000D2000),
+    (1, 0, "otadata", 0x0010D000, 0x00002000),
+    (1, 1, "phy_init", 0x0010F000, 0x00001000),
+    (1, 0x82, "model", 0x00110000, 0x000F0000),
+    (0, 0, "factory", 0x00200000, 0x00800000),
+    (1, 0x82, "storage", 0x00A00000, 0x00600000),
+)
+DEFAULT_BROOKESIA_FF_RANGES = (
+    (0x00000000, 0x00002000),
+    (0x000074F0, 0x00008000),
+    (0x00008C00, 0x00110000),
+    (0x001570E2, 0x00200000),
+    (0x0088C380, 0x00A00000),
+    (0x01000000, 0x02000000),
+)
 BUNDLED_ARDUINO_MARKDOWN_ROOTS = (
     "examples/arduino/libraries/GFX_Library_for_Arduino",
     "examples/arduino/libraries/lvgl",
@@ -879,6 +897,14 @@ def check_revision_profile_contract(root: Path) -> list[str]:
     arduino = (root / ".github/workflows/arduino.yml").read_text(encoding="utf-8")
     if "ChipVariant=postv3" not in arduino:
         errors.append("arduino.yml: Arduino default must remain ChipVariant=postv3")
+    display_helper = (root / "examples/arduino/libraries/displays/displays_config.h").read_text(encoding="utf-8")
+    for required in (
+        "LCD4B_BACKLIGHT_PIN ((int8_t)26)",
+        "LCD4B_BACKLIGHT_ENABLE_PIN ((int8_t)33)",
+        "ledcOutputInvert(LCD4B_BACKLIGHT_PIN, true)",
+    ):
+        if required not in display_helper:
+            errors.append(f"Arduino display helper: missing LCD-4B active-low backlight contract {required}")
     firmware = (root / ".github/workflows/firmware.yml").read_text(encoding="utf-8")
     for required in ("profile: rev1_3", "profile: rev3_x", "$GITHUB_WORKSPACE/firmware/brookesia/build-${{ matrix.profile }}", "$RUNNER_TEMP/brookesia-${{ matrix.profile }}.sdkconfig", "$GITHUB_WORKSPACE/firmware/brookesia/sdkconfig.defaults;$GITHUB_WORKSPACE/firmware/brookesia/${{ matrix.defaults }}", "firmware-brookesia-v5.5.5-${{ matrix.profile }}"):
         if required not in firmware:
@@ -918,9 +944,84 @@ def check_revision_profile_contract(root: Path) -> list[str]:
     for required in ("BOARD_PROFILES", '"rev1_3"', '"rev3_x"', "validate_idf_profile", "--board-profile"):
         if required not in packager:
             errors.append(f"package_ci_firmware.py: missing profile contract {required}")
-    for required in ("expected_items", "profile_for_major", "validate_manifest", "safe_extract", "Hash of data verified", "silicon revision v3.00 or newer", "no PCB revision is inferred", "no-auto-next=ok"):
+    for required in ("expected_items", "profile_for_major", "validate_manifest", "safe_extract", "Hash of data verified", "silicon revision v3.x (3.00-3.99)", "no PCB revision is inferred", "no-auto-next=ok"):
         if required not in flasher:
             errors.append(f"ci_firmware.py: missing profile safety contract {required}")
+    return errors
+
+
+def _range_is_erased(image: Path, start: int, end: int) -> bool:
+    with image.open("rb") as source:
+        source.seek(start)
+        remaining = end - start
+        while remaining:
+            chunk = source.read(min(1024 * 1024, remaining))
+            if not chunk or chunk.count(0xFF) != len(chunk):
+                return False
+            remaining -= len(chunk)
+    return True
+
+
+def check_default_brookesia_image_structure(image: Path) -> list[str]:
+    """Validate the dated raw image without adding a separately stored hash."""
+    errors: list[str] = []
+    with image.open("rb") as source:
+        def read_at(offset: int, size: int) -> bytes:
+            source.seek(offset)
+            return source.read(size)
+
+        for offset, description in ((0x2000, "bootloader"), (0x200000, "application")):
+            header = read_at(offset, 24)
+            expected = (0xE9, 0x02, 0x5F, 18, 300, 399)
+            actual = (
+                header[0] if len(header) > 0 else None,
+                header[2] if len(header) > 2 else None,
+                header[3] if len(header) > 3 else None,
+                struct.unpack_from("<H", header, 12)[0] if len(header) >= 14 else None,
+                struct.unpack_from("<H", header, 15)[0] if len(header) >= 17 else None,
+                struct.unpack_from("<H", header, 17)[0] if len(header) >= 19 else None,
+            )
+            if actual != expected:
+                errors.append(
+                    f"firmware/{image.name}: {description} header must remain ESP32-P4 DIO/80 MHz/32 MiB rev3.00-3.99"
+                )
+
+        actual_partitions: list[tuple[int, int, str, int, int]] = []
+        for index in range(len(DEFAULT_BROOKESIA_PARTITIONS)):
+            entry = read_at(0x8000 + index * 32, 32)
+            if len(entry) != 32:
+                actual_partitions = []
+                break
+            magic, kind, subtype, offset, size, raw_label, flags = struct.unpack("<HBBII16sI", entry)
+            if magic != 0x50AA or flags != 0:
+                actual_partitions = []
+                break
+            label = raw_label.split(b"\0", 1)[0].decode("ascii", errors="replace")
+            actual_partitions.append((kind, subtype, label, offset, size))
+        if tuple(actual_partitions) != DEFAULT_BROOKESIA_PARTITIONS or read_at(0x80E0, 2) != b"\xeb\xeb":
+            errors.append(f"firmware/{image.name}: embedded partition table differs from the documented Brookesia layout")
+
+        if struct.unpack("<I", read_at(0x200020, 4))[0] != 0xABCD5432:
+            errors.append(f"firmware/{image.name}: application descriptor magic is invalid")
+        for offset, marker, description in (
+            (0x200030, b"f417f6b\0", "source revision"),
+            (0x200050, b"esp-brookesia\0", "project name"),
+            (0x200090, b"v5.5.5\0", "ESP-IDF version"),
+            (0x110004, b"wn9_nihaoxiaozhi_tts", "speech-model payload"),
+        ):
+            if not read_at(offset, len(marker)).startswith(marker):
+                errors.append(f"firmware/{image.name}: embedded {description} marker is invalid")
+
+        storage = read_at(0xA00000, 0x600000)
+        for marker in (b"/xiaozhi/font.bin", b"/xiaozhi/activation.ogg", b"/xiaozhi/success.ogg"):
+            if marker not in storage:
+                errors.append(f"firmware/{image.name}: expected storage payload is incomplete: {marker.decode('ascii')}")
+
+    for start, end in DEFAULT_BROOKESIA_FF_RANGES:
+        if not _range_is_erased(image, start, end):
+            errors.append(
+                f"firmware/{image.name}: expected erased range 0x{start:x}-0x{end:x} contains data"
+            )
     return errors
 
 
@@ -935,6 +1036,8 @@ def check_default_brookesia_image_contract(root: Path) -> list[str]:
         errors.append(
             f"firmware/{DEFAULT_BROOKESIA_IMAGE}: expected a complete 32 MiB whole-flash image"
         )
+    else:
+        errors.extend(check_default_brookesia_image_structure(image))
     root_images = sorted(path.name for path in firmware_root.glob("*.bin") if path.is_file())
     if root_images != [DEFAULT_BROOKESIA_IMAGE]:
         errors.append("firmware/: only the documented default source-built delivery image may be checked in at this level")
@@ -949,6 +1052,25 @@ def check_default_brookesia_image_contract(root: Path) -> list[str]:
         errors.append("docs/firmware*: default image must remain distinguished from a vendor factory/recovery image")
     if "whole-flash raw image" not in english or "整片 Flash 原始镜像" not in chinese:
         errors.append("docs/firmware*: default image must document its whole-flash overwrite boundary")
+
+    notice_documents: list[tuple[str, str]] = []
+    for language in ("THIRD_PARTY_NOTICES.md", "THIRD_PARTY_NOTICES_ZH.md"):
+        path = root / language
+        if not path.is_file():
+            errors.append(f"{language}: checked-in delivery-image resource inventory is missing")
+            continue
+        notice_documents.append((path.read_text(encoding="utf-8"), language))
+    for text, language in notice_documents:
+        for required in (
+            DEFAULT_BROOKESIA_IMAGE,
+            DEFAULT_BROOKESIA_SOURCE_COMMIT,
+            "0ec696f64f5843ca0f5fcf700ae45977d1dcd2e8",
+            "78/xiaozhi-fonts` 1.6.0",
+            "espressif/esp-sr` 2.4.7",
+            "lvgl/lvgl` 9.4.0",
+        ):
+            if required not in text:
+                errors.append(f"{language}: checked-in delivery-image resource inventory is incomplete: {required}")
 
     workflow = (root / ".github/workflows/firmware.yml").read_text(encoding="utf-8")
     if DEFAULT_BROOKESIA_IMAGE in workflow or '"firmware/*.bin"' in workflow:

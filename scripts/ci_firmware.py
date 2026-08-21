@@ -679,7 +679,11 @@ def validate_manifest(package: Path, item: Item, repo: Repository) -> tuple[list
 
 
 def profile_for_major(major: int) -> str:
-    return "rev1_3" if major < 3 else "rev3_x"
+    if major == 1:
+        return "rev1_3"
+    if major == 3:
+        return "rev3_x"
+    raise CiFirmwareError(f"ESP32-P4 major revision {major} is outside the validated rev1_3/rev3_x ranges")
 
 
 def parse_probe(output: str) -> int:
@@ -768,7 +772,13 @@ def self_test() -> None:
     else:
         raise AssertionError("non-GitHub origin accepted")
     assert len(expected_items(ROOT)) == 38
-    assert profile_for_major(2) == "rev1_3" and profile_for_major(3) == "rev3_x"
+    assert profile_for_major(1) == "rev1_3" and profile_for_major(3) == "rev3_x"
+    try:
+        profile_for_major(2)
+    except CiFirmwareError:
+        pass
+    else:
+        raise AssertionError("unsupported ESP32-P4 v2 silicon accepted")
     assert parse_flash_size("Detected flash size: 32MB") == 32 * 1024 * 1024
     with tempfile.TemporaryDirectory() as temporary:
         source, destination = Path(temporary) / "bad.zip", Path(temporary) / "out"
@@ -819,11 +829,12 @@ def main(argv: Sequence[str] | None = None) -> int:
         major = parse_probe(esptool_output(port, "chip_id"))
         capacity = parse_flash_size(esptool_output(port, "flash_id"))
         packager = _load_module("ci_firmware_flash_packager", ROOT / "scripts" / "package_ci_firmware.py")
-        if profile_for_major(major) != item.profile:
-            raise CiFirmwareError(f"ESP32-P4 major revision {major} requires {profile_for_major(major)}, not {item.profile}")
+        required_profile = profile_for_major(major)
+        if required_profile != item.profile:
+            raise CiFirmwareError(f"ESP32-P4 major revision {major} requires {required_profile}, not {item.profile}")
         if capacity < packager.FLASH_SIZE or capacity < 32 * 1024 * 1024:
             raise CiFirmwareError("detected flash capacity is below the required 32 MiB")
-        if item.profile == "rev3_x": print("INFO: detected ESP32-P4 silicon revision v3.00 or newer matches rev3_x; no PCB revision is inferred.")
+        if item.profile == "rev3_x": print("INFO: detected ESP32-P4 silicon revision v3.x (3.00-3.99) matches rev3_x; no PCB revision is inferred.")
         print(f"run={runs[item.workflow].run_id} sha={repo.head} artifact={item.artifact} profile={item.profile} port={port} chip=ESP32-P4 revision={major} flash={capacity}")
         print("plan=" + " ".join([*write_flash_args, *(f"0x{offset:x}:{path}" for offset, path in plan)]))
         if input("Type FLASH to write this one item: ").strip() != "FLASH":

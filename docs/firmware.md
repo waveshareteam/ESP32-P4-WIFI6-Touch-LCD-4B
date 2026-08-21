@@ -27,7 +27,7 @@ be described as proof that they are closed or permanently unavailable.
 ## Checked-in default source-built image
 
 [`ESP32-P4-WIFI6-Touch-LCD-4B-Brookesia-rev3_x-260821.bin`](../firmware/ESP32-P4-WIFI6-Touch-LCD-4B-Brookesia-rev3_x-260821.bin)
-is the default checked-in image for ESP32-P4 silicon revision v3.00 or newer.
+is the default checked-in image for ESP32-P4 rev3.x silicon (v3.00-v3.99).
 It is a source-built Brookesia image, not a vendor factory/recovery image and
 not one of the segmented CI ZIP artifacts. It was built from source commit
 `f417f6b764f06dddb89fd4f30730ecf4b1fc56d3` with ESP-IDF v5.5.5 and the
@@ -37,8 +37,12 @@ The file is a 32 MiB whole-flash raw image. Its layout was created from the
 build's `flasher_args.json`: bootloader at `0x2000`, partition table at
 `0x8000`, OTA data at `0x10d000`, ESP-SR model at `0x110000`, application at
 `0x200000`, and storage at `0xa00000`. Write it at flash offset `0x0` only
-when replacing the complete 32 MiB flash contents. This overwrites existing
-partitions, application data, and storage; back up any data that must be kept.
+when replacing the complete 32 MiB flash contents. This destructive
+first-install/recovery-style source build is not a safe in-place update: the
+`nvsfactory`, runtime `nvs`, `otadata`, and `phy_init` partition ranges are
+blank (`0xFF`) in the image, so writing it erases their existing contents as
+well as replacing application data and storage. Back up any data that must be
+kept.
 
 The image contains no ESP32-C6 coprocessor firmware. Hosted Wi-Fi operation
 still requires a compatible C6 firmware/runtime combination described in
@@ -46,8 +50,13 @@ still requires a compatible C6 firmware/runtime combination described in
 and segment-layout checks only; it has not received a hardware flash, display,
 touch, audio, camera, SD, or Wi-Fi HIL validation in this repository.
 
+Its exact embedded component, OGG prompt, font, model, and product-resource
+inventory is recorded in [Third-Party Notices](../THIRD_PARTY_NOTICES.md).
+Those notices preserve upstream terms for this dated build; they do not grant a
+repository-wide license or cover a later rebuild.
+
 `rev1_3` remains available as a separate segmented CI build profile for
-pre-v3 silicon. It is intentionally not represented by a second checked-in
+rev1.x silicon (v1.00-v1.99). It is intentionally not represented by a second checked-in
 default whole-flash image, and the two profiles must not be interchanged.
 
 ## Brookesia source firmware
@@ -58,8 +67,9 @@ storage image. A complete first installation must use the project-generated
 flash arguments so every required image is written at the correct offset.
 
 Brookesia has two incompatible silicon/configuration profiles: `rev1_3` is the
-default pre-v3 profile (minimum silicon revision 1.00, maximum exclusive 3.00,
-200 MHz PSRAM), while `rev3_x` is post-v3 (minimum 3.00, 250 MHz PSRAM). They
+default rev1.x profile (minimum silicon revision 1.00, maximum exclusive 2.00,
+200 MHz PSRAM), while `rev3_x` covers rev3.x only (minimum 3.00, maximum
+exclusive 4.00, 250 MHz PSRAM). They
 use separate SDKCONFIG and build directories in CI and must never share a
 binary. The v3.x profile requires ESP-IDF 5.5.3+ or 6.0+; v5.5.5 meets that
 software prerequisite but does not prove hardware compatibility. The available
@@ -155,11 +165,12 @@ candidate: if its artifact set is partial, expired, empty, missing, or duplicate
 the command fails and never falls back to an older run.
 
 Normal use first performs the same preflight, then lets the operator select any
-of the dynamically derived 33 artifacts (26 ESP-IDF, five Arduino, two
+of the dynamically derived 38 artifacts (26 ESP-IDF, ten Arduino, two
 Brookesia profiles). It downloads into an OS-user cache, verifies the schema-1
 manifest, paths, hashes, offsets, capacity, and canonical non-erasing command,
-then probes the selected port. Chip major revision below 3 requires `rev1_3`;
-3 or above requires `rev3_x`. This is a silicon/configuration selection, not
+then probes the selected port. Chip major revision 1 requires `rev1_3`; major
+revision 3 requires `rev3_x`; all other major revisions are rejected as
+unvalidated. This is a silicon/configuration selection, not
 evidence of a PCB/electrical difference. The operator must type exact `FLASH`;
 one write runs, must report
 `Hash of data verified`, and then the program exits. It never auto-advances.
