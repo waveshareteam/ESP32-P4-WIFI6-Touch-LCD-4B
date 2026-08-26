@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 import re
 import shutil
 import subprocess
@@ -207,6 +208,98 @@ class RepositoryPolicyTests(unittest.TestCase):
         self.assertIn("factory,  app,  factory,        0x00200000,     8M,", partitions)
         for name, size in (("nvsfactory", "200K"), ("nvs", "840K"), ("otadata", "0x2000"), ("phy_init", "0x1000"), ("model", "0xF0000"), ("storage", "6M")):
             self.assertRegex(partitions, rf"(?m)^{name},[^\n]*,\s*,\s*{re.escape(size)},")
+
+    def test_mipi_dsi_phy_clock_contract_binds_product_callers_and_revisions(self) -> None:
+        arduino_root = ROOT / "examples/arduino"
+        source_suffixes = {".c", ".cc", ".cpp", ".h", ".hpp", ".ino"}
+        source_text = {
+            path.relative_to(ROOT).as_posix(): path.read_text(encoding="utf-8", errors="ignore")
+            for path in arduino_root.rglob("*")
+            if path.is_file() and path.suffix in source_suffixes
+        }
+
+        expected_callers = {
+            "examples/arduino/examples/01_HelloWorld/01_HelloWorld.ino",
+            "examples/arduino/examples/02_AsciiTable/02_AsciiTable.ino",
+            "examples/arduino/examples/03_Drawing_board/03_Drawing_board.ino",
+            "examples/arduino/examples/04_LVGLV9_Arduino/04_LVGLV9_Arduino.ino",
+            "examples/arduino/examples/05_GFX_ESPWiFiAnalyzer/05_GFX_ESPWiFiAnalyzer.ino",
+            "examples/arduino/examples/06_Camera_Preview/06_Camera_Preview.ino",
+            "examples/arduino/examples/07_Camera_ISP_Tuning/07_Camera_ISP_Tuning.ino",
+        }
+        actual_callers = {
+            relative
+            for relative, text in source_text.items()
+            if relative.startswith("examples/arduino/examples/")
+            and relative.endswith(".ino")
+            and "Arduino_ESP32DSIPanel" in text
+        }
+        self.assertEqual(expected_callers, actual_callers)
+        for relative in expected_callers:
+            self.assertIn("Arduino_GFX_Library.h", source_text[relative], relative)
+
+        selector = subprocess.run(
+            [
+                sys.executable,
+                str(ROOT / "scripts/select_ci_targets.py"),
+                "--framework",
+                "arduino",
+                "--all",
+            ],
+            check=False,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+        )
+        self.assertEqual(0, selector.returncode, selector.stderr)
+        selected = set(json.loads(selector.stdout)["selected"])
+        self.assertTrue({str(Path(relative).parent) for relative in expected_callers} <= selected)
+        arduino_workflow = (ROOT / ".github/workflows/arduino.yml").read_text(encoding="utf-8")
+        self.assertIn('--libraries "$repository_root/examples/arduino/libraries"', arduino_workflow)
+
+        dsi_bus_source = (
+            "examples/arduino/libraries/GFX_Library_for_Arduino/src/databus/"
+            "Arduino_ESP32DSIPanel.cpp"
+        )
+        bus_config_sources = {
+            relative for relative, text in source_text.items() if "esp_lcd_dsi_bus_config_t" in text
+        }
+        self.assertEqual({dsi_bus_source}, bus_config_sources)
+        bus_text = source_text[dsi_bus_source]
+        typed_zero = (
+            "static constexpr mipi_dsi_phy_pllref_clock_source_t kMipiDsiPhyClockAuto =\n"
+            "    static_cast<mipi_dsi_phy_pllref_clock_source_t>(0);"
+        )
+        self.assertIn(typed_zero, bus_text)
+        self.assertEqual(
+            ["kMipiDsiPhyClockAuto"],
+            re.findall(r"(?m)^\s*\.phy_clk_src\s*=\s*([A-Za-z_][A-Za-z0-9_]*)\s*,", bus_text),
+        )
+        dsi_bus_calls = re.findall(r"\besp_lcd_new_dsi_bus\s*\(([^()]*)\)", bus_text)
+        self.assertEqual(["&bus_config, &mipi_dsi_bus"], dsi_bus_calls)
+        legacy_hits = sorted(
+            relative
+            for relative, text in source_text.items()
+            if "MIPI_DSI_PHY_CLK_SRC_DEFAULT" in text
+        )
+        self.assertEqual([], legacy_hits)
+
+        self.assertIn("ChipVariant=postv3", arduino_workflow)
+        for profile, expected in {
+            "rev1_3": (
+                "CONFIG_ESP32P4_SELECTS_REV_LESS_V3=y",
+                "CONFIG_ESP32P4_REV_MIN_100=y",
+            ),
+            "rev3_x": (
+                "CONFIG_ESP32P4_SELECTS_REV_LESS_V3=n",
+                "CONFIG_ESP32P4_REV_MIN_300=y",
+            ),
+        }.items():
+            defaults = (ROOT / f"firmware/brookesia/sdkconfig.defaults.{profile}").read_text(
+                encoding="utf-8"
+            )
+            for symbol in expected:
+                self.assertRegex(defaults, rf"(?m)^{re.escape(symbol)}$")
 
     def test_default_brookesia_image_is_one_documented_rev3_x_delivery_artifact(self) -> None:
         self.assertEqual([], policy.check_default_brookesia_image_contract(ROOT))
