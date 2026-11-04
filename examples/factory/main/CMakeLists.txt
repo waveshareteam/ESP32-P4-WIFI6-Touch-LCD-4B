@@ -51,6 +51,12 @@ set(STORAGE_STAGING_STAMP "${CMAKE_BINARY_DIR}/storage_spiffs.stamp")
 
 file(GLOB_RECURSE STORAGE_SOURCE_FILES CONFIGURE_DEPENDS LIST_DIRECTORIES false
     "${STORAGE_SOURCE_DIR}/*")
+# Track directory membership as well as file timestamps. Imported assets can
+# retain older timestamps, and removing a file must also refresh the image.
+list(JOIN STORAGE_SOURCE_FILES "\n" STORAGE_SOURCE_FILE_LIST)
+set(STORAGE_SOURCE_MANIFEST "${CMAKE_BINARY_DIR}/storage_source_files.txt")
+file(GENERATE OUTPUT "${STORAGE_SOURCE_MANIFEST}"
+    CONTENT "${STORAGE_SOURCE_FILE_LIST}\n")
 file(MAKE_DIRECTORY "${STORAGE_STAGING_DIR}")
 
 # Keep the complete 30 px Chinese font in SPIFFS instead of linking another
@@ -89,7 +95,7 @@ add_custom_command(
     COMMAND "${CMAKE_COMMAND}" -E copy_if_different
         "${XIAOZHI_COMMON_FONT}" "${XIAOZHI_COMMON_FONT_STAGED}"
     COMMAND "${CMAKE_COMMAND}" -E touch "${STORAGE_STAGING_STAMP}"
-    DEPENDS ${STORAGE_SOURCE_FILES} "${XIAOZHI_COMMON_FONT}"
+    DEPENDS ${STORAGE_SOURCE_FILES} "${STORAGE_SOURCE_MANIFEST}" "${XIAOZHI_COMMON_FONT}"
     COMMENT "Staging SPIFFS resources"
     VERBATIM
 )
