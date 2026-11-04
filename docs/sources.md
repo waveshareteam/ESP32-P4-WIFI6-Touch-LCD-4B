@@ -20,7 +20,7 @@ Retrieval date: **2026-07-30**
 
 - Official product page: [ESP32-P4-WIFI6-Touch-LCD-4B](https://www.waveshare.com/esp32-p4-wifi6-touch-lcd-4b.htm)
 - Official hero source: [esp32-p4-wifi6-touch-lcd-4b-1.jpg](https://www.waveshare.com/media/catalog/product/cache/1/image/800x800/9df78eab33525d08d6e5fb8d27136e95/e/s/esp32-p4-wifi6-touch-lcd-4b-1.jpg)
-- Local path: [`docs/assets/esp32-p4-wifi6-touch-lcd-4b.jpg`](assets/esp32-p4-wifi6-touch-lcd-4b.jpg)
+- Local path: [`docs/images/esp32-p4-wifi6-touch-lcd-4b.jpg`](images/esp32-p4-wifi6-touch-lcd-4b.jpg)
 - Retrieval date: **2026-08-10**
 - Downloaded file: 35469 bytes; SHA-256 `7e6c58a99317e17d30bb0a7ed5c759da126a5922cae496c8bffddcefcd3c21ab`
 
@@ -35,14 +35,14 @@ The image is used only for product identification and does not change repository
 | Main-board schematic | [ESP32-P4-WIFI6-Touch-LCD-4B.pdf](https://files.waveshare.com/wiki/ESP32-P4-WIFI6-Touch-LCD-4B/ESP32-P4-WIFI6-Touch-LCD-4B.pdf) | 3166842 | `24b9b96d06256dfc613d9a555ae34cb4290b119a3830ac40a07846f81b1e70a1` |
 | Current official 86-panel bottom-board schematic | [86_Panel_Bottom_Board.pdf](https://files.waveshare.com/wiki/ESP32-P4-WIFI6-Touch-LCD-4B/86_Panel_Bottom_Board.pdf) | 476873 | `167957dbba2b13f782cbf8319dc491a0228d0f509d35a6a28152035afb08a44f` |
 
-The 2D archive was extracted to `hardware/dimensions/`:
+The 2D archive was extracted to `hardware/mechanical/`:
 
 | Repository file | Bytes | SHA-256 |
 | --- | ---: | --- |
-| `hardware/dimensions/ESP32-P4-WIFI6-Touch-LCD-4B.dxf` | 997746 | `59c026d9a5ed55ee2466288849a4e898ab87f28d39555470e724d69639adad51` |
-| `hardware/dimensions/ESP32-P4-WIFI6-Touch-LCD-4B.pdf` | 26445 | `e690fa9c3c48ec62b1c8167a1d9bd8e9bf44d7b6af4b20f109eb97826c4d1a25` |
+| `hardware/mechanical/ESP32-P4-WIFI6-Touch-LCD-4B-Dimensions.dxf` | 997746 | `59c026d9a5ed55ee2466288849a4e898ab87f28d39555470e724d69639adad51` |
+| `hardware/mechanical/ESP32-P4-WIFI6-Touch-LCD-4B-Dimensions.pdf` | 26445 | `e690fa9c3c48ec62b1c8167a1d9bd8e9bf44d7b6af4b20f109eb97826c4d1a25` |
 
-`schematic/86 Panel Bottom Board V1.3(1).pdf` was already present before the
+`hardware/schematic/ESP32-P4-86-Panel-Bottom-Board-V1.3.pdf` was already present before the
 official-resource import. Its SHA-256 is
 `23b3dad5b025ac0310a8d17e6716308e71fb2c17d69e082f51df06f23651b86a`
 and its size is 183700 bytes. No exact official download URL was verified for
@@ -63,7 +63,7 @@ reference, not presented as the current download.
 | `ESP-IDF/08_lvgl_display_panel` | `examples/esp-idf/display-panel` | Normalized name |
 | `ESP-IDF/09_lvgl_demo_v8` | `examples/esp-idf/lvgl-v8` | Normalized name |
 | `ESP-IDF/10_lvgl_demo_v9` | `examples/esp-idf/lvgl-v9` | Normalized name |
-| `ESP-IDF/11_esp_brookesia_phone` | `firmware/brookesia` | Existing maintained firmware retained instead of duplicating the archive project |
+| `ESP-IDF/11_esp_brookesia_phone` | `examples/factory` | Existing maintained firmware retained instead of duplicating the archive project |
 | `ESP-IDF/12_usb_extend_screen` | `examples/esp-idf/usb-extended-screen` | Normalized name |
 | `ESP-IDF/13_ethernetbasic` | `examples/esp-idf/ethernet` | Normalized name |
 | `ESP-IDF/14_RS485_Test` | `examples/esp-idf/rs485` | Normalized name |
@@ -80,7 +80,7 @@ reference, not presented as the current download.
 
 The Arduino tree bundles complete copies of GFX Library for Arduino 1.6.0 and
 LVGL 9.3.0, including their license files. CI compiles against that bundled
-`examples/arduino/libraries/` directory. The product-specific `displays/`
+`examples/arduino/libraries/` directory. The product-specific `board_config/`
 helper remains local so its LCD-4B display and GT911 configuration can be
 maintained separately from the bundled libraries.
 
@@ -89,5 +89,5 @@ maintained separately from the bundled libraries.
 Hashes verify which source files were retrieved; they do not establish
 copyright permission, runtime compatibility, or hardware correctness. Imported
 code is being normalized and may differ from the ZIP after repository
-maintenance. See `docs/licensing.md` for redistribution boundaries and
-`docs/ci.md` for compile-validation status.
+maintenance. See `docs/licensing.md` for redistribution boundaries. The shared
+Build workflow checks compilation but does not prove hardware behavior.

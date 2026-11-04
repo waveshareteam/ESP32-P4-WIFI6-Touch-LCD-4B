@@ -30,7 +30,7 @@ idf.py flash monitor
 
 Connect A to A, B to B, and provide a common reference ground through an RS485-capable peer. Use termination appropriate to the cable and topology. Never short A and B together for loopback testing, and avoid two devices transmitting at once.
 
-The repository also preserves `schematic/86 Panel Bottom Board V1.3(1).pdf` as a historical reference. In that reviewed V1.3 drawing, `/RE` and `DE` share a pulled-high net, which may leave the receiver disabled. That limitation is revision-specific and must not be generalized to the current official bottom board, whose documentation states automatic direction control.
+The repository also preserves `hardware/schematic/ESP32-P4-86-Panel-Bottom-Board-V1.3.pdf` as a historical reference. In that reviewed V1.3 drawing, `/RE` and `DE` share a pulled-high net, which may leave the receiver disabled. That limitation is revision-specific and must not be generalized to the current official bottom board, whose documentation states automatic direction control.
 
 ## Validation boundary
 

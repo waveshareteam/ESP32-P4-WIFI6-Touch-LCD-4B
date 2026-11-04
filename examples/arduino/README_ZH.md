@@ -63,7 +63,7 @@ I2C 地址：`0x5D` 和 `0x14`。若两个地址均无响应，触摸示例会�
 
 ## 随仓库
 
-- `displays/` — 板级显示/触摸/I2C 配置与驱动（ST7703 DSI 初始化、GT911 触摸、非阻塞串口日志）
+- `board_config/` — 板级显示/触摸/I2C 配置与驱动（ST7703 DSI 初始化、GT911 触摸、非阻塞串口日志）
 - `GFX_Library_for_Arduino` — 支持 ESP32-P4 MIPI-DSI 的 Arduino_GFX
 - `lvgl` + `lv_conf.h` — `04_LVGLV9_Arduino` 使用的 LVGL 9
 

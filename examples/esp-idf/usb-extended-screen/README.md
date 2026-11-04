@@ -127,9 +127,9 @@ or desired USB composition differs.
 
 The source has been normalized and statically reviewed. No local build,
 flashing, USB enumeration, Windows IDD test, display test, audio test, or touch
-test was performed as part of this update. Consult the repository's
-[CI status](../../../docs/ci.md) for compile results rather than treating this
-README as a build certificate.
+test was performed as part of this update. A successful shared Build workflow
+run provides compile evidence only; do not treat this README as a build
+certificate.
 
 The optional player-helper versions above are a static dependency selection
 from the imported `bsp_extra` component. They were not resolved or compile

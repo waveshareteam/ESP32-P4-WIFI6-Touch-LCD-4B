@@ -2,20 +2,20 @@
 
 [English](README.md) · [简体中文](README_ZH.md)
 
-`hardware/dimensions/` 包含从 2026-07-30 获取的官方
+`hardware/mechanical/` 包含从 2026-07-30 获取的官方
 ESP32-P4-WIFI6-Touch-LCD-4B 2D 资源归档中提取的机械文件。
 
 | 文件 | 格式 | 用途 |
 | --- | --- | --- |
-| `dimensions/ESP32-P4-WIFI6-Touch-LCD-4B.dxf` | DXF | CAD/机械参考 |
-| `dimensions/ESP32-P4-WIFI6-Touch-LCD-4B.pdf` | PDF | 可供阅读的 2D 图纸 |
+| `mechanical/ESP32-P4-WIFI6-Touch-LCD-4B-Dimensions.dxf` | DXF | CAD/机械参考 |
+| `mechanical/ESP32-P4-WIFI6-Touch-LCD-4B-Dimensions.pdf` | PDF | 可供阅读的 2D 图纸 |
 
 原始归档 URL、归档哈希和提取文件哈希记录在 `../docs/sources_ZH.md` 中。
 
 ## 使用边界
 
 这些文件描述尺寸；它们不能替代电气原理图、PCB 源文件、制造数据或经过验证的外壳模型。
-请使用 `../schematic/README_ZH.md` 审阅电路，并使用 `../docs/board_ZH.md` 查阅维护中的引脚图。
+请使用 `schematic/README_ZH.md` 审阅电路，并使用 `../docs/board_ZH.md` 查阅维护中的引脚图。
 
 在制造外壳或面板前：
 

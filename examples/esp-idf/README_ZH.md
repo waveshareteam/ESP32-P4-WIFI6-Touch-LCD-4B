@@ -20,7 +20,7 @@
 | `ethernet` | `13_ethernetbasic` | IP101 以太网 | 匹配的 ESP32-P4-86-Panel-ETH-2RO 组件 |
 | `rs485` | `14_RS485_Test` | UART/RS485 收发 | 匹配的 ESP32-P4-86-Panel-ETH-2RO 组件；见下文版本说明 |
 
-官方 `11_esp_brookesia_phone` 项目由维护中的 `firmware/brookesia/` 源码树表示，未在此重复。
+官方 `11_esp_brookesia_phone` 项目由维护中的 `examples/factory/` 源码树表示，未在此重复。
 
 ## 构建矩阵
 
@@ -51,4 +51,5 @@ idf.py -C examples/esp-idf/hello_world build
 - `ethernet` 和 `rs485` 使用相关 86-panel 组件中的电路，而非独立 4B 板。请勿假定其底板可直接用于 4B 主 PCB。
 - 经审查的历史 V1.3 底板原理图将 RS485 `/RE` 和 `DE` 连接在一起并将该网络上拉。因此该版本的接收功能可能不可用。请勿将此限制泛化至未审查的硬件版本。
 
-引脚请参阅 `docs/board_ZH.md`，无线协议约定请参阅 `docs/p4-c6-hosted-wifi_ZH.md`，编译与硬件验证的区别请参阅 `docs/ci_ZH.md`。
+引脚请参阅 `docs/board_ZH.md`，无线协议约定请参阅 `docs/p4-c6-hosted-wifi_ZH.md`。共享 Build
+工作流的编译成功不代表硬件验证。

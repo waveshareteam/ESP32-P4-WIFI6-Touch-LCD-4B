@@ -24,7 +24,7 @@ include tests or examples nested inside components.
 | `rs485` | `14_RS485_Test` | UART/RS485 transmit and receive | Matching ESP32-P4-86-Panel-ETH-2RO assembly; revision caveat below |
 
 The official `11_esp_brookesia_phone` project is represented by the maintained
-`firmware/brookesia/` source tree rather than duplicated here.
+`examples/factory/` source tree rather than duplicated here.
 
 ## Build matrix
 
@@ -71,6 +71,6 @@ Do not replace the Registry dependency with a Git URL.
   unavailable on that revision. Do not generalize this limitation to an
   unreviewed hardware revision.
 
-See `docs/board.md` for pins, `docs/p4-c6-hosted-wifi.md` for the wireless
-contract, and `docs/ci.md` for the distinction between compile and hardware
+See `docs/board.md` for pins and `docs/p4-c6-hosted-wifi.md` for the wireless
+contract. A successful shared Build workflow run does not establish hardware
 validation.

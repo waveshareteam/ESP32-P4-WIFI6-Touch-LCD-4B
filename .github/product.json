@@ -1,0 +1,13 @@
+{
+  "$schema": "https://raw.githubusercontent.com/waveshareteam/esp32-repo-template/v1/schema/product.schema.json",
+  "product": "ESP32-P4-WIFI6-Touch-LCD-4B",
+  "product_url": "https://www.waveshare.com/esp32-p4-wifi6-touch-lcd-4b.htm",
+  "tier": 0,
+  "target": "esp32p4",
+  "esp_idf": { "versions": ["v5.5.5", "v6.0.2"] },
+  "arduino": {
+    "core": "3.3.11",
+    "fqbn": "esp32:esp32:esp32p4:UploadSpeed=921600,USBMode=default,CDCOnBoot=default,MSCOnBoot=default,DFUOnBoot=default,UploadMode=default,FlashFreq=80,FlashMode=qio,FlashSize=32M,PartitionScheme=app13M_data7M_32MB,DebugLevel=none,PSRAM=enabled,EraseFlash=none,JTAGAdapter=default,ChipVariant=postv3"
+  },
+  "factory_firmware": { "esp_idf": "v5.5.5" }
+}

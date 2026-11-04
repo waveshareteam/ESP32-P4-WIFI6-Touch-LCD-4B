@@ -1,133 +1,64 @@
 <div align="center">
   <h1>ESP32-P4-WIFI6-Touch-LCD-4B</h1>
-  <strong>Source examples, board references, and maintained firmware boundaries for the Waveshare 4-inch ESP32-P4 product.</strong>
+  <p>ESP32-P4 4-inch 720 × 720 MIPI-DSI touch development board.</p>
   <p>
-    <a href="https://github.com/waveshareteam/ESP32-P4-WIFI6-Touch-LCD-4B/actions/workflows/repository-policy.yml"><img src="https://github.com/waveshareteam/ESP32-P4-WIFI6-Touch-LCD-4B/actions/workflows/repository-policy.yml/badge.svg" alt="Repository Policy"></a>
-    <a href="https://github.com/waveshareteam/ESP32-P4-WIFI6-Touch-LCD-4B/actions/workflows/esp-idf.yml"><img src="https://github.com/waveshareteam/ESP32-P4-WIFI6-Touch-LCD-4B/actions/workflows/esp-idf.yml/badge.svg" alt="ESP-IDF Build"></a>
-    <a href="https://github.com/waveshareteam/ESP32-P4-WIFI6-Touch-LCD-4B/actions/workflows/arduino.yml"><img src="https://github.com/waveshareteam/ESP32-P4-WIFI6-Touch-LCD-4B/actions/workflows/arduino.yml/badge.svg" alt="Arduino Build"></a>
-    <a href="https://github.com/waveshareteam/ESP32-P4-WIFI6-Touch-LCD-4B/actions/workflows/firmware.yml"><img src="https://github.com/waveshareteam/ESP32-P4-WIFI6-Touch-LCD-4B/actions/workflows/firmware.yml/badge.svg" alt="Firmware Build"></a>
+    <a href="https://github.com/waveshareteam/ESP32-P4-WIFI6-Touch-LCD-4B/actions/workflows/build.yml"><img alt="Build" src="https://github.com/waveshareteam/ESP32-P4-WIFI6-Touch-LCD-4B/actions/workflows/build.yml/badge.svg"></a>
+    <a href="https://github.com/waveshareteam/ESP32-P4-WIFI6-Touch-LCD-4B/releases/latest"><img alt="Latest Release" src="https://img.shields.io/github/v/release/waveshareteam/ESP32-P4-WIFI6-Touch-LCD-4B"></a>
+    <a href="docs/licensing.md"><img alt="License" src="https://img.shields.io/badge/license-not%20selected-lightgrey"></a>
   </p>
-  <p><img src="docs/assets/esp32-p4-wifi6-touch-lcd-4b.jpg" width="720" alt="ESP32-P4-WIFI6-Touch-LCD-4B 4-inch touch display"></p>
   <p><strong>English</strong> · <a href="README_ZH.md">简体中文</a></p>
-  <p>
-    <a href="https://www.waveshare.com/esp32-p4-wifi6-touch-lcd-4b.htm">🌐 Product</a> ·
-    <a href="https://docs.waveshare.com/ESP32-P4-WIFI6-Touch-LCD-4B">📚 Documentation</a> ·
-    <a href="docs/firmware.md">📦 Firmware</a> ·
-    <a href="docs/getting-started.md">🚀 Quick start</a> ·
-    <a href="examples/esp-idf/README.md">🧩 ESP-IDF</a> ·
-    <a href="examples/arduino/README.md">🔧 Arduino</a>
-  </p>
+  <p><a href="https://www.waveshare.com/esp32-p4-wifi6-touch-lcd-4b.htm">🌐 Product</a> &middot; <a href="https://github.com/waveshareteam/ESP32-P4-WIFI6-Touch-LCD-4B/releases/latest">📦 Firmware</a> &middot; <a href="examples/esp-idf/">🧩 ESP-IDF</a> &middot; <a href="examples/arduino/examples/">🔧 Arduino</a> &middot; <a href="hardware/">📚 Documentation</a></p>
+  <img src="docs/images/esp32-p4-wifi6-touch-lcd-4b.jpg" alt="ESP32-P4-WIFI6-Touch-LCD-4B development board" width="500">
 </div>
 
 ---
 
-This repository normalizes the first-party ESP-IDF and Arduino examples from
-the product resource package. The maintained ESP-Brookesia source remains a
-separate firmware surface. Reusable display, touch, audio, and board support
-for new ESP-IDF applications should resolve through the published
-[`waveshare/esp32_p4_wifi6_touch_lcd_4b` 3.0.1 BSP](https://components.espressif.com/components/waveshare/esp32_p4_wifi6_touch_lcd_4b/versions/3.0.1).
-The published BSP 3.0.1 includes the GT911 address-probe fix. Resolve it through
-the Component Registry; do not use Git URL dependencies.
+## ✨ Overview
 
-## 🖥️ Hardware scope
+This repository provides ESP-IDF and Arduino examples, factory firmware source, and hardware references for ESP32-P4-WIFI6-Touch-LCD-4B. The factory firmware supports the ST7703 and JD9365 display variants through one application image.
 
-The standalone ESP32-P4-WIFI6-Touch-LCD-4B combines an ESP32-P4, 32 MB flash,
-32 MB PSRAM, a 4-inch 720 × 720 ST7703 two-lane MIPI DSI display, GT911 touch,
-audio codecs, camera and MicroSD interfaces, USB, and an ESP32-C6 wireless
-coprocessor.
-
-The related ESP32-P4-86-Panel-ETH-2RO is a different product assembly. Its
-bottom board provides IP101 Ethernet, two relays, and RS485; examples for those
-interfaces require the complete matching assembly and are not standalone 4B
-features. Review [`docs/board.md`](docs/board.md) and
-[`schematic/README.md`](schematic/README.md) before changing pins or carrying
-assumptions across hardware revisions.
-
-The Registry BSP 3.0.1 used by the ESP-IDF examples and maintained firmware
-configures a 480 Mbps DSI lane rate. The Arduino helper imported from the
-product archive also uses 480 Mbps, but that agreement is a software
-configuration rather than hardware-validation evidence. Revalidate the display
-on the intended board revision before changing either implementation.
-
-## 🗂️ Repository layout
-
-| Path | Purpose |
+| Item | Specification |
 | --- | --- |
-| `examples/esp-idf/` | Thirteen normalized first-party ESP-IDF projects |
-| `examples/arduino/` | Ten first-party Arduino sketches, a board helper, and complete bundled libraries |
-| `firmware/brookesia/` | Maintained ESP-Brookesia source firmware; not an example-CI target |
-| `config/` | Shared ESP-IDF configuration defaults |
-| `docs/` | Board, source, CI, firmware, and licensing notes |
-| `hardware/` | Mechanical and dimensional references |
-| `schematic/` | Main-board and bottom-board schematics |
-| `releases/` | Firmware-package format and retrieval instructions |
-| `.github/` | Continuous integration and contribution templates |
+| MCU | ESP32-P4 |
+| Display | 4-inch 720 × 720 MIPI DSI touch display |
+| Flash / PSRAM | 32 MB / 32 MB |
+| Wireless | ESP32-C6 coprocessor |
 
-The complete example lists are in
-[`examples/esp-idf/README.md`](examples/esp-idf/README.md) and
-[`examples/arduino/README.md`](examples/arduino/README.md).
+## 📦 Quick Start
 
-## 🧪 Framework matrix
+1. Download the tested combined factory firmware from [firmware](firmware/README.md).
+2. Flash it with the command in that firmware entry.
+3. The firmware reports its selected display controller on the serial console during boot.
 
-The pinned default matrix was rechecked against stable upstream releases on
-2026-08-10:
+## 🧪 Examples
 
-| Surface | Maintained version | Default Actions coverage | Runtime boundary |
-| --- | --- | ---: | --- |
-| 13 ESP-IDF examples | ESP-IDF v5.5.5 and v6.0.2 | 26 builds | Compile evidence only |
-| 10 Arduino sketches | Arduino-ESP32 3.3.11 | 10 compiles | Compile evidence only |
-| Brookesia firmware | ESP-IDF v5.5.5 | Separate from default example CI | IDF v6 remains pending |
+| Framework | Examples |
+| --- | --- |
+| ESP-IDF | [13 projects](examples/esp-idf/README.md) |
+| Arduino | [10 sketches](examples/arduino/README.md) |
 
-CI first classifies the complete changed-file scope. Direct example changes
-select only the affected project, shared build inputs select the complete
-framework matrix, and documentation-only changes retain a visible routing job
-without rebuilding firmware. Firmware changes are reported but never silently
-reclassified as examples. See [`docs/ci.md`](docs/ci.md) for the exact contract.
+The open factory project is in [examples/factory](examples/factory/README.md).
 
-A successful compile is not hardware validation. Wi-Fi additionally requires a
-compatible image on the ESP32-C6 coprocessor, which is not included in the
-official example archive. See
-[`docs/p4-c6-hosted-wifi.md`](docs/p4-c6-hosted-wifi.md).
+## 🛠️ Development Environment
 
-## 🚀 Quick start
+| Framework | Version | Scope |
+| --- | --- | --- |
+| ESP-IDF | v5.5.5, v6.0.2 | First-party examples |
+| Arduino-ESP32 | 3.3.11 | Arduino sketches |
+| ESP-IDF | v5.5.5 | Factory firmware |
 
-Activate an explicit ESP-IDF environment before building an example:
+## 📚 Resources
 
-```sh
-idf.py --version
-idf.py -C examples/esp-idf/hello_world set-target esp32p4
-idf.py -C examples/esp-idf/hello_world build
-```
+- [Schematics](hardware/schematic/README.md)
+- [Mechanical drawing](hardware/mechanical/ESP32-P4-WIFI6-Touch-LCD-4B-Dimensions.pdf)
+- [Official product page](https://www.waveshare.com/esp32-p4-wifi6-touch-lcd-4b.htm)
+- [Product documentation](https://docs.waveshare.com/ESP32-P4-WIFI6-Touch-LCD-4B)
 
-Brookesia uses its separately maintained IDF v5.5 boundary:
+## 🤝 Support
 
-```sh
-idf.py -C firmware/brookesia set-target esp32p4
-idf.py -C firmware/brookesia build
-```
+- [GitHub issues](https://github.com/waveshareteam/ESP32-P4-WIFI6-Touch-LCD-4B/issues)
+- [Technical support](https://www.waveshare.com/contact_us)
 
-Arduino builds use FQBN `esp32:esp32:esp32p4`, 32 MB flash, enabled PSRAM, and
-the options in [`examples/arduino/README.md`](examples/arduino/README.md).
-Complete build and flash guidance is in
-[`docs/getting-started.md`](docs/getting-started.md).
+## 📄 License
 
-## 📦 Source and firmware provenance
-
-Official download URLs, archive hashes, and normalized directory mappings are
-recorded in [`docs/sources.md`](docs/sources.md). CI-built packages and future
-factory or recovery images are different artifact classes; see
-[`docs/firmware.md`](docs/firmware.md). The default checked-in
-[`Brookesia rev3_x image`](firmware/ESP32-P4-WIFI6-Touch-LCD-4B-Brookesia-rev3_x-260821.bin)
-is source-built for ESP32-P4 rev3.x silicon (v3.00-v3.99), not a factory image
-or CI ZIP; it replaces the complete 32 MiB flash. Generated build trees, dependency
-caches, lock files, and CI release packages are intentionally excluded from
-source control.
-
-## 📄 License and redistribution
-
-No repository-wide license has been selected. Individual files and components
-may carry their own licenses, but those licenses do not grant a license for the
-repository as a whole. Review [`docs/licensing.md`](docs/licensing.md) and
-[`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md) before publishing or
-redistributing imported source, binaries, media, schematics, or drawings. See
-[`SUPPORT.md`](SUPPORT.md) for repository support boundaries.
+No repository-wide license has been selected. See the included third-party notices before redistribution.

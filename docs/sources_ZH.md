@@ -19,7 +19,7 @@
 
 - 官方产品页面：[ESP32-P4-WIFI6-Touch-LCD-4B](https://www.waveshare.com/esp32-p4-wifi6-touch-lcd-4b.htm)
 - 官方主图来源：[esp32-p4-wifi6-touch-lcd-4b-1.jpg](https://www.waveshare.com/media/catalog/product/cache/1/image/800x800/9df78eab33525d08d6e5fb8d27136e95/e/s/esp32-p4-wifi6-touch-lcd-4b-1.jpg)
-- 本地路径：[`docs/assets/esp32-p4-wifi6-touch-lcd-4b.jpg`](assets/esp32-p4-wifi6-touch-lcd-4b.jpg)
+- 本地路径：[`docs/images/esp32-p4-wifi6-touch-lcd-4b.jpg`](images/esp32-p4-wifi6-touch-lcd-4b.jpg)
 - 获取日期：**2026-08-10**
 - 下载文件：35469 bytes；SHA-256 `7e6c58a99317e17d30bb0a7ed5c759da126a5922cae496c8bffddcefcd3c21ab`
 
@@ -34,14 +34,14 @@
 | 主板原理图 | [ESP32-P4-WIFI6-Touch-LCD-4B.pdf](https://files.waveshare.com/wiki/ESP32-P4-WIFI6-Touch-LCD-4B/ESP32-P4-WIFI6-Touch-LCD-4B.pdf) | 3166842 | `24b9b96d06256dfc613d9a555ae34cb4290b119a3830ac40a07846f81b1e70a1` |
 | 当前官方 86 面板底板原理图 | [86_Panel_Bottom_Board.pdf](https://files.waveshare.com/wiki/ESP32-P4-WIFI6-Touch-LCD-4B/86_Panel_Bottom_Board.pdf) | 476873 | `167957dbba2b13f782cbf8319dc491a0228d0f509d35a6a28152035afb08a44f` |
 
-2D 归档已提取到 `hardware/dimensions/`：
+2D 归档已提取到 `hardware/mechanical/`：
 
 | 仓库文件 | 字节数 | SHA-256 |
 | --- | ---: | --- |
-| `hardware/dimensions/ESP32-P4-WIFI6-Touch-LCD-4B.dxf` | 997746 | `59c026d9a5ed55ee2466288849a4e898ab87f28d39555470e724d69639adad51` |
-| `hardware/dimensions/ESP32-P4-WIFI6-Touch-LCD-4B.pdf` | 26445 | `e690fa9c3c48ec62b1c8167a1d9bd8e9bf44d7b6af4b20f109eb97826c4d1a25` |
+| `hardware/mechanical/ESP32-P4-WIFI6-Touch-LCD-4B-Dimensions.dxf` | 997746 | `59c026d9a5ed55ee2466288849a4e898ab87f28d39555470e724d69639adad51` |
+| `hardware/mechanical/ESP32-P4-WIFI6-Touch-LCD-4B-Dimensions.pdf` | 26445 | `e690fa9c3c48ec62b1c8167a1d9bd8e9bf44d7b6af4b20f109eb97826c4d1a25` |
 
-`schematic/86 Panel Bottom Board V1.3(1).pdf` 在导入官方资源前已存在。其 SHA-256 为
+`hardware/schematic/ESP32-P4-86-Panel-Bottom-Board-V1.3.pdf` 在导入官方资源前已存在。其 SHA-256 为
 `23b3dad5b025ac0310a8d17e6716308e71fb2c17d69e082f51df06f23651b86a`，大小为 183700 字节。
 本次导入未验证该副本的确切官方下载 URL，因此将其保留为历史 V1.3 参考，而不将其表述为当前下载。
 
@@ -59,7 +59,7 @@
 | `ESP-IDF/08_lvgl_display_panel` | `examples/esp-idf/display-panel` | 规范化名称 |
 | `ESP-IDF/09_lvgl_demo_v8` | `examples/esp-idf/lvgl-v8` | 规范化名称 |
 | `ESP-IDF/10_lvgl_demo_v9` | `examples/esp-idf/lvgl-v9` | 规范化名称 |
-| `ESP-IDF/11_esp_brookesia_phone` | `firmware/brookesia` | 保留现有维护固件，而不重复归档项目 |
+| `ESP-IDF/11_esp_brookesia_phone` | `examples/factory` | 保留现有维护固件，而不重复归档项目 |
 | `ESP-IDF/12_usb_extend_screen` | `examples/esp-idf/usb-extended-screen` | 规范化名称 |
 | `ESP-IDF/13_ethernetbasic` | `examples/esp-idf/ethernet` | 规范化名称 |
 | `ESP-IDF/14_RS485_Test` | `examples/esp-idf/rs485` | 规范化名称 |
@@ -75,11 +75,11 @@
 | `Arduino/10_Mic_Record` | `examples/arduino/examples/10_Mic_Record` | 导入的第一方草图 |
 
 Arduino 树完整随附 GFX Library for Arduino 1.6.0 和 LVGL 9.3.0，包含各自的许可证文件。CI 使用
-随附的 `examples/arduino/libraries/` 目录进行编译。产品专用的 `displays/` 辅助库仍保留在本地，
+随附的 `examples/arduino/libraries/` 目录进行编译。产品专用的 `board_config/` 辅助库仍保留在本地，
 使 LCD-4B 显示与 GT911 配置能够独立于随附库维护。
 
 ## 来源与验证
 
 哈希可验证获取了哪些源文件；它们不能证明版权许可、运行时兼容性或硬件正确性。导入的代码正在规范化，
-经过仓库维护后可能与 ZIP 不同。再分发边界请参阅 `docs/licensing_ZH.md`，编译验证状态请参阅
-`docs/ci_ZH.md`。
+经过仓库维护后可能与 ZIP 不同。再分发边界请参阅 `docs/licensing_ZH.md`。共享 Build 工作流
+检查编译，但不证明硬件行为。

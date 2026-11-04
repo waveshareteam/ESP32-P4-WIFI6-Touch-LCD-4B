@@ -5,7 +5,7 @@
 本文档区分独立的 ESP32-P4-WIFI6-Touch-LCD-4B 与相关的 ESP32-P4-86-Panel-ETH-2RO
 装配体及其底板。官方产品页面表明二者的主 PCB 与外壳配置不同；文档未将该底板
 描述为独立 4B 的即插即用选项。
-引脚事实来自官方产品文档、`schematic/README.md` 中列出的原理图以及当前的
+引脚事实来自官方产品文档、`hardware/schematic/README.md` 中列出的原理图以及当前的
 板级支持配置。某个引脚已被文档记录，本身并不能证明相应外设已经在实体硬件上
 测试过。
 
@@ -36,7 +36,7 @@
 | LCD | Registry BSP 3.0.1 中的 DSI 通道速率 | 每通道 480 Mbit/s |
 | LCD | 复位 | GPIO27 |
 | LCD 背光 | PWM | GPIO26 |
-| LCD 背光 | 使能 | GPIO33 |
+| LCD 背光 | 使能 | 未连接（0R NC；请勿配置 GPIO33） |
 | 触摸 / 共享控制总线 | SDA | GPIO7 |
 | 触摸 / 共享控制总线 | SCL | GPIO8 |
 | 触摸 | 复位 | 原理图有 GPIO23；Arduino 辅助库与已发布 BSP 3.0.1 均不驱动该引脚 |
@@ -117,7 +117,7 @@ C6 的 SDIO/控制连接。信号级映射与时序由 Hosted 配置和匹配的
 ### 历史 V1.3 RS485 差异
 
 在已审阅的历史文件
-`schematic/86 Panel Bottom Board V1.3(1).pdf` 中，RS485 收发器的 `/RE` 与 `DE` 信号
+`hardware/schematic/ESP32-P4-86-Panel-Bottom-Board-V1.3.pdf` 中，RS485 收发器的 `/RE` 与 `DE` 信号
 被连接在一起，该网络通过 4.7 kOhm 上拉。该状态选择发送模式并禁用接收器。因此，该 V1.3
 开发板可能无法进行接收操作。
 

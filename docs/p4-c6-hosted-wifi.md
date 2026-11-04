@@ -25,7 +25,7 @@ and slave protocol stack.
 | --- | --- | --- | --- | --- | --- |
 | `examples/esp-idf/wifi-station` | ESP-IDF v5.5.5 | `esp_wifi_remote` 1.6.3, `esp_hosted` 2.12.11 | Not identified in this repository | CI target; consult the workflow result | Not verified |
 | `examples/esp-idf/wifi-station` | ESP-IDF v6.0.2 | `esp_wifi_remote` 1.6.3, `esp_hosted` 2.12.11 | Not identified in this repository | CI target; consult the workflow result | Not verified |
-| `firmware/brookesia` | ESP-IDF v5.5.5 | Same pinned 2.x host line | Not identified in this repository | CI target; consult the workflow result | Not verified |
+| `examples/factory` | ESP-IDF v5.5.5 | Same pinned 2.x host line | Not identified in this repository | CI target; consult the workflow result | Not verified |
 | `examples/arduino/GFX_ESPWiFiAnalyzer` | Arduino-ESP32 3.3.11 | Hosted support bundled by the Arduino core; do not assume managed-component versions | Not identified in this repository | Arduino CI target | Not verified |
 
 “CI target” is not a claim that the current commit has passed. A GitHub Actions

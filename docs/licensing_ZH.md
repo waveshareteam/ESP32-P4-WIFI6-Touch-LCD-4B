@@ -17,7 +17,7 @@
 
 不要通过复制下列任一位置的许可证来添加 `LICENSE.txt`：
 
-- `firmware/brookesia/components/brookesia_core/license.txt`。
+- `examples/factory/components/brookesia_core/license.txt`。
 - Waveshare BSP 或驱动包。
 - GFX Library for Arduino 或 LVGL。
 - Xiaozhi 第三方代码。
@@ -64,7 +64,7 @@ ST7703 2.0.0 材料需要上游澄清：其组件清单标识为 MIT，提供的
 - 再分发字体二进制文件或生成数组时，保留字体许可证和声明。
 - 记录应用图标及其他图稿的来源和许可证。
 
-已提交的定版 Brookesia rev3_x 镜像在 `../THIRD_PARTY_NOTICES_ZH.md` 中有精确发布清单，记录了
+已提交的定版 Brookesia rev3_x 镜像在 `THIRD_PARTY_NOTICES_ZH.md` 中有精确发布清单，记录了
 `78/xiaozhi-fonts` 1.6.0、`espressif/esp-sr` 2.4.7、`lvgl/lvgl` 9.4.0、Xiaozhi
 提示音来源提交以及相关本地组件声明。为 `xiaozhi-fonts` 记录的 Registry 元数据不会创建额外下游许可；
 后续重建必须按新解析的软件包与负载重新审阅。
@@ -76,7 +76,7 @@ ST7703 2.0.0 材料需要上游澄清：其组件清单标识为 MIT，提供的
 1. 记录项目所有者是否选择仓库范围许可证；未选择时不授予一般下游权限。
 2. 在分发前解决、移除，或明确保留并上报条款未知或冲突的文件。
 3. 保留所有逐文件 SPDX 文件头和捆绑许可证文件。
-4. 使用分发中包含的精确版本和材料更新 `../THIRD_PARTY_NOTICES.md`。
+4. 使用分发中包含的精确版本和材料更新 `THIRD_PARTY_NOTICES.md`。
 5. 审查生成的固件是否存在链接组件的声明义务。
 6. 将硬件文档和媒体与源代码分开审查。
 7. 确认公开文本或产物中不含本地路径、凭据或用户数据。

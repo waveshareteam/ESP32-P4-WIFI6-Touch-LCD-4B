@@ -23,7 +23,7 @@ material whose individual terms are absent.
 
 Do not add `LICENSE.txt` by copying a license from any of these locations:
 
-- `firmware/brookesia/components/brookesia_core/license.txt`.
+- `examples/factory/components/brookesia_core/license.txt`.
 - A Waveshare BSP or driver package.
 - GFX Library for Arduino or LVGL.
 - Xiaozhi third-party code.
@@ -92,7 +92,7 @@ source code. In particular:
 - Record the source and license for application icons and other artwork.
 
 The dated checked-in Brookesia rev3_x image has an exact release inventory in
-`../THIRD_PARTY_NOTICES.md`. It records `78/xiaozhi-fonts` 1.6.0,
+`THIRD_PARTY_NOTICES.md`. It records `78/xiaozhi-fonts` 1.6.0,
 `espressif/esp-sr` 2.4.7, `lvgl/lvgl` 9.4.0, the Xiaozhi prompt source commit,
 and the relevant local component notices. The Registry metadata recorded for
 `xiaozhi-fonts` does not create an additional downstream license; rebuilds must
@@ -107,7 +107,7 @@ A file being usable at runtime does not establish permission to distribute it.
 2. Resolve, remove, or explicitly preserve and escalate files with unknown or
    conflicting terms before distributing them.
 3. Preserve all per-file SPDX headers and bundled license files.
-4. Update `../THIRD_PARTY_NOTICES.md` with the exact versions and materials
+4. Update `THIRD_PARTY_NOTICES.md` with the exact versions and materials
    included in the distribution.
 5. Review generated firmware for linked-component notice obligations.
 6. Review hardware documents and media separately from source code.

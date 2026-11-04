@@ -2,14 +2,14 @@
 
 [English](README.md) · [简体中文](README_ZH.md)
 
-`hardware/dimensions/` contains the mechanical files extracted from the
+`hardware/mechanical/` contains the mechanical files extracted from the
 official ESP32-P4-WIFI6-Touch-LCD-4B 2D resource archive retrieved on
 2026-07-30.
 
 | File | Format | Purpose |
 | --- | --- | --- |
-| `dimensions/ESP32-P4-WIFI6-Touch-LCD-4B.dxf` | DXF | CAD/mechanical reference |
-| `dimensions/ESP32-P4-WIFI6-Touch-LCD-4B.pdf` | PDF | Human-readable 2D drawing |
+| `mechanical/ESP32-P4-WIFI6-Touch-LCD-4B-Dimensions.dxf` | DXF | CAD/mechanical reference |
+| `mechanical/ESP32-P4-WIFI6-Touch-LCD-4B-Dimensions.pdf` | PDF | Human-readable 2D drawing |
 
 The original archive URL, archive hash, and extracted-file hashes are recorded
 in `../docs/sources.md`.
@@ -18,7 +18,7 @@ in `../docs/sources.md`.
 
 These files describe dimensions; they are not substitutes for electrical
 schematics, PCB source, manufacturing data, or a verified enclosure model. Use
-`../schematic/` for circuit review and `../docs/board.md` for the maintained
+`schematic/` for circuit review and `../docs/board.md` for the maintained
 pin map.
 
 Before manufacturing an enclosure or panel:

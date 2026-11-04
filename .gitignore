@@ -1,6 +1,14 @@
 # Local workspace state
 .agents/
 .codex/
+.claude/
+.cursor/
+.gemini/
+.windsurf/
+.continue/
+.roo/
+.cline/
+.aider*
 __pycache__/
 *.py[cod]
 
@@ -12,7 +20,7 @@ sdkconfig
 sdkconfig.old
 managed_components/
 examples/esp-idf/**/dependencies.lock
-firmware/brookesia/dependencies.lock
+examples/factory/dependencies.lock
 
 # Generated release output
 release-artifacts/

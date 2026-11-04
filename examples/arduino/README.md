@@ -66,7 +66,7 @@ without touch instead of aborting. Coordinate behavior still requires board test
 
 ## Bundled libraries
 
-- `displays/` — board display/touch/I2C configuration and drivers (ST7703 DSI init,
+- `board_config/` — board display/touch/I2C configuration and drivers (ST7703 DSI init,
   GT911 touch, non-blocking serial log)
 - `GFX_Library_for_Arduino` — Arduino_GFX with ESP32-P4 MIPI-DSI panel support
 - `lvgl` + `lv_conf.h` — LVGL 9 for the `04_LVGLV9_Arduino` sketch
