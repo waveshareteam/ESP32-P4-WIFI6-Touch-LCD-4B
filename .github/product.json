@@ -18,7 +18,11 @@
           "category": "first_party_wrapper",
           "patterns": [
             "examples/factory/components/esp32_p4_wifi6_touch_lcd_4b/README.md",
-            "examples/factory/components/esp32_p4_wifi6_touch_lcd_4b/README_ZH.md"
+            "examples/factory/components/esp32_p4_wifi6_touch_lcd_4b/README_ZH.md",
+            "examples/factory/tools/README.md",
+            "examples/factory/tools/README_ZH.md",
+            "examples/arduino/libraries/board_config/README.md",
+            "examples/arduino/libraries/board_config/README_ZH.md"
           ]
         }
       ]
