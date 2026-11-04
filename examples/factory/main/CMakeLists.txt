@@ -1,6 +1,19 @@
 idf_component_register(
     SRCS "main.cpp"
-    INCLUDE_DIRS ".")
+    INCLUDE_DIRS "."
+    REQUIRES
+        bsp_extra
+        brookesia_core
+        brookesia_app_calculator
+        Camera
+        HardwareApps
+        MusicPlayer
+        Settings
+        SpecAnalyzer
+        VideoPlayer
+        XiaozhiApp
+        draw
+        factory_diagnostics)
 
 target_compile_options(${COMPONENT_LIB} PUBLIC -Wno-missing-field-initializers)
 

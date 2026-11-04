@@ -25,6 +25,7 @@
 #include "esp_wifi.h"
 
 #include "bsp_board_extra.h"
+#include "factory_diagnostics.hpp"
 
 #include "Drawpanel.hpp"
 #include "SpecAnalyzer.hpp"
@@ -422,7 +423,7 @@ extern "C" void app_main(void)
     bsp_display_cfg_t cfg = {
         .lv_adapter_cfg = ESP_LV_ADAPTER_DEFAULT_CONFIG(),
         .rotation = ESP_LV_ADAPTER_ROTATE_0,
-        .tear_avoid_mode = ESP_LV_ADAPTER_TEAR_AVOID_MODE_TRIPLE_PARTIAL,
+        .tear_avoid_mode = ESP_LV_ADAPTER_TEAR_AVOID_MODE_DOUBLE_DIRECT,
         .touch_flags = {
             .swap_xy = 0,
             .mirror_x = 0,
@@ -573,6 +574,24 @@ extern "C" void app_main(void)
         ESP_UTILS_CHECK_FALSE_EXIT(phone->installApp(xiaozhi_app), "Start Xiaozhi failed");
     }
 
+    const factory_diagnostics_app_t factory_apps[] = {
+        {"calculator", esp_brookesia::apps::Calculator::requestInstance()},
+        {"draw", esp_brookesia::apps::Drawpanel::requestInstance()},
+        {"spectrum", esp_brookesia::apps::SpecAnalyzer::requestInstance()},
+        {"music", esp_brookesia::apps::MusicPlayer::requestInstance()},
+        {"camera", esp_brookesia::apps::Camera::requestInstance()},
+        {"video", esp_brookesia::apps::VideoPlayer::requestInstance()},
+        {"settings", esp_brookesia::apps::Settings::requestInstance()},
+        {"xiaozhi", esp_brookesia::apps::XiaozhiApp::requestInstance()},
+        {"ethernet", esp_brookesia::apps::EthernetInfo::requestInstance()},
+        {"relay", esp_brookesia::apps::RelayControl::requestInstance()},
+        {"rs485", esp_brookesia::apps::RS485Terminal::requestInstance()},
+    };
+    err = factory_diagnostics_start(phone, factory_apps, sizeof(factory_apps) / sizeof(factory_apps[0]));
+    if (err != ESP_OK) {
+        ESP_LOGW(ESP_UTILS_LOG_TAG, "Factory diagnostics unavailable: %s", esp_err_to_name(err));
+    }
+
     register_wifi_status_events();
 
     {
@@ -590,7 +609,9 @@ extern "C" void app_main(void)
             localtime_r(&now, &timeinfo);
 
             ESP_UTILS_CHECK_FALSE_EXIT(
-                phone->getDisplay().getStatusBar()->setClock(timeinfo.tm_hour, timeinfo.tm_min),
+                phone->getDisplay().getStatusBar()->setClockWithSeconds(
+                    timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec
+                ),
                 "Refresh status bar failed"
             );
 
