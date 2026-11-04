@@ -91,3 +91,7 @@ copyright permission, runtime compatibility, or hardware correctness. Imported
 code is being normalized and may differ from the ZIP after repository
 maintenance. See `docs/licensing.md` for redistribution boundaries. The shared
 Build workflow checks compilation but does not prove hardware behavior.
+
+## Factory music samples
+
+The five MP3 files in `examples/factory/spiffs/music/` are copied unchanged from the [reference product factory assets](https://github.com/waveshareteam/ESP32-P4-Knob-Touch-AMOLED-1.75/tree/0f9fc4c2edcadbc2527c51ce351031ac8db0326c/examples/factory/spiffs/music). No generated test audio is included.

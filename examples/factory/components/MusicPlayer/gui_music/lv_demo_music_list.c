@@ -41,6 +41,7 @@ static lv_style_t style_button_dis;
 static lv_style_t style_title;
 static lv_style_t style_artist;
 static lv_style_t style_time;
+static bool styles_initialized;
 LV_IMAGE_DECLARE(img_lv_demo_music_btn_list_play);
 LV_IMAGE_DECLARE(img_lv_demo_music_btn_list_pause);
 
@@ -109,6 +110,7 @@ lv_obj_t * lv_demo_music_list_create(lv_obj_t * parent)
     lv_style_init(&style_time);
     lv_style_set_text_font(&style_time, font_medium);
     lv_style_set_text_color(&style_time, lv_color_hex(0xffffff));
+    styles_initialized = true;
 
     /*Create an empty transparent container*/
     list = lv_obj_create(parent);
@@ -227,6 +229,9 @@ static void list_delete_event_cb(lv_event_t * e)
     lv_event_code_t code = lv_event_get_code(e);
 
     if(code == LV_EVENT_DELETE) {
+        if (!styles_initialized) {
+            return;
+        }
         lv_style_reset(&style_scrollbar);
         lv_style_reset(&style_btn);
         lv_style_reset(&style_button_pr);
@@ -235,18 +240,15 @@ static void list_delete_event_cb(lv_event_t * e)
         lv_style_reset(&style_title);
         lv_style_reset(&style_artist);
         lv_style_reset(&style_time);
+        styles_initialized = false;
+        list = NULL;
     }
 }
 void lv_demo_music_list_close(void)
 {
-    lv_style_reset(&style_scrollbar);
-    lv_style_reset(&style_btn);
-    lv_style_reset(&style_button_pr);
-    lv_style_reset(&style_button_chk);
-    lv_style_reset(&style_button_dis);
-    lv_style_reset(&style_title);
-    lv_style_reset(&style_artist);
-    lv_style_reset(&style_time);
+    /* The list owns styles attached to its children. Its delete callback releases
+     * them after lv_obj_clean(), avoiding a second reset on app recreation. */
+    list = NULL;
 }
 
 

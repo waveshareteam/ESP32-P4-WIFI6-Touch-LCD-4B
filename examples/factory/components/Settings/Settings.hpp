@@ -25,6 +25,14 @@ namespace esp_brookesia::apps
     {
     public:
         static Settings *requestInstance(bool use_status_bar = true, bool use_navigation_bar = false);
+        /**
+         * @brief Open the WLAN page for an app that needs a network connection.
+         *
+         * When the station receives an IPv4 address, the requesting app is resumed.
+         * Leaving the WLAN page manually cancels that return request.
+         * This must be called from the LVGL task.
+         */
+        static bool openWlan(int return_app_id);
         ~Settings();
         bool run(void) override;
         void showRootPage();
@@ -61,6 +69,10 @@ namespace esp_brookesia::apps
         void event_handler(lv_event_t *e);
         void open_page(const char *page_name);
         void close_active_page();
+        void open_requested_wlan();
+        void check_wlan_return();
+
+        static void wlan_return_timer_cb(lv_timer_t *timer);
 
         esp_err_t initWifi();
 
@@ -73,6 +85,7 @@ namespace esp_brookesia::apps
         lv_style_t style_list_text;
         lv_style_t style_list_btn_pressed;
         ActivePage active_page;
+        lv_timer_t *wlan_return_timer = nullptr;
     };
 
 } // namespace esp_brookesia::apps

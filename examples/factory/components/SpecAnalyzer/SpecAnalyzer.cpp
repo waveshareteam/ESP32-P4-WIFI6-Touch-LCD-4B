@@ -9,7 +9,9 @@
 #define ESP_UTILS_LOG_TAG "BS:SpecAnalyzer"
 #include "esp_lib_utils.h"
 #include "SpecAnalyzer.hpp"
+#include <algorithm>
 #include <cmath>
+#include <cstdio>
 #define APP_NAME "SpecAnalyzer"
 
 using namespace std;
@@ -37,9 +39,12 @@ SpecAnalyzer::SpecAnalyzer(bool use_status_bar, bool use_navigation_bar) :
     App(APP_NAME, &img_app_specanalyzer, true, use_status_bar, use_navigation_bar),
     _canvas(nullptr),
     _mic_label(nullptr),
+    _mic_value_labels{nullptr, nullptr},
+    _page_dots{nullptr, nullptr},
     _timer(nullptr),
     _audio_task_handle(nullptr),
     _audio_task_running(false),
+    _page(Page::MIC_TEST),
     _draw_buf(nullptr)
 {
     // Clear DSP state so the first rendered frame starts from silence.
@@ -50,6 +55,11 @@ SpecAnalyzer::SpecAnalyzer(bool use_status_bar, bool use_navigation_bar) :
     memset(_display_spectrum, 0, sizeof(_display_spectrum));
     memset(_peak, 0, sizeof(_peak));
     memset(_smooth_spectrum, 0, sizeof(_smooth_spectrum));
+    for (int ch = 0; ch < MIC_COUNT; ++ch) {
+        _rms_db[ch] = -90.0f;
+        _peak_dbfs[ch] = -90.0f;
+        _silent_hops[ch] = 0;
+    }
 }
 
 SpecAnalyzer::~SpecAnalyzer()
@@ -64,6 +74,7 @@ bool SpecAnalyzer::run(void)
     lv_obj_t *scr = lv_scr_act();
     lv_obj_set_style_bg_color(scr, lv_color_black(), LV_PART_MAIN);
     lv_obj_set_style_bg_opa(scr, LV_OPA_COVER, LV_PART_MAIN);
+    lv_obj_remove_flag(scr, LV_OBJ_FLAG_SCROLLABLE);
 
     // Prefer PSRAM for the large canvas buffer and fall back to SRAM if PSRAM is exhausted.
     size_t buf_size = CANVAS_WIDTH * CANVAS_HEIGHT * sizeof(lv_color_t);
@@ -91,6 +102,9 @@ bool SpecAnalyzer::run(void)
     lv_obj_set_size(_canvas, CANVAS_WIDTH, CANVAS_HEIGHT);
     lv_obj_align(_canvas, LV_ALIGN_CENTER, 0, 0);
     lv_canvas_set_buffer(_canvas, _draw_buf, CANVAS_WIDTH, CANVAS_HEIGHT, LV_COLOR_FORMAT_RGB565);
+    lv_obj_add_flag(_canvas, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_remove_flag(_canvas, LV_OBJ_FLAG_SCROLLABLE | LV_OBJ_FLAG_GESTURE_BUBBLE);
+    lv_obj_add_event_cb(_canvas, canvas_event_cb, LV_EVENT_GESTURE, this);
 
     // Initialize the ESP-DSP radix-2 FFT tables once before the audio task starts.
     esp_err_t ret = dsps_fft2r_init_fc32(NULL, CONFIG_DSP_MAX_FFT_SIZE);
@@ -152,12 +166,24 @@ bool SpecAnalyzer::run(void)
     }
 
     _mic_label = lv_label_create(scr);
-    lv_label_set_text(_mic_label, _audio_task_running ? "Mic 1 / Mic 2" : "Mic unavailable");
-    lv_obj_set_style_text_color(_mic_label, lv_color_hex(0x00BFFF), LV_PART_MAIN);
-    lv_obj_set_style_bg_color(_mic_label, lv_color_hex(0x222222), LV_PART_MAIN);
-    lv_obj_set_style_bg_opa(_mic_label, LV_OPA_70, LV_PART_MAIN);
-    lv_obj_set_style_pad_all(_mic_label, 6, LV_PART_MAIN);
-    lv_obj_align_to(_mic_label, _canvas, LV_ALIGN_TOP_LEFT, 20, 12);
+    lv_label_set_text(_mic_label, "Microphone test");
+    lv_obj_set_style_text_font(_mic_label, &lv_font_montserrat_30, LV_PART_MAIN);
+    lv_obj_set_style_text_color(_mic_label, lv_color_hex(0xF7F9FA), LV_PART_MAIN);
+    lv_obj_align_to(_mic_label, _canvas, LV_ALIGN_TOP_LEFT, 30, 22);
+    for (int ch = 0; ch < MIC_COUNT; ++ch) {
+        _mic_value_labels[ch] = lv_label_create(scr);
+        lv_obj_set_width(_mic_value_labels[ch], CANVAS_WIDTH - 100);
+        lv_obj_set_style_text_font(_mic_value_labels[ch], &lv_font_montserrat_24, LV_PART_MAIN);
+        lv_obj_set_style_text_color(_mic_value_labels[ch], ch == 0 ? lv_color_hex(0x28D7FF) : lv_color_hex(0xFFB347), LV_PART_MAIN);
+        lv_obj_align_to(_mic_value_labels[ch], _canvas, LV_ALIGN_TOP_LEFT, 50, 126 + ch * 112);
+    }
+    for (int i = 0; i < 2; ++i) {
+        _page_dots[i] = lv_label_create(scr);
+        lv_label_set_text(_page_dots[i], LV_SYMBOL_BULLET);
+        lv_obj_set_style_text_font(_page_dots[i], &lv_font_montserrat_24, LV_PART_MAIN);
+        lv_obj_align_to(_page_dots[i], _canvas, LV_ALIGN_BOTTOM_MID, (i == 0 ? -13 : 13), -10);
+    }
+    setPage(Page::MIC_TEST);
 
     return true;
 }
@@ -188,6 +214,18 @@ bool SpecAnalyzer::close(void)
     if (_mic_label) {
         lv_obj_del(_mic_label);
         _mic_label = nullptr;
+    }
+    for (int ch = 0; ch < MIC_COUNT; ++ch) {
+        if (_mic_value_labels[ch]) {
+            lv_obj_del(_mic_value_labels[ch]);
+            _mic_value_labels[ch] = nullptr;
+        }
+    }
+    for (auto &dot : _page_dots) {
+        if (dot) {
+            lv_obj_del(dot);
+            dot = nullptr;
+        }
     }
 
     if (_draw_buf) {
@@ -224,7 +262,7 @@ bool SpecAnalyzer::pause()
 
     (void)bsp_extra_codec_dev_stop();
     if (_mic_label) {
-        lv_label_set_text(_mic_label, "Mic paused");
+        lv_label_set_text(_mic_label, "Microphone paused");
     }
     return true;
 }
@@ -253,9 +291,7 @@ bool SpecAnalyzer::resume()
             "Restore dual TDM microphone capture failed: %s",
             esp_err_to_name(ret)
         );
-        if (_mic_label) {
-            lv_label_set_text(_mic_label, "Mic unavailable");
-        }
+        if (_mic_label) lv_label_set_text(_mic_label, "Microphone unavailable");
         return false;
     }
 
@@ -272,15 +308,11 @@ bool SpecAnalyzer::resume()
     if (task_ret != pdPASS) {
         _audio_task_running = false;
         (void)bsp_extra_codec_dev_stop();
-        if (_mic_label) {
-            lv_label_set_text(_mic_label, "Mic unavailable");
-        }
+        if (_mic_label) lv_label_set_text(_mic_label, "Microphone unavailable");
         return false;
     }
 
-    if (_mic_label) {
-        lv_label_set_text(_mic_label, "Mic 1 / Mic 2");
-    }
+    if (_mic_label) lv_label_set_text(_mic_label, "Microphone test");
     if (_timer) {
         lv_timer_resume(_timer);
     }
@@ -353,11 +385,23 @@ void SpecAnalyzer::audio_fft_task(void *pvParameters)
 
         const size_t samples_read = bytes_read / sizeof(int16_t);
         for (int ch = 0; ch < MIC_COUNT; ch++) {
+            float sum_squares = 0.0f;
+            float peak = 0.0f;
             for (int i = 0; i < N_SAMPLES; i++) {
                 size_t sample_index = i * CAPTURE_CHANNELS + mic_slot_indices[ch];
                 app->_audio_buffer[ch][i] = (sample_index < samples_read) ?
                                             (app->_raw_data[sample_index] / 32768.0f) : 0.0f;
+                const float magnitude = fabsf(app->_audio_buffer[ch][i]);
+                sum_squares += magnitude * magnitude;
+                peak = fmaxf(peak, magnitude);
             }
+            const float rms = sqrtf(sum_squares / N_SAMPLES);
+            app->_rms_db[ch] = fmaxf(-90.0f, 20.0f * log10f(rms + 1e-6f));
+            app->_peak_dbfs[ch] = fmaxf(-90.0f, 20.0f * log10f(peak + 1e-6f));
+            // Only an all-zero DMA frame is absence of data. A quiet room is still a
+            // valid microphone signal and must keep reporting its measured level.
+            app->_silent_hops[ch] = peak == 0.0f ?
+                                    static_cast<uint8_t>(std::min(255, app->_silent_hops[ch] + 1)) : 0;
         }
 
         for (int ch = 0; ch < MIC_COUNT; ch++) {
@@ -408,6 +452,12 @@ void SpecAnalyzer::timer_cb(lv_timer_t *timer)
     lv_layer_t layer;
     lv_canvas_init_layer(app->_canvas, &layer);
     lv_canvas_fill_bg(app->_canvas, lv_color_black(), LV_OPA_COVER);
+
+    if (app->_page == Page::MIC_TEST) {
+        app->renderMicTest(&layer);
+        lv_canvas_finish_layer(app->_canvas, &layer);
+        return;
+    }
 
     const int side_margin = 20;
     const int channel_gap = 24;
@@ -507,6 +557,98 @@ void SpecAnalyzer::timer_cb(lv_timer_t *timer)
     }
 
     lv_canvas_finish_layer(app->_canvas, &layer);
+}
+
+void SpecAnalyzer::setPage(Page page)
+{
+    _page = page;
+    const bool mic_test = page == Page::MIC_TEST;
+    if (_mic_label) {
+        lv_label_set_text(_mic_label, mic_test ? "Microphone test" : "Dual spectrum");
+    }
+    for (int ch = 0; ch < MIC_COUNT; ++ch) {
+        if (_mic_value_labels[ch]) {
+            if (mic_test) {
+                lv_obj_clear_flag(_mic_value_labels[ch], LV_OBJ_FLAG_HIDDEN);
+            } else {
+                lv_obj_add_flag(_mic_value_labels[ch], LV_OBJ_FLAG_HIDDEN);
+            }
+        }
+    }
+    for (int i = 0; i < 2; ++i) {
+        if (_page_dots[i]) {
+            lv_obj_set_style_text_color(_page_dots[i],
+                                        (static_cast<int>(page) == i) ? lv_color_hex(0x27C1A8) : lv_color_hex(0x5A646B),
+                                        LV_PART_MAIN);
+        }
+    }
+}
+
+void SpecAnalyzer::canvas_event_cb(lv_event_t *event)
+{
+    if (lv_event_get_code(event) != LV_EVENT_GESTURE) {
+        return;
+    }
+    SpecAnalyzer *app = static_cast<SpecAnalyzer *>(lv_event_get_user_data(event));
+    lv_indev_t *indev = lv_indev_active();
+    const lv_dir_t direction = indev ? lv_indev_get_gesture_dir(indev) : LV_DIR_NONE;
+    if (app && (direction == LV_DIR_LEFT || direction == LV_DIR_RIGHT)) {
+        app->setPage(app->_page == Page::MIC_TEST ? Page::SPECTRUM : Page::MIC_TEST);
+    }
+}
+
+void SpecAnalyzer::renderMicTest(lv_layer_t *layer)
+{
+    constexpr int CARD_MARGIN_X = 28;
+    constexpr int CARD_HEIGHT = 86;
+    constexpr int CARD_TOP[] = {88, 196};
+    const lv_color_t accents[MIC_COUNT] = {lv_color_hex(0x28D7FF), lv_color_hex(0xFFB347)};
+
+    for (int ch = 0; ch < MIC_COUNT; ++ch) {
+        lv_draw_rect_dsc_t card;
+        lv_draw_rect_dsc_init(&card);
+        card.bg_color = lv_color_hex(0x171C21);
+        card.bg_opa = LV_OPA_COVER;
+        card.border_color = accents[ch];
+        card.border_width = 2;
+        card.radius = 14;
+        const lv_area_t area = {
+            .x1 = CARD_MARGIN_X,
+            .y1 = CARD_TOP[ch],
+            .x2 = CANVAS_WIDTH - CARD_MARGIN_X,
+            .y2 = CARD_TOP[ch] + CARD_HEIGHT,
+        };
+        lv_draw_rect(layer, &card, &area);
+
+        lv_draw_rect_dsc_t meter;
+        lv_draw_rect_dsc_init(&meter);
+        meter.bg_opa = LV_OPA_COVER;
+        meter.bg_color = lv_color_hex(0x29333B);
+        meter.radius = LV_RADIUS_CIRCLE;
+        const lv_area_t meter_bg = {
+            .x1 = CARD_MARGIN_X + 22, .y1 = CARD_TOP[ch] + 66,
+            .x2 = CANVAS_WIDTH - CARD_MARGIN_X - 22, .y2 = CARD_TOP[ch] + 73,
+        };
+        lv_draw_rect(layer, &meter, &meter_bg);
+
+        const float level = std::clamp((_rms_db[ch] + 70.0f) / 70.0f, 0.0f, 1.0f);
+        meter.bg_color = accents[ch];
+        lv_area_t meter_value = meter_bg;
+        meter_value.x2 = meter_value.x1 + static_cast<lv_coord_t>((meter_bg.x2 - meter_bg.x1) * level);
+        if (meter_value.x2 > meter_value.x1) {
+            lv_draw_rect(layer, &meter, &meter_value);
+        }
+
+        if (_mic_value_labels[ch]) {
+            const char *state = _silent_hops[ch] >= 30 ? "No data" :
+                                _peak_dbfs[ch] >= -1.0f ? "Clip" :
+                                _rms_db[ch] <= -55.0f ? "Quiet" : "OK";
+            char text[96];
+            snprintf(text, sizeof(text), "MIC %d  RMS %+.1f dBFS  Pk %+.1f  %s", ch + 1,
+                     static_cast<double>(_rms_db[ch]), static_cast<double>(_peak_dbfs[ch]), state);
+            lv_label_set_text(_mic_value_labels[ch], text);
+        }
+    }
 }
 
 } // namespace esp_brookesia::apps

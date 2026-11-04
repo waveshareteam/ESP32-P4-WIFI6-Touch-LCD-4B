@@ -46,11 +46,19 @@ namespace esp_brookesia::apps
         static constexpr uint16_t CANVAS_WIDTH = BSP_LCD_H_RES;
         static constexpr uint16_t CANVAS_HEIGHT = (BSP_LCD_V_RES >= 720) ? 360 : (BSP_LCD_V_RES / 2);
 
+        enum class Page : uint8_t {
+            MIC_TEST = 0,
+            SPECTRUM,
+        };
+
         lv_obj_t *_canvas;
         lv_obj_t *_mic_label;
+        lv_obj_t *_mic_value_labels[MIC_COUNT];
+        lv_obj_t *_page_dots[2];
         lv_timer_t *_timer;
         TaskHandle_t _audio_task_handle;
         bool _audio_task_running;
+        Page _page;
 
         // Dual-microphone visualization buffers.
         __attribute__((aligned(16))) int16_t _raw_data[N_SAMPLES * CAPTURE_CHANNELS]; // Packed microphone samples
@@ -61,10 +69,16 @@ namespace esp_brookesia::apps
         float _display_spectrum[MIC_COUNT][STRIPE_COUNT];                         // Mapped spectrum for bars
         float _peak[MIC_COUNT][STRIPE_COUNT];                                     // Peak marker position
         float _smooth_spectrum[MIC_COUNT][STRIPE_COUNT];                          // Smoothed display values
+        float _rms_db[MIC_COUNT];                                                  // Latest unwindowed signal RMS
+        float _peak_dbfs[MIC_COUNT];                                               // Latest unwindowed sample peak
+        uint8_t _silent_hops[MIC_COUNT];
 
         lv_color_t *_draw_buf; // PSRAM-preferred canvas draw buffer
 
         static void audio_fft_task(void *pvParameters);
         static void timer_cb(lv_timer_t *timer);
+        static void canvas_event_cb(lv_event_t *event);
+        void setPage(Page page);
+        void renderMicTest(lv_layer_t *layer);
     };
 }

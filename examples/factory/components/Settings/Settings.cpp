@@ -35,6 +35,20 @@ namespace esp_brookesia::apps
 {
     static bool s_time_sync_started = false;
     static bool s_time_synced = false;
+    static bool s_wlan_open_requested = false;
+    static int s_wlan_return_app = -1;
+    static uint8_t s_wlan_connected_ticks = 0;
+    constexpr uint8_t WLAN_RETURN_DELAY_TICKS = 2;
+
+    static bool wifi_has_ipv4()
+    {
+        esp_netif_t *netif = esp_netif_get_handle_from_ifkey("WIFI_STA_DEF");
+        if (!netif) {
+            return false;
+        }
+        esp_netif_ip_info_t info = {};
+        return esp_netif_get_ip_info(netif, &info) == ESP_OK && info.ip.addr != 0;
+    }
 
     static void time_sync_notification_cb(struct timeval *tv)
     {
@@ -80,6 +94,25 @@ namespace esp_brookesia::apps
             _instance = new Settings(use_status_bar, use_navigation_bar);
         }
         return _instance;
+    }
+
+    bool Settings::openWlan(int return_app_id)
+    {
+        Settings *settings = requestInstance();
+        systems::base::Context *context = settings->getSystemContext();
+        if (context == nullptr || return_app_id < 0) {
+            return false;
+        }
+
+        s_wlan_open_requested = true;
+        s_wlan_return_app = return_app_id;
+        s_wlan_connected_ticks = 0;
+        const systems::base::Context::AppEventData event = {
+            .id = settings->getId(),
+            .type = systems::base::Context::AppEventType::START,
+            .data = nullptr,
+        };
+        return context->sendAppEvent(&event);
     }
 
     Settings::Settings(bool use_status_bar, bool use_navigation_bar)
@@ -211,6 +244,53 @@ namespace esp_brookesia::apps
         }
     }
 
+    void Settings::open_requested_wlan()
+    {
+        if (!s_wlan_open_requested || page_root == nullptr) {
+            return;
+        }
+        s_wlan_open_requested = false;
+        if (active_page != ActivePage::Wlan) {
+            close_active_page();
+            open_page("WLAN");
+        }
+    }
+
+    void Settings::check_wlan_return()
+    {
+        if (s_wlan_return_app < 0 || !wifi_has_ipv4()) {
+            s_wlan_connected_ticks = 0;
+            return;
+        }
+        if (++s_wlan_connected_ticks < WLAN_RETURN_DELAY_TICKS) {
+            return;
+        }
+
+        const int return_app = s_wlan_return_app;
+        s_wlan_return_app = -1;
+        s_wlan_connected_ticks = 0;
+        systems::base::Context *context = getSystemContext();
+        if (!context) {
+            return;
+        }
+        const systems::base::Context::AppEventData event = {
+            .id = return_app,
+            .type = systems::base::Context::AppEventType::START,
+            .data = nullptr,
+        };
+        if (!context->sendAppEvent(&event)) {
+            ESP_UTILS_LOGW("Return to network requester failed");
+        }
+    }
+
+    void Settings::wlan_return_timer_cb(lv_timer_t *timer)
+    {
+        Settings *instance = static_cast<Settings *>(lv_timer_get_user_data(timer));
+        if (instance != nullptr) {
+            instance->check_wlan_return();
+        }
+    }
+
     void Settings::close_active_page()
     {
         switch (active_page)
@@ -280,6 +360,10 @@ namespace esp_brookesia::apps
         {
             create_settings_ui();
         }
+        if (wlan_return_timer == nullptr) {
+            wlan_return_timer = lv_timer_create(wlan_return_timer_cb, 500, this);
+        }
+        open_requested_wlan();
         return true;
     }
 
@@ -288,6 +372,10 @@ namespace esp_brookesia::apps
         ESP_UTILS_LOGD("Back");
         if (active_page != ActivePage::None)
         {
+            if (active_page == ActivePage::Wlan) {
+                s_wlan_return_app = -1;
+                s_wlan_connected_ticks = 0;
+            }
             showRootPage();
             return true;
         }
@@ -299,6 +387,13 @@ namespace esp_brookesia::apps
         ESP_UTILS_LOGD("Close");
         close_active_page();
         destroy_settings_ui();
+        s_wlan_open_requested = false;
+        s_wlan_return_app = -1;
+        s_wlan_connected_ticks = 0;
+        if (wlan_return_timer != nullptr) {
+            lv_timer_delete(wlan_return_timer);
+            wlan_return_timer = nullptr;
+        }
         return true;
     }
 
@@ -324,6 +419,7 @@ namespace esp_brookesia::apps
     bool Settings::resume()
     {
         ESP_UTILS_LOGD("Resume");
+        open_requested_wlan();
         return true;
     }
 

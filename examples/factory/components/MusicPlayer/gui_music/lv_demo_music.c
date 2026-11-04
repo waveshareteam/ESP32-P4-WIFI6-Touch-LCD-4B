@@ -12,6 +12,8 @@
 
 #include "lv_demo_music_main.h"
 #include "lv_demo_music_list.h"
+#include <stdio.h>
+#include <string.h>
 
 /*********************
  *      DEFINES
@@ -33,87 +35,74 @@ static void auto_step_cb(lv_timer_t *timer);
  **********************/
 static lv_obj_t *ctrl;
 static lv_obj_t *list;
-
-static const char *title_list[] = {
-    "Waiting for true love",
-    "Need a Better Future",
-    "Vibrations",
-    "Why now?",
-    "Never Look Back",
-    "It happened Yesterday",
-    "Feeling so High",
-    "Go Deeper",
-    "Find You There",
-    "Until the End",
-    "Unknown",
-    "Unknown",
-    "Unknown",
-    "Unknown",
-};
-
-static const char *artist_list[] = {
-    "The John Smith Band",
-    "My True Name",
-    "Robotics",
-    "John Smith",
-    "My True Name",
-    "Robotics",
-    "Robotics",
-    "Unknown artist",
-    "Unknown artist",
-    "Unknown artist",
-    "Unknown artist",
-    "Unknown artist",
-    "Unknown artist",
-    "Unknown artist",
-    "Unknown artist",
-};
-
-static const char *genre_list[] = {
-    "Rock - 1997",
-    "Drum'n bass - 2016",
-    "Psy trance - 2020",
-    "Metal - 2015",
-    "Metal - 2015",
-    "Metal - 2015",
-    "Metal - 2015",
-    "Metal - 2015",
-    "Metal - 2015",
-    "Metal - 2015",
-    "Metal - 2015",
-    "Metal - 2015",
-    "Metal - 2015",
-    "Metal - 2015",
-};
-
-static const uint32_t time_list[] = {
-    1 * 60 + 14,
-    2 * 60 + 26,
-    1 * 60 + 54,
-    2 * 60 + 24,
-    2 * 60 + 37,
-    3 * 60 + 33,
-    1 * 60 + 56,
-    3 * 60 + 31,
-    2 * 60 + 20,
-    2 * 60 + 19,
-    2 * 60 + 20,
-    2 * 60 + 19,
-    2 * 60 + 20,
-    2 * 60 + 19,
-};
+static lv_obj_t *music_parent;
 
 #if APP_DEMO_MUSIC_AUTO_PLAY
 static lv_timer_t *auto_step_timer;
 #endif
 
 static lv_color_t original_screen_bg_color;
+static bool music_active;
+
+#define MUSIC_BACKGROUND_COLOR 0x0B0B12
 
 static uint32_t active_track_cnt;
 static file_iterator_instance_t *_file_iterator = NULL;
-static const char *artist_list_name = "Unknown Artist";
-static const char *genre_list_name = "Unknown Genre";
-static const uint32_t time_list_num = 1 * 60;
+
+static uint32_t read_le32(const uint8_t *data)
+{
+    return (uint32_t)data[0] | ((uint32_t)data[1] << 8) |
+           ((uint32_t)data[2] << 16) | ((uint32_t)data[3] << 24);
+}
+
+/* Returns zero when the format has no inexpensive duration metadata, including MP3. */
+static uint32_t wav_duration_seconds(uint32_t track_id)
+{
+    if (!_file_iterator || track_id >= active_track_cnt) {
+        return 0;
+    }
+
+    char path[256];
+    if (file_iterator_get_full_path_from_index(_file_iterator, track_id, path, sizeof(path)) <= 0) {
+        return 0;
+    }
+
+    FILE *file = fopen(path, "rb");
+    if (!file) {
+        return 0;
+    }
+
+    uint8_t header[12];
+    uint32_t byte_rate = 0;
+    uint32_t data_size = 0;
+    bool found_data = false;
+    if (fread(header, 1, sizeof(header), file) == sizeof(header) &&
+            memcmp(header, "RIFF", 4) == 0 && memcmp(header + 8, "WAVE", 4) == 0) {
+        while (!found_data && fread(header, 1, 8, file) == 8) {
+            const uint32_t chunk_size = read_le32(header + 4);
+            if (memcmp(header, "fmt ", 4) == 0 && chunk_size >= 16) {
+                uint8_t format[16];
+                if (fread(format, 1, sizeof(format), file) != sizeof(format)) {
+                    break;
+                }
+                byte_rate = read_le32(format + 8);
+                if (chunk_size > sizeof(format)) {
+                    fseek(file, chunk_size - sizeof(format), SEEK_CUR);
+                }
+            } else if (memcmp(header, "data", 4) == 0) {
+                data_size = chunk_size;
+                found_data = true;
+            } else {
+                fseek(file, chunk_size, SEEK_CUR);
+            }
+            if ((chunk_size & 1U) != 0U) {
+                fseek(file, 1, SEEK_CUR);
+            }
+        }
+    }
+    fclose(file);
+    return byte_rate == 0 ? 0 : data_size / byte_rate;
+}
 
 /**********************
  *      MACROS
@@ -125,7 +114,11 @@ static const uint32_t time_list_num = 1 * 60;
 
 void lv_demo_music(lv_obj_t *parent, file_iterator_instance_t *file_iterator)
 {
-
+    /* A recreated Brookesia app can call us before the old screen is destroyed. */
+    if (music_active) {
+        lv_demo_music_close();
+    }
+    music_parent = parent;
     _file_iterator = file_iterator;
 
     active_track_cnt = (_file_iterator != NULL) ? file_iterator_get_count(_file_iterator) : 0;
@@ -133,30 +126,41 @@ void lv_demo_music(lv_obj_t *parent, file_iterator_instance_t *file_iterator)
     {
         active_track_cnt = ACTIVE_TRACK_CNT;
     }
-    lv_obj_set_style_bg_color(lv_screen_active(), lv_color_hex(0x343247), 0);
+    original_screen_bg_color = lv_obj_get_style_bg_color(music_parent, LV_PART_MAIN);
+    lv_obj_set_style_bg_color(music_parent, lv_color_hex(MUSIC_BACKGROUND_COLOR), LV_PART_MAIN);
 
     list = lv_demo_music_list_create(parent);
     ctrl = lv_demo_music_main_create(parent, file_iterator);
+    music_active = true;
 
-#if APP_DEMO_MUSIC_AUTO_PLAY
-    lv_timer_create(auto_step_cb, 1000, NULL);
-#endif
+    /* This factory player is always user-started. */
 }
 
 void lv_demo_music_close(void)
 {
-    /*Delete all aniamtions*/
-    lv_anim_del(NULL, NULL);
+    if (!music_active) {
+        return;
+    }
 
 #if APP_DEMO_MUSIC_AUTO_PLAY
-    lv_timer_del(auto_step_timer);
+    if (auto_step_timer) {
+        lv_timer_delete(auto_step_timer);
+        auto_step_timer = NULL;
+    }
 #endif
-    lv_demo_music_list_close();
     lv_demo_music_main_close();
 
-    lv_obj_clean(lv_scr_act());
+    /* List styles are released by its LV_EVENT_DELETE callback. */
+    lv_obj_clean(music_parent);
+    lv_demo_music_list_close();
 
-    lv_obj_set_style_bg_color(lv_scr_act(), original_screen_bg_color, 0);
+    lv_obj_set_style_bg_color(music_parent, original_screen_bg_color, LV_PART_MAIN);
+    ctrl = NULL;
+    list = NULL;
+    _file_iterator = NULL;
+    music_parent = NULL;
+    active_track_cnt = 0;
+    music_active = false;
 }
 
 uint32_t lv_demo_music_get_track_count(void)
@@ -175,69 +179,24 @@ const char *lv_demo_music_get_title(uint32_t track_id)
     {
         return file_iterator_get_name_from_index(_file_iterator, track_id);
     }
-    else if (track_id < active_track_cnt + sizeof(title_list) / sizeof(title_list[0]))
-    {
-        return title_list[track_id - active_track_cnt];
-    }
-
-    return NULL;
+    return "";
 }
 
 const char *lv_demo_music_get_artist(uint32_t track_id)
 {
-    if (_file_iterator == NULL)
-    {
-        return artist_list_name;
-    }
-
-    if (track_id < active_track_cnt)
-    {
-        return artist_list_name;
-    }
-    else if (track_id < active_track_cnt + sizeof(artist_list) / sizeof(artist_list[0]))
-    {
-        return artist_list[track_id - active_track_cnt];
-    }
-
-    return artist_list_name;
+    LV_UNUSED(track_id);
+    return "";
 }
 
 const char *lv_demo_music_get_genre(uint32_t track_id)
 {
-    if (_file_iterator == NULL)
-    {
-        return genre_list_name;
-    }
-
-    if (track_id < active_track_cnt)
-    {
-        return genre_list_name;
-    }
-    else if (track_id < active_track_cnt + sizeof(genre_list) / sizeof(genre_list[0]))
-    {
-        return genre_list[track_id - active_track_cnt];
-    }
-
-    return genre_list_name;
+    LV_UNUSED(track_id);
+    return "";
 }
 
 uint32_t lv_demo_music_get_track_length(uint32_t track_id)
 {
-    if (_file_iterator == NULL)
-    {
-        return time_list_num;
-    }
-
-    if (track_id < active_track_cnt)
-    {
-        return time_list_num;
-    }
-    else if (track_id < active_track_cnt + sizeof(time_list) / sizeof(time_list[0]))
-    {
-        return time_list[track_id - active_track_cnt];
-    }
-
-    return time_list_num;
+    return wav_duration_seconds(track_id);
 }
 
 /**********************

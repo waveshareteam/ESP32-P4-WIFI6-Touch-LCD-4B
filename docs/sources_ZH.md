@@ -83,3 +83,7 @@ Arduino 树完整随附 GFX Library for Arduino 1.6.0 和 LVGL 9.3.0，包含各
 哈希可验证获取了哪些源文件；它们不能证明版权许可、运行时兼容性或硬件正确性。导入的代码正在规范化，
 经过仓库维护后可能与 ZIP 不同。再分发边界请参阅 `docs/licensing_ZH.md`。共享 Build 工作流
 检查编译，但不证明硬件行为。
+
+## 出厂音乐素材
+
+`examples/factory/spiffs/music/` 中的五个 MP3 文件原样取自[参考产品的出厂素材](https://github.com/waveshareteam/ESP32-P4-Knob-Touch-AMOLED-1.75/tree/0f9fc4c2edcadbc2527c51ce351031ac8db0326c/examples/factory/spiffs/music)，不包含自生成测试音。

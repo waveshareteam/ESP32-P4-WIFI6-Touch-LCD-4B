@@ -10,6 +10,7 @@
 #include "XiaozhiAudioProcessor.hpp"
 #include "XiaozhiLocalization.hpp"
 #include "XiaozhiUi.hpp"
+#include "Settings.hpp"
 
 #include <new>
 #include <stdio.h>
@@ -52,6 +53,7 @@ constexpr uint32_t PREROLL_ENCODE_TIMEOUT_MS = 15000;
 constexpr uint32_t UPLINK_FIRST_PACKET_TIMEOUT_MS = 3000;
 constexpr uint32_t CONTROL_EVENT_POST_TIMEOUT_MS = 100;
 constexpr uint32_t LIFECYCLE_WAIT_MS = 10000;
+constexpr uint32_t OFFLINE_JUMP_MS = 1500;
 constexpr uint32_t PLAYBACK_IDLE_WAIT_MS = 1000;
 constexpr size_t CONTROL_QUEUE_LENGTH = 24;
 constexpr size_t PCM_QUEUE_LENGTH = 40;
@@ -239,6 +241,8 @@ XiaozhiApp::~XiaozhiApp()
 bool XiaozhiApp::run()
 {
     _ready_prompt_played.store(false);
+    _offline_since = 0;
+    _wlan_opened = false;
     createUi();
     _visible.store(true);
     updateNetworkState();
@@ -562,6 +566,8 @@ bool XiaozhiApp::resume()
         createUi();
     }
     _visible.store(true);
+    _offline_since = 0;
+    _wlan_opened = false;
     if (_ui_timer) {
         lv_timer_resume(_ui_timer);
     }
@@ -649,6 +655,7 @@ void XiaozhiApp::refreshUi()
         ),
         state == State::ActivationRequired
     );
+    checkOfflineWlanRedirect();
 }
 
 void XiaozhiApp::setState(State state)
@@ -783,6 +790,36 @@ bool XiaozhiApp::canPrepare() const
 bool XiaozhiApp::isNetworkReady() const
 {
     return netifHasIpv4("WIFI_STA_DEF") || netifHasIpv4("ETH_DEF");
+}
+
+void XiaozhiApp::openWlanSettings()
+{
+    if (_wlan_opened || !_visible.load() || _state.load() != State::NetworkRequired) {
+        return;
+    }
+    _wlan_opened = Settings::openWlan(getId());
+    if (_wlan_opened) {
+        _offline_since = 0;
+    } else {
+        ESP_UTILS_LOGW("Open WLAN settings failed");
+    }
+}
+
+void XiaozhiApp::checkOfflineWlanRedirect()
+{
+    if (_state.load() != State::NetworkRequired || _network_ready.load() || isNetworkReady()) {
+        _offline_since = 0;
+        return;
+    }
+    if (_wlan_opened) {
+        return;
+    }
+    const uint32_t now = lv_tick_get();
+    if (_offline_since == 0) {
+        _offline_since = now == 0 ? 1 : now;
+    } else if (now - _offline_since >= OFFLINE_JUMP_MS) {
+        openWlanSettings();
+    }
 }
 
 void XiaozhiApp::updateNetworkState()
@@ -3118,6 +3155,10 @@ void XiaozhiApp::uiActionCallback(void *context)
 {
     auto *instance = static_cast<XiaozhiApp *>(context);
     if (!instance) {
+        return;
+    }
+    if (instance->_state.load() == State::NetworkRequired) {
+        instance->openWlanSettings();
         return;
     }
     ControlEvent event = {};

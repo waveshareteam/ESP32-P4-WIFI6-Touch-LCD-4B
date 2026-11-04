@@ -22,7 +22,7 @@ set(PROJ_SRCS_CC
 idf_component_register(
     SRCS ${PROJ_SRCS_C} ${PROJ_SRCS_CPP} ${PROJ_SRCS_CC}
     INCLUDE_DIRS ${PROJ_SRC}
-    REQUIRES brookesia_core bsp_extra HardwareApps esp_audio_codec esp_audio_effects esp-sr xiaozhi-fonts esp_event esp_netif esp_xiaozhi nvs_flash
+    REQUIRES brookesia_core bsp_extra HardwareApps Settings esp_audio_codec esp_audio_effects esp-sr xiaozhi-fonts esp_event esp_netif esp_xiaozhi nvs_flash
     PRIV_REQUIRES
         app_update
         esp32_p4_wifi6_touch_lcd_4b

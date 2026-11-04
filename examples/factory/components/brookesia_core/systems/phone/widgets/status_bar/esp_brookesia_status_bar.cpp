@@ -546,7 +546,12 @@ bool StatusBar::beginClock(void)
     ESP_Brookesia_LvObj_t clock_hour_label = nullptr;
     ESP_Brookesia_LvObj_t clock_dot_label = nullptr;
     ESP_Brookesia_LvObj_t clock_min_label = nullptr;
+    ESP_Brookesia_LvObj_t clock_second_dot_label = nullptr;
+    ESP_Brookesia_LvObj_t clock_second_label = nullptr;
     ESP_Brookesia_LvObj_t clock_period_label = nullptr;
+    int clock_hour = _clock_hour;
+    int clock_minute = _clock_min;
+    int clock_second = _clock_second;
 
     ESP_UTILS_LOGD("Begin clock(0x%p)", this);
     ESP_UTILS_CHECK_FALSE_RETURN(!checkClockInitialized(), false, "Already initialized");
@@ -568,6 +573,15 @@ bool StatusBar::beginClock(void)
     ESP_UTILS_CHECK_NULL_RETURN(clock_min_label, false, "Alloc clock min label failed");
     lv_obj_add_style(clock_min_label.get(), _system_context.getDisplay().getCoreContainerStyle(), 0);
 
+    clock_second_dot_label = ESP_BROOKESIA_LV_OBJ(label, clock_obj.get());
+    ESP_UTILS_CHECK_NULL_RETURN(clock_second_dot_label, false, "Alloc clock second dot label failed");
+    lv_obj_add_style(clock_second_dot_label.get(), _system_context.getDisplay().getCoreContainerStyle(), 0);
+    lv_label_set_text(clock_second_dot_label.get(), ":");
+
+    clock_second_label = ESP_BROOKESIA_LV_OBJ(label, clock_obj.get());
+    ESP_UTILS_CHECK_NULL_RETURN(clock_second_label, false, "Alloc clock second label failed");
+    lv_obj_add_style(clock_second_label.get(), _system_context.getDisplay().getCoreContainerStyle(), 0);
+
     clock_period_label = ESP_BROOKESIA_LV_OBJ(label, clock_obj.get());
     ESP_UTILS_CHECK_NULL_RETURN(clock_period_label, false, "Alloc clock period label failed");
     lv_obj_add_style(clock_period_label.get(), _system_context.getDisplay().getCoreContainerStyle(), 0);
@@ -584,11 +598,16 @@ bool StatusBar::beginClock(void)
     _clock_hour_label = clock_hour_label;
     _clock_dot_label = clock_dot_label;
     _clock_min_label = clock_min_label;
+    _clock_second_dot_label = clock_second_dot_label;
+    _clock_second_label = clock_second_label;
     _clock_period_label = clock_period_label;
 
     ESP_UTILS_CHECK_FALSE_GOTO(updateClockByNewData(), err, "Update clock style failed");
     ESP_UTILS_CHECK_FALSE_GOTO(setClockFormat(_clock_format), err, "Set clock format failed");
-    ESP_UTILS_CHECK_FALSE_GOTO(setClock(_clock_hour, _clock_min, false), err, "Set clock failed");
+    _clock_hour = -1;
+    _clock_min = -1;
+    _clock_second = -1;
+    ESP_UTILS_CHECK_FALSE_GOTO(setClockWithSeconds(clock_hour, clock_minute, clock_second), err, "Set clock failed");
 
     return true;
 
@@ -616,6 +635,10 @@ bool StatusBar::updateClockByNewData(void)
         lv_obj_set_style_text_opa(_clock_hour_label.get(), _data.main.text_color.opacity, 0);
         lv_obj_set_style_text_color(_clock_min_label.get(), lv_color_hex(_data.main.text_color.color), 0);
         lv_obj_set_style_text_opa(_clock_min_label.get(), _data.main.text_color.opacity, 0);
+        lv_obj_set_style_text_color(_clock_second_dot_label.get(), lv_color_hex(_data.main.text_color.color), 0);
+        lv_obj_set_style_text_opa(_clock_second_dot_label.get(), _data.main.text_color.opacity, 0);
+        lv_obj_set_style_text_color(_clock_second_label.get(), lv_color_hex(_data.main.text_color.color), 0);
+        lv_obj_set_style_text_opa(_clock_second_label.get(), _data.main.text_color.opacity, 0);
         lv_obj_set_style_text_color(_clock_dot_label.get(), lv_color_hex(_data.main.text_color.color), 0);
         lv_obj_set_style_text_opa(_clock_dot_label.get(), _data.main.text_color.opacity, 0);
         lv_obj_set_style_text_color(_clock_period_label.get(), lv_color_hex(_data.main.text_color.color), 0);
@@ -637,6 +660,8 @@ bool StatusBar::delClock(void)
     _clock_hour_label.reset();
     _clock_dot_label.reset();
     _clock_min_label.reset();
+    _clock_second_dot_label.reset();
+    _clock_second_label.reset();
     _clock_period_label.reset();
 
     return true;
@@ -702,6 +727,22 @@ bool StatusBar::setClock(int hour, int minute) const
     bool is_pm = hour >= 12;
 
     ESP_UTILS_CHECK_FALSE_RETURN(setClock(hour, minute, is_pm), false, "Set clock failed");
+
+    return true;
+}
+
+bool StatusBar::setClockWithSeconds(int hour, int minute, int second) const
+{
+    ESP_UTILS_LOGD("Set clock(%02d:%02d:%02d)", hour, minute, second);
+    ESP_UTILS_CHECK_NULL_RETURN(_clock_second_label, false, "Invalid clock second label");
+
+    second = max(min(second, 59), 0);
+    ESP_UTILS_CHECK_FALSE_RETURN(setClock(hour, minute), false, "Set clock failed");
+
+    if (_clock_second != second) {
+        _clock_second = second;
+        lv_label_set_text_fmt(_clock_second_label.get(), "%02d", second);
+    }
 
     return true;
 }

@@ -23,6 +23,8 @@ LV_IMG_DECLARE(img_app_vedioplayer);
 #define DISPLAY_WIDTH  BSP_LCD_H_RES
 #define DISPLAY_HEIGHT BSP_LCD_V_RES
 #define ALIGN_UP(num, align) (((num) + ((align) - 1)) & ~((align) - 1))
+#define STATUS_ICON_COLOR 0x4F8BFF
+#define STATUS_HINT_COLOR 0xA0A3B1
 
 #if CONFIG_BSP_LCD_COLOR_FORMAT_RGB565
 #define VIDEO_JPEG_PIXEL_FORMAT JPEG_PIXEL_FORMAT_RGB565_LE
@@ -85,12 +87,12 @@ namespace esp_brookesia::apps
         bsp_display_lock(-1);
         lv_obj_set_style_bg_color(lv_scr_act(), lv_color_black(), LV_PART_MAIN);
         lv_obj_set_style_bg_opa(lv_scr_act(), LV_OPA_COVER, LV_PART_MAIN);
-        status_label = lv_label_create(lv_scr_act());
-        lv_label_set_text(status_label, sd_mounted ? "loading files..." : "sd error");
-        lv_obj_set_style_text_align(status_label, LV_TEXT_ALIGN_CENTER, 0);
-        lv_obj_set_width(status_label, DISPLAY_WIDTH);
-        lv_obj_align(status_label, LV_ALIGN_CENTER, 0, 0);
-        lv_obj_set_style_text_font(status_label, &lv_font_montserrat_20, 0);
+        if (sd_mounted) {
+            showStatus(LV_SYMBOL_VIDEO, "Loading videos", nullptr);
+        } else {
+            showStatus(LV_SYMBOL_SD_CARD, "No microSD card",
+                       "Insert a FAT-formatted microSD card with AVI videos in the avi folder.");
+        }
         bsp_display_unlock();
 
         if (!sd_mounted)
@@ -101,17 +103,72 @@ namespace esp_brookesia::apps
         if (getAviFileList("/sdcard/avi") != ESP_OK || avi_file_count == 0)
         {
             bsp_display_lock(-1);
-            lv_label_set_text(status_label, "avi error");
+            showStatus(LV_SYMBOL_VIDEO, "No AVI videos",
+                       "Copy MJPEG AVI files to the avi folder on the microSD card.");
             bsp_display_unlock();
             return true;
         }
 
         bsp_display_lock(-1);
-        lv_obj_del(status_label);
-        status_label = nullptr;
+        clearStatus();
         bsp_display_unlock();
 
-        return startPlaybackTask();
+        if (!startPlaybackTask()) {
+            bsp_display_lock(-1);
+            showStatus(LV_SYMBOL_WARNING, "Video player unavailable",
+                       "Could not start playback. Check the card and restart the device.");
+            bsp_display_unlock();
+            return true;
+        }
+        return true;
+    }
+
+    void VideoPlayer::showStatus(const char *icon, const char *title, const char *hint)
+    {
+        if (!status_view) {
+            status_view = lv_obj_create(lv_scr_act());
+            lv_obj_remove_style_all(status_view);
+            lv_obj_set_width(status_view, lv_pct(76));
+            lv_obj_set_height(status_view, LV_SIZE_CONTENT);
+            lv_obj_set_flex_flow(status_view, LV_FLEX_FLOW_COLUMN);
+            lv_obj_set_flex_align(status_view, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+            lv_obj_set_style_pad_row(status_view, 16, LV_PART_MAIN);
+            lv_obj_remove_flag(status_view, LV_OBJ_FLAG_SCROLLABLE | LV_OBJ_FLAG_CLICKABLE);
+            lv_obj_center(status_view);
+
+            lv_obj_t *icon_label = lv_label_create(status_view);
+            lv_obj_set_style_text_font(icon_label, &lv_font_montserrat_44, LV_PART_MAIN);
+            lv_obj_set_style_text_color(icon_label, lv_color_hex(STATUS_ICON_COLOR), LV_PART_MAIN);
+
+            lv_obj_t *title_label = lv_label_create(status_view);
+            lv_obj_set_style_text_font(title_label, &lv_font_montserrat_30, LV_PART_MAIN);
+            lv_obj_set_style_text_color(title_label, lv_color_white(), LV_PART_MAIN);
+
+            lv_obj_t *hint_label = lv_label_create(status_view);
+            lv_obj_set_width(hint_label, lv_pct(100));
+            lv_label_set_long_mode(hint_label, LV_LABEL_LONG_MODE_WRAP);
+            lv_obj_set_style_text_align(hint_label, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
+            lv_obj_set_style_text_font(hint_label, &lv_font_montserrat_20, LV_PART_MAIN);
+            lv_obj_set_style_text_color(hint_label, lv_color_hex(STATUS_HINT_COLOR), LV_PART_MAIN);
+        }
+
+        lv_label_set_text(lv_obj_get_child(status_view, 0), icon);
+        lv_label_set_text(lv_obj_get_child(status_view, 1), title);
+        lv_obj_t *hint_label = lv_obj_get_child(status_view, 2);
+        lv_label_set_text(hint_label, hint ? hint : "");
+        if (hint && hint[0]) {
+            lv_obj_remove_flag(hint_label, LV_OBJ_FLAG_HIDDEN);
+        } else {
+            lv_obj_add_flag(hint_label, LV_OBJ_FLAG_HIDDEN);
+        }
+    }
+
+    void VideoPlayer::clearStatus()
+    {
+        if (status_view) {
+            lv_obj_del(status_view);
+            status_view = nullptr;
+        }
     }
 
     bool VideoPlayer::back(void)
@@ -135,11 +192,7 @@ namespace esp_brookesia::apps
         deinitDisplayBypass();
 
         bsp_display_lock(-1);
-        if (status_label)
-        {
-            lv_obj_del(status_label);
-            status_label = nullptr;
-        }
+        clearStatus();
         bsp_display_unlock();
 
         if (avi_file_list)

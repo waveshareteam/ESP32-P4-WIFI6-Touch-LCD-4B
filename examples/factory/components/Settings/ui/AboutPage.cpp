@@ -1,7 +1,14 @@
 #include "AboutPage.hpp"
 #include "SettingsUI.hpp"
+#include "esp_app_desc.h"
+#include "esp_chip_info.h"
+#include "esp_flash.h"
+#include "esp_idf_version.h"
 #include "esp_log.h"
+#include "esp_psram.h"
 #include "../Settings.hpp"
+
+#include <stdio.h>
 
 #define ESP_UTILS_LOG_TAG "BS:AboutPage"
 #include "esp_lib_utils.h"
@@ -54,7 +61,30 @@ namespace esp_brookesia::apps
         settings_ui::add_info_row(
             list1, nullptr, "Product", "ESP32-P4-WIFI6-Touch-LCD-4B", style_list_btn);
 
+        esp_chip_info_t chip = {};
+        esp_chip_info(&chip);
+        uint32_t flash_size = 0;
+        (void)esp_flash_get_size(nullptr, &flash_size);
+
+        char chip_name[32];
+        snprintf(chip_name, sizeof(chip_name), "ESP32-P4 v%d.%d",
+                 chip.revision / 100, chip.revision % 100);
+        settings_ui::add_info_row(list1, nullptr, "Chip", chip_name, style_list_btn);
+
+        char memory[64];
+        snprintf(memory, sizeof(memory), "Flash %u MB / PSRAM %u MB",
+                 static_cast<unsigned>(flash_size >> 20),
+                 static_cast<unsigned>(esp_psram_get_size() >> 20));
+        settings_ui::add_info_row(list1, nullptr, "Memory", memory, style_list_btn);
+
         settings_ui::add_section(list1, "Software", style_list_text);
+        const esp_app_desc_t *app = esp_app_get_description();
+        char firmware[64];
+        snprintf(firmware, sizeof(firmware), "%s, %s", app->version, app->date);
+        settings_ui::add_info_row(list1, nullptr, "Firmware", firmware, style_list_btn);
+        char idf[48];
+        snprintf(idf, sizeof(idf), "ESP-IDF %s", esp_get_idf_version());
+        settings_ui::add_info_row(list1, nullptr, "Framework", idf, style_list_btn);
         settings_ui::add_info_row(list1, nullptr, "UI Framework", "ESP-Brookesia", style_list_btn);
         return true;
     }

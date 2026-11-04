@@ -49,7 +49,13 @@ protected:
 
 private:
     static MusicPlayer *_instance;
-    file_iterator_instance_t *_file_iterator;
+    file_iterator_instance_t *_file_iterator = nullptr;
+    lv_obj_t *_status_view = nullptr;
+    bool _player_ready = false;
+    bool _demo_active = false;
+
+    void showStatus(const char *title, const char *hint);
+    void releaseFileIterator();
 };
 
 } // namespace esp_brookesia::apps

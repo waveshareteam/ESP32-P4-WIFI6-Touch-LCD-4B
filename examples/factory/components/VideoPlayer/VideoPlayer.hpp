@@ -66,10 +66,12 @@ namespace esp_brookesia::apps
         char **avi_file_list = nullptr;
         int avi_file_count = 0;
 
-        lv_obj_t *status_label = nullptr;
+        lv_obj_t *status_view = nullptr;
 
         bool startPlaybackTask();
         bool stopPlaybackTask(TickType_t timeout);
+        void showStatus(const char *icon, const char *title, const char *hint = nullptr);
+        void clearStatus();
         esp_err_t getAviFileList(const char *dir_path);
         esp_err_t initDisplayBypass();
         void deinitDisplayBypass();

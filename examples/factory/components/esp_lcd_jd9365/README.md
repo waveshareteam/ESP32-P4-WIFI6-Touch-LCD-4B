@@ -35,8 +35,8 @@ is programmed verbatim and the panel runs at 56.9 Hz.
 
 ## Initialization sequence
 
-The built-in sequence is the 8904ANT vendor register list documented in
-`docs/display/8904ANT------code .txt` with one change: page 0 register `0x80` is written as `0x01`
+The built-in sequence follows the 8904ANT vendor register list with one change:
+page 0 register `0x80` is written as `0x01`
 instead of `0x03`, because the ESP32-P4 DSI host drives the panel with two data lanes. `0x11` (sleep
 out, 120 ms) and `0x29` (display on, 20 ms) are appended by the driver because the vendor list ends
 after the manufacturer page setup.

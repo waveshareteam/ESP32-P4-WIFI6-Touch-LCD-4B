@@ -55,19 +55,23 @@ protected:
 private:
     static Drawpanel *_instance;
 
-    /**
-     * @brief Touch event callback for drawing dots on screen
-     *
-     * @param e LVGL event data
-     */
+    /* Strokes are drawn into this fixed canvas, which never scrolls */
+    lv_obj_t *_canvas = nullptr;
+    lv_draw_buf_t *_draw_buf = nullptr;
+    int _canvas_width = 0;
+    int _canvas_height = 0;
+    int _stroke_width = 6;
+    lv_obj_t *_selected_swatch = nullptr;
+    lv_color_t _pen_color;
+    lv_point_t _last_point = {};
+    bool _stroke_active = false;
 
-    lv_obj_t *_panel_obj;
-    std::list<lv_obj_t *> _dots;
-    const int _max_points;
-    void clearAllPoints();
-    static void touch_event_cb(lv_event_t *e);
-
-    lv_point_t prev_point;
+    void createToolbar(void);
+    void clearCanvas(void);
+    void drawSegment(const lv_point_t &from, const lv_point_t &to);
+    static void canvas_event_cb(lv_event_t *e);
+    static void swatch_event_cb(lv_event_t *e);
+    static void clear_event_cb(lv_event_t *e);
 };
 
 } // namespace esp_brookesia::apps

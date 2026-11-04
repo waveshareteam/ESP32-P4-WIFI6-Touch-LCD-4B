@@ -47,7 +47,7 @@ bsp_display_brightness_set(100);
 
 ## Touch
 
-The GT911 is initialized without driving its INT or RST signals. The BSP probes
+The GT911 reset uses GPIO23; its INT signal is not connected to the MCU. The BSP probes
 both valid I2C addresses (`0x5D`, then `0x14`) and creates the touch panel I/O
 with the address that responds. With no interrupt GPIO configured, touch data is
 read by polling.

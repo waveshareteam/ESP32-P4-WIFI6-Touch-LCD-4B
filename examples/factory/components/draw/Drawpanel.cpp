@@ -11,7 +11,7 @@
 #define ESP_UTILS_LOG_TAG "BS:Drawpanel"
 #include "esp_lib_utils.h"
 #include "Drawpanel.hpp"
-#include <list>
+#include <algorithm>
 
 #define APP_NAME "DrawPanel"
 
@@ -22,29 +22,6 @@ using namespace esp_brookesia::systems;
 LV_IMG_DECLARE(img_app_drawpanel);
 
 namespace esp_brookesia::apps {
-
-static constexpr int DRAW_DOT_SIZE = 10;
-
-static void configureFixedDrawObject(lv_obj_t *obj, bool clickable)
-{
-    if (!obj) {
-        return;
-    }
-
-    lv_obj_clear_flag(
-        obj,
-        LV_OBJ_FLAG_SCROLLABLE | LV_OBJ_FLAG_SCROLL_ELASTIC | LV_OBJ_FLAG_SCROLL_MOMENTUM |
-        LV_OBJ_FLAG_SCROLL_ONE | LV_OBJ_FLAG_SCROLL_CHAIN | LV_OBJ_FLAG_SCROLL_ON_FOCUS |
-        LV_OBJ_FLAG_SCROLL_WITH_ARROW | LV_OBJ_FLAG_GESTURE_BUBBLE | LV_OBJ_FLAG_EVENT_BUBBLE
-    );
-    lv_obj_set_scrollbar_mode(obj, LV_SCROLLBAR_MODE_OFF);
-
-    if (clickable) {
-        lv_obj_add_flag(obj, LV_OBJ_FLAG_CLICKABLE | LV_OBJ_FLAG_PRESS_LOCK);
-    } else {
-        lv_obj_clear_flag(obj, LV_OBJ_FLAG_CLICKABLE | LV_OBJ_FLAG_PRESS_LOCK);
-    }
-}
 
 Drawpanel *Drawpanel::_instance = nullptr;
 
@@ -58,31 +35,54 @@ Drawpanel *Drawpanel::requestInstance(bool use_status_bar, bool use_navigation_b
 
 Drawpanel::Drawpanel(bool use_status_bar, bool use_navigation_bar) :
     App(APP_NAME, &img_app_drawpanel, true, use_status_bar, use_navigation_bar),
-    _panel_obj(nullptr),
-    _max_points(1000)
+    _pen_color(lv_color_black())
 {
 }
 
 Drawpanel::~Drawpanel()
 {
-    close();
+    if (_draw_buf) {
+        lv_draw_buf_destroy(_draw_buf);
+    }
 }
 
 bool Drawpanel::run(void)
 {
     ESP_UTILS_LOGD("Run");
 
-    lv_obj_t *screen = lv_scr_act();
-    lv_obj_set_style_bg_color(screen, lv_color_hex(0xFFFFE0), LV_PART_MAIN);
-    lv_obj_set_style_bg_opa(screen, LV_OPA_COVER, LV_PART_MAIN);
+    lv_area_t area = getVisualArea();
+    int width = lv_area_get_width(&area);
+    int height = lv_area_get_height(&area);
 
-    // The app screen already matches Brookesia's visual area. Using it directly
-    // prevents children near an edge from expanding a separate scrollable panel.
-    _panel_obj = screen;
-    configureFixedDrawObject(_panel_obj, true);
-    lv_obj_remove_event_cb_with_user_data(_panel_obj, touch_event_cb, this);
-    lv_obj_add_event_cb(_panel_obj, touch_event_cb, LV_EVENT_PRESSED, this);
-    lv_obj_add_event_cb(_panel_obj, touch_event_cb, LV_EVENT_PRESSING, this);
+    if (_draw_buf && (width != _canvas_width || height != _canvas_height)) {
+        lv_draw_buf_destroy(_draw_buf);
+        _draw_buf = nullptr;
+    }
+    if (!_draw_buf) {
+        _draw_buf = lv_draw_buf_create(width, height, LV_COLOR_FORMAT_RGB565, LV_STRIDE_AUTO);
+        ESP_UTILS_CHECK_NULL_RETURN(_draw_buf, false, "Create canvas buffer failed");
+    }
+    _canvas_width = width;
+    _canvas_height = height;
+    _stroke_width = std::max(4, width / 120);
+
+    lv_obj_t *screen = lv_scr_act();
+    lv_obj_set_style_bg_color(screen, lv_color_white(), LV_PART_MAIN);
+    lv_obj_set_style_bg_opa(screen, LV_OPA_COVER, LV_PART_MAIN);
+    lv_obj_remove_flag(screen, LV_OBJ_FLAG_SCROLLABLE);
+
+    _canvas = lv_canvas_create(screen);
+    lv_canvas_set_draw_buf(_canvas, _draw_buf);
+    // Brookesia already sizes and positions the app screen to its visual area.
+    lv_obj_set_pos(_canvas, 0, 0);
+    lv_obj_remove_flag(_canvas, LV_OBJ_FLAG_SCROLLABLE | LV_OBJ_FLAG_SCROLL_ELASTIC |
+                      LV_OBJ_FLAG_SCROLL_MOMENTUM | LV_OBJ_FLAG_SCROLL_CHAIN |
+                      LV_OBJ_FLAG_GESTURE_BUBBLE | LV_OBJ_FLAG_EVENT_BUBBLE);
+    lv_obj_add_flag(_canvas, LV_OBJ_FLAG_CLICKABLE | LV_OBJ_FLAG_PRESS_LOCK);
+    lv_obj_add_event_cb(_canvas, canvas_event_cb, LV_EVENT_ALL, this);
+    clearCanvas();
+
+    createToolbar();
 
     return true;
 }
@@ -101,11 +101,10 @@ bool Drawpanel::close(void)
 {
     ESP_UTILS_LOGD("Close");
 
-    clearAllPoints();
-    if (_panel_obj) {
-        lv_obj_remove_event_cb_with_user_data(_panel_obj, touch_event_cb, this);
-        _panel_obj = nullptr;
-    }
+    // The screen objects are recycled by the core; the canvas buffer is kept for the next run
+    _canvas = nullptr;
+    _selected_swatch = nullptr;
+    _stroke_active = false;
 
     return true;
 }
@@ -127,6 +126,7 @@ bool Drawpanel::deinit()
 bool Drawpanel::pause()
 {
     ESP_UTILS_LOGD("Pause");
+    _stroke_active = false;
 
     return true;
 }
@@ -138,25 +138,99 @@ bool Drawpanel::resume()
     return true;
 }
 
-void Drawpanel::clearAllPoints()
+void Drawpanel::createToolbar(void)
 {
-    for (lv_obj_t* dot : _dots) {
-        if (dot) {
-            lv_obj_del(dot);
+    static const uint32_t colors[] = {0x000000, 0xE53935, 0xFB8C00, 0x43A047, 0x1E88E5, 0x8E24AA};
+    const int swatch_size = std::clamp(_canvas_width / 12, 36, 60);
+    const int gap = std::max(5, _canvas_width / 72);
+    const int padding = std::max(6, _canvas_width / 60);
+
+    lv_obj_t *bar = lv_obj_create(lv_scr_act());
+    lv_obj_remove_style_all(bar);
+    lv_obj_set_size(bar, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
+    lv_obj_set_style_bg_color(bar, lv_color_hex(0xEEEEEE), 0);
+    lv_obj_set_style_bg_opa(bar, LV_OPA_90, 0);
+    lv_obj_set_style_radius(bar, LV_RADIUS_CIRCLE, 0);
+    lv_obj_set_style_pad_all(bar, padding, 0);
+    lv_obj_set_style_pad_column(bar, gap, 0);
+    lv_obj_set_flex_flow(bar, LV_FLEX_FLOW_ROW);
+    lv_obj_set_flex_align(bar, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+    lv_obj_remove_flag(bar, LV_OBJ_FLAG_SCROLLABLE);
+    // Keep the palette clear of the launcher's edge gestures on the square panel.
+    lv_obj_align(bar, LV_ALIGN_BOTTOM_MID, 0, -std::max(12, _canvas_height / 24));
+
+    for (uint32_t color : colors) {
+        lv_obj_t *swatch = lv_obj_create(bar);
+        lv_obj_remove_style_all(swatch);
+        lv_obj_set_size(swatch, swatch_size, swatch_size);
+        lv_obj_set_style_radius(swatch, LV_RADIUS_CIRCLE, 0);
+        lv_obj_set_style_bg_color(swatch, lv_color_hex(color), 0);
+        lv_obj_set_style_bg_opa(swatch, LV_OPA_COVER, 0);
+        lv_obj_set_style_outline_color(swatch, lv_color_hex(0x9E9E9E), 0);
+        lv_obj_set_style_outline_pad(swatch, 2, 0);
+        lv_obj_set_style_outline_width(swatch, 0, 0);
+        lv_obj_set_style_outline_width(swatch, 3, LV_STATE_CHECKED);
+        lv_obj_add_flag(swatch, LV_OBJ_FLAG_CLICKABLE);
+        lv_obj_add_event_cb(swatch, swatch_event_cb, LV_EVENT_CLICKED, this);
+        if (lv_color_eq(lv_color_hex(color), _pen_color)) {
+            lv_obj_add_state(swatch, LV_STATE_CHECKED);
+            _selected_swatch = swatch;
         }
     }
-    _dots.clear();
+
+    lv_obj_t *clear = lv_button_create(bar);
+    lv_obj_set_size(clear, swatch_size, swatch_size);
+    lv_obj_set_style_radius(clear, LV_RADIUS_CIRCLE, 0);
+    lv_obj_set_style_bg_color(clear, lv_color_white(), 0);
+    lv_obj_set_style_shadow_width(clear, 0, 0);
+    lv_obj_add_event_cb(clear, clear_event_cb, LV_EVENT_CLICKED, this);
+    lv_obj_t *icon = lv_label_create(clear);
+    lv_label_set_text(icon, LV_SYMBOL_TRASH);
+    lv_obj_set_style_text_font(icon, &lv_font_montserrat_24, 0);
+    lv_obj_set_style_text_color(icon, lv_color_hex(0x424242), 0);
+    lv_obj_center(icon);
 }
 
-void Drawpanel::touch_event_cb(lv_event_t *e)
+void Drawpanel::clearCanvas(void)
+{
+    _stroke_active = false;
+    if (_canvas) {
+        lv_canvas_fill_bg(_canvas, lv_color_white(), LV_OPA_COVER);
+    }
+}
+
+void Drawpanel::drawSegment(const lv_point_t &from, const lv_point_t &to)
+{
+    lv_layer_t layer;
+    lv_canvas_init_layer(_canvas, &layer);
+
+    lv_draw_line_dsc_t dsc;
+    lv_draw_line_dsc_init(&dsc);
+    dsc.color = _pen_color;
+    dsc.width = _stroke_width;
+    dsc.round_start = 1;
+    dsc.round_end = 1;
+    dsc.p1.x = from.x;
+    dsc.p1.y = from.y;
+    dsc.p2.x = to.x;
+    dsc.p2.y = to.y;
+    lv_draw_line(&layer, &dsc);
+
+    lv_canvas_finish_layer(_canvas, &layer);
+}
+
+void Drawpanel::canvas_event_cb(lv_event_t *e)
 {
     Drawpanel *app = (Drawpanel *)lv_event_get_user_data(e);
-    if (!app || !app->_panel_obj) {
-        ESP_UTILS_LOGE("Get drawpanel instance failed");
+    lv_event_code_t code = lv_event_get_code(e);
+    if (!app || !app->_canvas) {
         return;
     }
 
-    lv_event_code_t code = lv_event_get_code(e);
+    if (code == LV_EVENT_RELEASED || code == LV_EVENT_PRESS_LOST) {
+        app->_stroke_active = false;
+        return;
+    }
     if (code != LV_EVENT_PRESSED && code != LV_EVENT_PRESSING) {
         return;
     }
@@ -165,44 +239,43 @@ void Drawpanel::touch_event_cb(lv_event_t *e)
     if (!indev) {
         return;
     }
-
     lv_point_t point;
     lv_indev_get_point(indev, &point);
+    lv_area_t coords;
+    lv_obj_get_coords(app->_canvas, &coords);
+    point.x -= coords.x1;
+    point.y -= coords.y1;
 
-    lv_area_t panel_area;
-    lv_obj_get_coords(app->_panel_obj, &panel_area);
-    if (point.x < panel_area.x1 || point.x > panel_area.x2 ||
-            point.y < panel_area.y1 || point.y > panel_area.y2) {
+    if (code == LV_EVENT_PRESSED || !app->_stroke_active) {
+        // A tap leaves a dot; a drag continues from it
+        app->drawSegment(point, point);
+        app->_stroke_active = true;
+    } else if (point.x != app->_last_point.x || point.y != app->_last_point.y) {
+        app->drawSegment(app->_last_point, point);
+    }
+    app->_last_point = point;
+}
+
+void Drawpanel::swatch_event_cb(lv_event_t *e)
+{
+    Drawpanel *app = (Drawpanel *)lv_event_get_user_data(e);
+    lv_obj_t *swatch = (lv_obj_t *)lv_event_get_target(e);
+    if (!app || !swatch) {
         return;
     }
+    if (app->_selected_swatch) {
+        lv_obj_remove_state(app->_selected_swatch, LV_STATE_CHECKED);
+    }
+    lv_obj_add_state(swatch, LV_STATE_CHECKED);
+    app->_selected_swatch = swatch;
+    app->_pen_color = lv_obj_get_style_bg_color(swatch, LV_PART_MAIN);
+}
 
-    int dot_x = point.x - panel_area.x1 - DRAW_DOT_SIZE / 2;
-    int dot_y = point.y - panel_area.y1 - DRAW_DOT_SIZE / 2;
-    int max_x = lv_area_get_width(&panel_area) - DRAW_DOT_SIZE;
-    int max_y = lv_area_get_height(&panel_area) - DRAW_DOT_SIZE;
-    max_x = (max_x > 0) ? max_x : 0;
-    max_y = (max_y > 0) ? max_y : 0;
-    dot_x = (dot_x < 0) ? 0 : ((dot_x > max_x) ? max_x : dot_x);
-    dot_y = (dot_y < 0) ? 0 : ((dot_y > max_y) ? max_y : dot_y);
-
-    lv_obj_t *dot = lv_obj_create(app->_panel_obj);
-    configureFixedDrawObject(dot, false);
-    lv_obj_set_size(dot, DRAW_DOT_SIZE, DRAW_DOT_SIZE);
-    lv_obj_set_pos(dot, dot_x, dot_y);
-    lv_obj_set_style_bg_color(dot, lv_color_make(255, 0, 0), LV_PART_MAIN);
-    lv_obj_set_style_bg_opa(dot, LV_OPA_COVER, LV_PART_MAIN);
-    lv_obj_set_style_border_width(dot, 0, LV_PART_MAIN);
-    lv_obj_set_style_pad_all(dot, 0, LV_PART_MAIN);
-    lv_obj_set_style_radius(dot, DRAW_DOT_SIZE / 2, LV_PART_MAIN);
-
-    app->_dots.push_back(dot);
-
-    if (app->_dots.size() > app->_max_points) {
-        lv_obj_t* oldest_dot = app->_dots.front();
-        if (oldest_dot) {
-            lv_obj_del(oldest_dot);
-        }
-        app->_dots.pop_front();
+void Drawpanel::clear_event_cb(lv_event_t *e)
+{
+    Drawpanel *app = (Drawpanel *)lv_event_get_user_data(e);
+    if (app) {
+        app->clearCanvas();
     }
 }
 

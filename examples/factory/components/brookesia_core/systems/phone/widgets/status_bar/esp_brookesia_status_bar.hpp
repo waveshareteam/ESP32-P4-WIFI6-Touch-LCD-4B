@@ -112,6 +112,7 @@ public:
     bool setClockFormat(ClockFormat format) const;
     bool setClock(int hour, int min, bool is_pm) const;
     bool setClock(int hour, int min) const;
+    bool setClockWithSeconds(int hour, int min, int second) const;
 
     bool checkVisible(void) const;
 
@@ -168,12 +169,15 @@ private:
     // Clock
     mutable int _clock_hour = -1;
     mutable int _clock_min = -1;
+    mutable int _clock_second = -1;
     mutable ClockFormat _clock_format = ClockFormat::FORMAT_24H;
     bool _is_clock_out_of_area = false;
     ESP_Brookesia_LvObj_t _clock_obj;
     ESP_Brookesia_LvObj_t _clock_hour_label;
     ESP_Brookesia_LvObj_t _clock_dot_label;
     ESP_Brookesia_LvObj_t _clock_min_label;
+    ESP_Brookesia_LvObj_t _clock_second_dot_label;
+    ESP_Brookesia_LvObj_t _clock_second_label;
     ESP_Brookesia_LvObj_t _clock_period_label;
 };
 

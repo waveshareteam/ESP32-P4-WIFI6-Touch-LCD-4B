@@ -200,6 +200,8 @@ private:
     std::atomic<TickType_t> _last_audio_packet_tick{0};
     std::atomic<TickType_t> _last_audio_write_tick{0};
     std::atomic<TickType_t> _tts_stop_tick{0};
+    uint32_t _offline_since = 0;
+    bool _wlan_opened = false;
 
     bool _transport_connected = false;
     std::atomic<uint32_t> _server_goodbye_generation{0};
@@ -243,6 +245,8 @@ private:
 
     bool isNetworkReady() const;
     void updateNetworkState();
+    void openWlanSettings();
+    void checkOfflineWlanRedirect();
 
     bool postControlEvent(const ControlEvent &event, bool wait_for_ack = false);
     void controlLoop();

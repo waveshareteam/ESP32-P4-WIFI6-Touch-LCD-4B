@@ -7,6 +7,7 @@ idf_component_register(
     SRCS  ${PROJ_SRCS_C} ${PROJ_SRCS_CPP}
     INCLUDE_DIRS ${PROJ_SRC}
     REQUIRES brookesia_core esp32_p4_wifi6_touch_lcd_4b driver esp_wifi esp_wifi_remote esp_hosted lwip bsp_extra
+    PRIV_REQUIRES esp_app_format spi_flash esp_psram
 )
 
 set_source_files_properties(

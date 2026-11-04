@@ -26,6 +26,9 @@
 #define BAR_COLOR1          lv_color_hex(0xe9dbfc)
 #define BAR_COLOR2          lv_color_hex(0x6f8af6)
 #define BAR_COLOR3          lv_color_hex(0xffffff)
+#define MUSIC_BACKGROUND_COLOR lv_color_hex(0x0B0B12)
+#define MUSIC_TEXT_COLOR       lv_color_hex(0xF4F6FB)
+#define MUSIC_HINT_COLOR       lv_color_hex(0xA0A3B1)
 #if APP_DEMO_MUSIC_LARGE
     #define BAR_COLOR1_STOP     160
     #define BAR_COLOR2_STOP     200
@@ -250,8 +253,19 @@ lv_obj_t * lv_demo_music_main_create(lv_obj_t * parent, file_iterator_instance_t
     lv_obj_set_grid_cell(spectrum_obj, LV_GRID_ALIGN_STRETCH, 1, 1, LV_GRID_ALIGN_CENTER, 1, 9);
 #endif
 
-    sec_counter_timer = lv_timer_create(timer_cb, 1000, NULL);
-    lv_timer_pause(sec_counter_timer);
+    const bool has_tracks = lv_demo_music_get_track_count() > 0;
+    if (has_tracks) {
+        sec_counter_timer = lv_timer_create(timer_cb, 1000, NULL);
+        lv_timer_pause(sec_counter_timer);
+    }
+
+    /* The empty library is a static status page. Do not retain timers or intro
+     * animations that would later target objects released by the app shell. */
+    if (!has_tracks) {
+        lv_obj_add_state(play_obj, LV_STATE_DISABLED);
+        lv_obj_update_layout(main_cont);
+        return main_cont;
+    }
 
     /*Animate in the content after the intro time*/
     lv_anim_t a;
@@ -292,13 +306,13 @@ lv_obj_t * lv_demo_music_main_create(lv_obj_t * parent, file_iterator_instance_t
 
     /* Create an intro from a logo + label */
     LV_IMAGE_DECLARE(img_lv_demo_music_logo);
-    lv_obj_t * logo = lv_image_create(lv_screen_active());
+    lv_obj_t * logo = lv_image_create(parent);
     lv_image_set_src(logo, &img_lv_demo_music_logo);
     lv_obj_move_foreground(logo);
     lv_obj_align_to(logo, spectrum_obj, LV_ALIGN_CENTER, 0, 0);
 
 #if LV_DEMO_MUSIC_SQUARE == 0 && LV_DEMO_MUSIC_ROUND == 0
-    lv_obj_t * title = lv_label_create(lv_screen_active());
+    lv_obj_t * title = lv_label_create(parent);
     lv_label_set_text(title, "LVGL Demo\nMusic player");
     lv_obj_set_style_text_align(title, LV_TEXT_ALIGN_CENTER, 0);
     lv_obj_set_style_text_font(title, font_large, 0);
@@ -323,8 +337,27 @@ lv_obj_t * lv_demo_music_main_create(lv_obj_t * parent, file_iterator_instance_t
 
 void lv_demo_music_main_close(void)
 {
-    if(stop_start_anim_timer) lv_timer_del(stop_start_anim_timer);
-    lv_timer_del(sec_counter_timer);
+    lv_anim_delete(NULL, start_anim_cb);
+    if (spectrum_obj) {
+        lv_anim_delete(spectrum_obj, spectrum_anim_cb);
+    }
+    if (stop_start_anim_timer) {
+        lv_timer_delete(stop_start_anim_timer);
+        stop_start_anim_timer = NULL;
+    }
+    if (sec_counter_timer) {
+        lv_timer_delete(sec_counter_timer);
+        sec_counter_timer = NULL;
+    }
+    start_anim = false;
+    playing = false;
+    pause = false;
+    pause_exit = false;
+    spectrum_obj = NULL;
+    album_image_obj = NULL;
+    play_obj = NULL;
+    slider_obj = NULL;
+    time_obj = NULL;
 }
 
 
@@ -375,7 +408,9 @@ void lv_demo_music_resume(void)
     }
 
     esp_err_t ret;
-    if (!pause_exit && pause && bsp_extra_player_is_playing_by_index(file_iterator, track_id)) {
+    const bool resuming = !pause_exit && pause && audio_player_get_state() == AUDIO_PLAYER_STATE_PAUSE &&
+            bsp_extra_player_is_playing_by_index(file_iterator, track_id);
+    if (resuming) {
         LV_LOG_USER("Resume music");
         ret = audio_player_resume();
     }
@@ -397,6 +432,13 @@ void lv_demo_music_resume(void)
         return;
     }
 
+    if (!resuming) {
+        time_act = 0;
+        spectrum_i_pause = 0;
+        spectrum_i = 0;
+        lv_label_set_text(time_obj, "0:00");
+        lv_slider_set_value(slider_obj, 0, LV_ANIM_OFF);
+    }
     spectrum_i = spectrum_i_pause;
     lv_anim_t a;
     lv_anim_init(&a);
@@ -410,6 +452,9 @@ void lv_demo_music_resume(void)
 
     if(sec_counter_timer) lv_timer_resume(sec_counter_timer);
     lv_slider_set_range(slider_obj, 0, lv_demo_music_get_track_length(track_id));
+    if (!resuming) {
+        lv_slider_set_value(slider_obj, 0, LV_ANIM_OFF);
+    }
 
     lv_obj_add_state(play_obj, LV_STATE_CHECKED);
     playing = true;
@@ -422,11 +467,17 @@ void lv_demo_music_pause(void)
     pause = true;
     spectrum_i_pause = spectrum_i;
     spectrum_i = 0;
-    lv_anim_delete(spectrum_obj, spectrum_anim_cb);
-    lv_obj_invalidate(spectrum_obj);
-    lv_image_set_scale(album_image_obj, LV_SCALE_NONE);
+    if (spectrum_obj) {
+        lv_anim_delete(spectrum_obj, spectrum_anim_cb);
+        lv_obj_invalidate(spectrum_obj);
+    }
+    if (album_image_obj) {
+        lv_image_set_scale(album_image_obj, LV_SCALE_NONE);
+    }
     if(sec_counter_timer) lv_timer_pause(sec_counter_timer);
-    lv_obj_remove_state(play_obj, LV_STATE_CHECKED);
+    if (play_obj) {
+        lv_obj_remove_state(play_obj, LV_STATE_CHECKED);
+    }
 
     audio_player_pause();
 }
@@ -434,6 +485,7 @@ void lv_demo_music_pause(void)
 void lv_demo_music_exit_pause(void)
 {
     pause_exit = true;
+    lv_demo_music_pause();
 }
 
 /**********************
@@ -460,7 +512,7 @@ static lv_obj_t * create_cont(lv_obj_t * parent)
 #endif
     lv_obj_remove_flag(player, LV_OBJ_FLAG_SNAPPABLE);
 
-    lv_obj_set_style_bg_color(player, lv_color_hex(0xffffff), 0);
+    lv_obj_set_style_bg_color(player, MUSIC_BACKGROUND_COLOR, LV_PART_MAIN);
     lv_obj_set_style_border_width(player, 0, 0);
     lv_obj_set_style_pad_all(player, 0, 0);
     lv_obj_set_scroll_dir(player, LV_DIR_VER);
@@ -553,19 +605,27 @@ static lv_obj_t * create_title_box(lv_obj_t * parent)
 
     title_label = lv_label_create(cont);
     lv_obj_set_style_text_font(title_label, font_large, 0);
-    lv_obj_set_style_text_color(title_label, lv_color_hex(0x504d6d), 0);
-    lv_label_set_text(title_label, has_tracks ? lv_demo_music_get_title(track_id) : "No tracks found");
+    lv_obj_set_style_text_color(title_label, MUSIC_TEXT_COLOR, LV_PART_MAIN);
+    lv_label_set_text(title_label, has_tracks ? lv_demo_music_get_title(track_id) : "No music found");
     lv_obj_set_height(title_label, lv_font_get_line_height(font_large) * 3 / 2);
 
     artist_label = lv_label_create(cont);
+    lv_obj_set_width(artist_label, lv_pct(92));
+    lv_label_set_long_mode(artist_label, LV_LABEL_LONG_MODE_WRAP);
+    lv_obj_set_style_text_align(artist_label, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
     lv_obj_set_style_text_font(artist_label, font_small, 0);
-    lv_obj_set_style_text_color(artist_label, lv_color_hex(0x504d6d), 0);
-    lv_label_set_text(artist_label, has_tracks ? lv_demo_music_get_artist(track_id) : "");
+    lv_obj_set_style_text_color(artist_label, MUSIC_HINT_COLOR, LV_PART_MAIN);
+    lv_label_set_text(artist_label, has_tracks ? lv_demo_music_get_artist(track_id) :
+                      "Music is not included in this firmware");
 
     genre_label = lv_label_create(cont);
+    lv_obj_set_width(genre_label, lv_pct(92));
+    lv_label_set_long_mode(genre_label, LV_LABEL_LONG_MODE_WRAP);
+    lv_obj_set_style_text_align(genre_label, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
     lv_obj_set_style_text_font(genre_label, font_small, 0);
-    lv_obj_set_style_text_color(genre_label, lv_color_hex(0x8a86b8), 0);
-    lv_label_set_text(genre_label, has_tracks ? lv_demo_music_get_genre(track_id) : "");
+    lv_obj_set_style_text_color(genre_label, MUSIC_HINT_COLOR, LV_PART_MAIN);
+    lv_label_set_text(genre_label, has_tracks ? lv_demo_music_get_genre(track_id) :
+                      "Return to the launcher to use another app");
 
     return cont;
 }
@@ -966,7 +1026,10 @@ static void spectrum_draw_event_cb(lv_event_t * e)
     else if(code == LV_EVENT_DELETE) {
         lv_anim_delete(NULL, start_anim_cb);
         lv_anim_delete(NULL, spectrum_anim_cb);
-        if(start_anim && stop_start_anim_timer) lv_timer_delete(stop_start_anim_timer);
+        if(start_anim && stop_start_anim_timer) {
+            lv_timer_delete(stop_start_anim_timer);
+            stop_start_anim_timer = NULL;
+        }
     }
 }
 
@@ -1080,6 +1143,17 @@ static void next_click_event_cb(lv_event_t * e)
 static void timer_cb(lv_timer_t * t)
 {
     LV_UNUSED(t);
+    if (playing && audio_player_get_state() == AUDIO_PLAYER_STATE_IDLE) {
+        const uint32_t duration = lv_demo_music_get_track_length(track_id);
+        if (duration > 0) {
+            time_act = duration;
+            lv_label_set_text_fmt(time_obj, "%"LV_PRIu32":%02"LV_PRIu32,
+                                  time_act / 60, time_act % 60);
+            lv_slider_set_value(slider_obj, time_act, LV_ANIM_OFF);
+        }
+        lv_demo_music_pause();
+        return;
+    }
     time_act++;
     lv_label_set_text_fmt(time_obj, "%"LV_PRIu32":%02"LV_PRIu32, time_act / 60, time_act % 60);
     lv_slider_set_value(slider_obj, time_act, LV_ANIM_ON);
@@ -1088,14 +1162,17 @@ static void timer_cb(lv_timer_t * t)
 static void spectrum_end_cb(lv_anim_t * a)
 {
     LV_UNUSED(a);
-    lv_demo_music_album_next(true);
+    /* Spectrum data is decorative. Playback ends only when the audio player is idle. */
 }
 
 static void stop_start_anim(lv_timer_t * t)
 {
     LV_UNUSED(t);
     start_anim = false;
-    lv_obj_refresh_ext_draw_size(spectrum_obj);
+    stop_start_anim_timer = NULL;
+    if (spectrum_obj) {
+        lv_obj_refresh_ext_draw_size(spectrum_obj);
+    }
 }
 
 static void album_fade_anim_cb(void * var, int32_t v)
