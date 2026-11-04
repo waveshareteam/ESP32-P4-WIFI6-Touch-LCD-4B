@@ -21,6 +21,7 @@
 #include "others/snapshot/lv_snapshot.h"
 
 #include "bsp/esp-bsp.h"
+#include "c6_updater.hpp"
 #include "esp_brookesia.hpp"
 #include "factory_diagnostics.hpp"
 #include "gui_music/lv_demo_music_main.h"
@@ -328,6 +329,10 @@ void process_command(char *line)
         command_i2c();
     } else if (command_equals(line, "factory_c6_version")) {
         command_c6_version();
+    } else if (command_equals(line, "factory_c6_update")) {
+        c6_updater_receive_and_install(kUart, argument);
+    } else if (command_equals(line, "factory_c6_install")) {
+        c6_updater_install_bundled(kUart);
     } else if (command_equals(line, "factory_touch")) {
         command_touch();
     } else if (command_equals(line, "factory_capture")) {
@@ -339,7 +344,7 @@ void process_command(char *line)
     } else if (command_equals(line, "factory_music")) {
         command_music(argument);
     } else if (command_equals(line, "factory_help")) {
-        response("COMMANDS factory_status factory_i2c factory_c6_version factory_touch factory_capture factory_app <calculator|draw|spectrum|music|camera|video|settings|xiaozhi|ethernet|relay|rs485> factory_close <app> factory_music <play|pause|status>");
+        response("COMMANDS factory_status factory_i2c factory_c6_version factory_c6_update <byte_count> <sha256hex> factory_c6_install factory_touch factory_capture factory_app <calculator|draw|spectrum|music|camera|video|settings|xiaozhi|ethernet|relay|rs485> factory_close <app> factory_music <play|pause|status>");
     } else if (*line) {
         response("ERROR unknown_command=%s", line);
     }
@@ -385,7 +390,7 @@ esp_err_t factory_diagnostics_start(
     }
 
     /* Do not configure UART pins or baud rate: sdkconfig owns the console link. */
-    esp_err_t ret = uart_driver_install(kUart, 256, 0, 0, nullptr, 0);
+    esp_err_t ret = uart_driver_install(kUart, 4096, 0, 0, nullptr, 0);
     if (ret != ESP_OK) {
         ESP_LOGE(kTag, "Install UART receive driver failed: %s", esp_err_to_name(ret));
         return ret;

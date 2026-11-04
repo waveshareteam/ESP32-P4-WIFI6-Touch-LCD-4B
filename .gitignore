@@ -19,6 +19,8 @@ build/
 sdkconfig
 sdkconfig.old
 managed_components/
+!examples/factory/spiffs/**
+examples/factory/components/gen_bmgr_codes/
 examples/esp-idf/**/dependencies.lock
 examples/factory/dependencies.lock
 
