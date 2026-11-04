@@ -200,11 +200,36 @@ void command_capture()
     const uint32_t height = snapshot->header.h;
     const uint32_t stride = snapshot->header.stride;
     const size_t size = static_cast<size_t>(stride) * height;
-    response("CAPTURE_BEGIN format=rgb565 width=%lu height=%lu stride=%lu bytes=%u",
+    // Flat UI regions compress well. A short transfer avoids overflowing the
+    // USB-UART receiver while retaining every RGB565 pixel and stride byte.
+    auto *packed = static_cast<uint8_t *>(heap_caps_malloc(size * 2, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT));
+    if (!packed) {
+        lv_draw_buf_destroy(snapshot);
+        response("CAPTURE result=no_memory");
+        return;
+    }
+    size_t packed_size = 0;
+    for (size_t offset = 0; offset < size;) {
+        const uint8_t low = snapshot->data[offset];
+        const uint8_t high = snapshot->data[offset + 1];
+        uint16_t count = 1;
+        while (count < UINT16_MAX && offset + static_cast<size_t>(count) * 2 < size &&
+                snapshot->data[offset + count * 2] == low &&
+                snapshot->data[offset + count * 2 + 1] == high) {
+            ++count;
+        }
+        packed[packed_size++] = count & 0xff;
+        packed[packed_size++] = count >> 8;
+        packed[packed_size++] = low;
+        packed[packed_size++] = high;
+        offset += static_cast<size_t>(count) * 2;
+    }
+    response("CAPTURE_BEGIN format=rgb565_rle width=%lu height=%lu stride=%lu bytes=%u encoded_bytes=%u",
              static_cast<unsigned long>(width), static_cast<unsigned long>(height),
-             static_cast<unsigned long>(stride), static_cast<unsigned>(size));
-    write_base64_capture(snapshot->data, size);
+             static_cast<unsigned long>(stride), static_cast<unsigned>(size), static_cast<unsigned>(packed_size));
+    write_base64_capture(packed, packed_size);
     response("CAPTURE_END bytes=%u", static_cast<unsigned>(size));
+    heap_caps_free(packed);
     lv_draw_buf_destroy(snapshot);
 }
 
