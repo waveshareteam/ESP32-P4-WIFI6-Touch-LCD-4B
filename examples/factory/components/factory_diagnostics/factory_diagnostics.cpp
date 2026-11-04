@@ -233,7 +233,7 @@ void command_capture()
     lv_draw_buf_destroy(snapshot);
 }
 
-void command_app(const char *name)
+void command_app(const char *name, bool close = false)
 {
     if (!name || !*name) {
         response("APP result=missing_name");
@@ -258,13 +258,15 @@ void command_app(const char *name)
         id = app->getId();
         const esp_brookesia::systems::base::Context::AppEventData event{
             .id = id,
-            .type = esp_brookesia::systems::base::Context::AppEventType::START,
+            .type = close ? esp_brookesia::systems::base::Context::AppEventType::STOP :
+                            esp_brookesia::systems::base::Context::AppEventType::START,
             .data = nullptr,
         };
         started = s_state.phone->sendAppEvent(&event);
     }
     bsp_display_unlock();
-    response("APP name=%s id=%d result=%s", name, id, started ? "started" : "not_found_or_failed");
+    response("APP name=%s id=%d action=%s result=%s", name, id, close ? "close" : "start",
+             started ? "queued" : "not_found_or_failed");
 }
 
 void command_music(const char *action)
@@ -316,10 +318,12 @@ void process_command(char *line)
         command_capture();
     } else if (command_equals(line, "factory_app")) {
         command_app(argument);
+    } else if (command_equals(line, "factory_close")) {
+        command_app(argument, true);
     } else if (command_equals(line, "factory_music")) {
         command_music(argument);
     } else if (command_equals(line, "factory_help")) {
-        response("COMMANDS factory_status factory_i2c factory_touch factory_capture factory_app <calculator|draw|spectrum|music|camera|video|settings|xiaozhi|ethernet|relay|rs485> factory_music <play|pause>");
+        response("COMMANDS factory_status factory_i2c factory_touch factory_capture factory_app <calculator|draw|spectrum|music|camera|video|settings|xiaozhi|ethernet|relay|rs485> factory_close <app> factory_music <play|pause>");
     } else if (*line) {
         response("ERROR unknown_command=%s", line);
     }
