@@ -147,7 +147,7 @@ namespace esp_brookesia::apps
     void MusicPlayer::showStatus(const char *title, const char *hint)
     {
         lv_obj_t *screen = lv_scr_act();
-        lv_obj_set_style_bg_color(screen, lv_color_hex(0x0B0B12), LV_PART_MAIN);
+        lv_obj_set_style_bg_color(screen, lv_color_hex(0xFFFFFF), LV_PART_MAIN);
         lv_obj_set_style_bg_opa(screen, LV_OPA_COVER, LV_PART_MAIN);
         lv_obj_remove_flag(screen, LV_OBJ_FLAG_SCROLLABLE);
         _status_view = lv_obj_create(screen);
@@ -167,7 +167,7 @@ namespace esp_brookesia::apps
         lv_obj_t *heading = lv_label_create(_status_view);
         lv_label_set_text(heading, title);
         lv_obj_set_style_text_font(heading, &lv_font_montserrat_32, LV_PART_MAIN);
-        lv_obj_set_style_text_color(heading, lv_color_hex(0xF4F6FB), LV_PART_MAIN);
+        lv_obj_set_style_text_color(heading, lv_color_hex(0x504D6D), LV_PART_MAIN);
 
         lv_obj_t *message = lv_label_create(_status_view);
         lv_obj_set_width(message, lv_pct(100));
@@ -175,7 +175,7 @@ namespace esp_brookesia::apps
         lv_label_set_text(message, hint);
         lv_obj_set_style_text_align(message, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
         lv_obj_set_style_text_font(message, &lv_font_montserrat_24, LV_PART_MAIN);
-        lv_obj_set_style_text_color(message, lv_color_hex(0xA0A3B1), LV_PART_MAIN);
+        lv_obj_set_style_text_color(message, lv_color_hex(0x8A86B8), LV_PART_MAIN);
 
         lv_obj_t *back = lv_button_create(_status_view);
         lv_obj_set_size(back, 240, 60);

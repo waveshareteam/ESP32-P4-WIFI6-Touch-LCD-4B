@@ -26,9 +26,6 @@
 #define BAR_COLOR1          lv_color_hex(0xe9dbfc)
 #define BAR_COLOR2          lv_color_hex(0x6f8af6)
 #define BAR_COLOR3          lv_color_hex(0xffffff)
-#define MUSIC_BACKGROUND_COLOR lv_color_hex(0x0B0B12)
-#define MUSIC_TEXT_COLOR       lv_color_hex(0xF4F6FB)
-#define MUSIC_HINT_COLOR       lv_color_hex(0xA0A3B1)
 #if APP_DEMO_MUSIC_LARGE
     #define BAR_COLOR1_STOP     160
     #define BAR_COLOR2_STOP     200
@@ -512,7 +509,7 @@ static lv_obj_t * create_cont(lv_obj_t * parent)
 #endif
     lv_obj_remove_flag(player, LV_OBJ_FLAG_SNAPPABLE);
 
-    lv_obj_set_style_bg_color(player, MUSIC_BACKGROUND_COLOR, LV_PART_MAIN);
+    lv_obj_set_style_bg_color(player, lv_color_hex(0xffffff), LV_PART_MAIN);
     lv_obj_set_style_border_width(player, 0, 0);
     lv_obj_set_style_pad_all(player, 0, 0);
     lv_obj_set_scroll_dir(player, LV_DIR_VER);
@@ -605,7 +602,7 @@ static lv_obj_t * create_title_box(lv_obj_t * parent)
 
     title_label = lv_label_create(cont);
     lv_obj_set_style_text_font(title_label, font_large, 0);
-    lv_obj_set_style_text_color(title_label, MUSIC_TEXT_COLOR, LV_PART_MAIN);
+    lv_obj_set_style_text_color(title_label, lv_color_hex(0x504d6d), LV_PART_MAIN);
     lv_label_set_text(title_label, has_tracks ? lv_demo_music_get_title(track_id) : "No music found");
     lv_obj_set_height(title_label, lv_font_get_line_height(font_large) * 3 / 2);
 
@@ -614,7 +611,7 @@ static lv_obj_t * create_title_box(lv_obj_t * parent)
     lv_label_set_long_mode(artist_label, LV_LABEL_LONG_MODE_WRAP);
     lv_obj_set_style_text_align(artist_label, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
     lv_obj_set_style_text_font(artist_label, font_small, 0);
-    lv_obj_set_style_text_color(artist_label, MUSIC_HINT_COLOR, LV_PART_MAIN);
+    lv_obj_set_style_text_color(artist_label, lv_color_hex(0x504d6d), LV_PART_MAIN);
     lv_label_set_text(artist_label, has_tracks ? lv_demo_music_get_artist(track_id) :
                       "Music is not included in this firmware");
 
@@ -623,7 +620,7 @@ static lv_obj_t * create_title_box(lv_obj_t * parent)
     lv_label_set_long_mode(genre_label, LV_LABEL_LONG_MODE_WRAP);
     lv_obj_set_style_text_align(genre_label, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
     lv_obj_set_style_text_font(genre_label, font_small, 0);
-    lv_obj_set_style_text_color(genre_label, MUSIC_HINT_COLOR, LV_PART_MAIN);
+    lv_obj_set_style_text_color(genre_label, lv_color_hex(0x8a86b8), LV_PART_MAIN);
     lv_label_set_text(genre_label, has_tracks ? lv_demo_music_get_genre(track_id) :
                       "Return to the launcher to use another app");
 

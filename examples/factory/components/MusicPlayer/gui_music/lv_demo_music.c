@@ -44,7 +44,6 @@ static lv_timer_t *auto_step_timer;
 static lv_color_t original_screen_bg_color;
 static bool music_active;
 
-#define MUSIC_BACKGROUND_COLOR 0x0B0B12
 
 static uint32_t active_track_cnt;
 static file_iterator_instance_t *_file_iterator = NULL;
@@ -127,7 +126,7 @@ void lv_demo_music(lv_obj_t *parent, file_iterator_instance_t *file_iterator)
         active_track_cnt = ACTIVE_TRACK_CNT;
     }
     original_screen_bg_color = lv_obj_get_style_bg_color(music_parent, LV_PART_MAIN);
-    lv_obj_set_style_bg_color(music_parent, lv_color_hex(MUSIC_BACKGROUND_COLOR), LV_PART_MAIN);
+    lv_obj_set_style_bg_color(music_parent, lv_color_hex(0x343247), LV_PART_MAIN);
 
     list = lv_demo_music_list_create(parent);
     ctrl = lv_demo_music_main_create(parent, file_iterator);
