@@ -1,16 +1,30 @@
-# LVGL 8 widgets
+# LVGL 8 Widgets
 
-[中文](README_ZH.md)
+[English](README.md) | [简体中文](README_ZH.md)
 
-Runs the LVGL 8.4.0 widget demo through `waveshare/esp32_p4_wifi6_touch_lcd_4b` 3.0.1 and `espressif/esp_lvgl_adapter` 0.6.3 on the 4-inch 720 x 720 panel.
+## What It Does
 
-The BSP starts the display, touch input, LVGL adapter, and LVGL task. Application UI creation is performed while holding the BSP display lock.
+Runs the LVGL 8.4.0 widget demo on the 4-inch 720 x 720 display with touch input.
 
-BSP 3.0.1 exposes the LVGL 9 rotation type spelling in its display API. This project applies a compile-only alias to LVGL 8's equivalent type; it does not fork or modify the managed BSP.
+## Hardware Required
 
-```sh
+An ESP32-P4-WIFI6-Touch-LCD-4B development board is required.
+
+## How to Run
+
+Use ESP-IDF v5.5.3, v5.5.6, or v6.1; Board Manager resolves `waveshare/waveshare_boards` >=0.3 and `espressif/esp_board_manager` >=0.7.5 as dependencies.
+
+```bash
+python -m pip install --upgrade esp-bmgr-assist
+idf.py bmgr -b esp32_p4_wifi6_touch_lcd_4b
 idf.py set-target esp32p4
-idf.py flash monitor
+idf.py build flash monitor
 ```
 
-The repository CI targets ESP-IDF v5.5.5 and v6.0.2. Visual output, touch orientation, tearing, frame rate, and memory headroom remain hardware-validation items.
+## Expected Result
+
+The display shows the LVGL 8 widget demo and accepts touch input.
+
+## Troubleshooting
+
+None yet.

@@ -1,34 +1,30 @@
 # RS485 回显
 
-[English](README.md)
+[English](README.md) | [简体中文](README_ZH.md)
 
-使用相关 ESP32-P4-86-Panel-ETH-2RO 组件底板上的 RS485 收发器。这不是 TTL-UART 接线示例；独立 4B 开发板不提供 RS485 A/B 线对，且不应假定其主 PCB 可互换。
+## 功能
 
-## 开发板配置
+通过兼容底板上的 RS485 收发器接收数据，并将其回送到总线。
 
-| 功能 | 默认值 |
-| --- | --- |
-| UART 端口 | UART1 |
-| TX / RX | GPIO 47 / GPIO 48 |
-| 串口格式 | 115200 波特率、8 个数据位、无校验、1 个停止位 |
-| 底板供电 | ESP32-P4 片上 LDO 通道 4，3.3 V |
+## 硬件需求
 
-当前产品文档说明采用自动 RS485 方向控制，因此应用使用普通 UART 发送和接收调用，不使用 RTS 方向引脚。接收到的字节会回送到总线，并在调试控制台中报告。
+需要 ESP32-P4-WIFI6-Touch-LCD-4B 开发板、兼容的 ESP32-P4-86-Panel-ETH-2RO 底板和 RS485 对端。
 
-在 **Echo Example Configuration** 下配置 UART 设置：
+## 怎么运行
 
-```sh
+使用 ESP-IDF v5.5.3、v5.5.6 或 v6.1；Board Manager 会解析 `waveshare/waveshare_boards` >=0.3 和 `espressif/esp_board_manager` >=0.7.5 依赖。
+
+```bash
+python -m pip install --upgrade esp-bmgr-assist
+idf.py bmgr -b esp32_p4_wifi6_touch_lcd_4b
 idf.py set-target esp32p4
-idf.py menuconfig
-idf.py flash monitor
+idf.py build flash monitor
 ```
 
-## 接线和安全
+## 预期现象
 
-将 A 接 A、B 接 B，并通过支持 RS485 的对端提供公共参考地。根据线缆和拓扑使用合适的终端电阻。请勿在回环测试时将 A 和 B 短接，并避免两个设备同时发送。
+从 RS485 对端收到的数据会被回送，并在监视器中报告。
 
-仓库还保留 `hardware/schematic/ESP32-P4-86-Panel-Bottom-Board-V1.3.pdf` 作为历史参考。在审查过的 V1.3 图纸中，`/RE` 和 `DE` 共用一个上拉网络，这可能使接收器保持禁用。该限制仅针对该版本，不能泛化到当前官方底板；其文档说明采用自动方向控制。
+## 常见问题
 
-## 验证边界
-
-仓库 CI 面向 ESP-IDF v5.5.5 和 v6.0.2。编译无法证明已安装收发器版本、方向时序、极性、终端、接收行为或抗噪性；请在实际使用的精确底板版本上验证这些项目。
+将 A 接 A、B 接 B，并为 RS485 网络使用合适的公共参考地和终端。

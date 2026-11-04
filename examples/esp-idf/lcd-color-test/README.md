@@ -1,14 +1,30 @@
-# ST7703 LCD color test
+# ST7703 LCD Color Test
 
-[中文](README_ZH.md)
+[English](README.md) | [简体中文](README_ZH.md)
 
-Low-level 720 x 720 MIPI DSI test for the 4-inch ST7703 panel. It powers the DSI PHY through on-chip LDO channel 3, resets the panel on GPIO 27, controls the backlight on GPIO 26, and displays the controller's vertical color-bar pattern.
+## What It Does
 
-The project uses `waveshare/esp_lcd_st7703` 2.0.0 directly instead of LVGL or the board BSP. It is useful when isolating a panel, timing, reset, or backlight problem.
+Runs a low-level 720 x 720 MIPI-DSI color-bar test for the ST7703 display panel.
 
-```sh
+## Hardware Required
+
+An ESP32-P4-WIFI6-Touch-LCD-4B development board is required.
+
+## How to Run
+
+Use ESP-IDF v5.5.3, v5.5.6, or v6.1; Board Manager resolves `waveshare/waveshare_boards` >=0.3 and `espressif/esp_board_manager` >=0.7.5 as dependencies.
+
+```bash
+python -m pip install --upgrade esp-bmgr-assist
+idf.py bmgr -b esp32_p4_wifi6_touch_lcd_4b
 idf.py set-target esp32p4
-idf.py flash monitor
+idf.py build flash monitor
 ```
 
-The repository CI targets ESP-IDF v5.5.5 and v6.0.2. A successful compile cannot confirm DSI signal integrity, panel revision, color order, or backlight polarity.
+## Expected Result
+
+The panel displays the controller's vertical color-bar pattern.
+
+## Troubleshooting
+
+None yet.

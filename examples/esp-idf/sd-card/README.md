@@ -1,20 +1,30 @@
-# MicroSD card
+# MicroSD Card
 
-[中文](README_ZH.md)
+[English](README.md) | [简体中文](README_ZH.md)
 
-Mounts a FAT filesystem through the ESP32-P4 SDMMC host, writes and reads test files, then unmounts the card.
+## What It Does
 
-| Signal | GPIO |
-| --- | ---: |
-| D0-D3 | 39-42 |
-| CLK | 43 |
-| CMD | 44 |
-| SD power / VO4 control | 45 / on-chip LDO channel 4 |
+Mounts a FAT filesystem on a microSD card, writes and reads a test file, then unmounts the card.
 
-```sh
+## Hardware Required
+
+An ESP32-P4-WIFI6-Touch-LCD-4B development board and a microSD card are required.
+
+## How to Run
+
+Use ESP-IDF v5.5.3, v5.5.6, or v6.1; Board Manager resolves `waveshare/waveshare_boards` >=0.3 and `espressif/esp_board_manager` >=0.7.5 as dependencies.
+
+```bash
+python -m pip install --upgrade esp-bmgr-assist
+idf.py bmgr -b esp32_p4_wifi6_touch_lcd_4b
 idf.py set-target esp32p4
-idf.py menuconfig
-idf.py flash monitor
+idf.py build flash monitor
 ```
 
-Formatting on mount failure is disabled unless explicitly selected. Back up the card before enabling any formatting option. The repository CI targets ESP-IDF v5.5.5 and v6.0.2; card insertion, power, mount, and read/write behavior require board testing.
+## Expected Result
+
+The monitor reports that the card was mounted and that the test file was written and read.
+
+## Troubleshooting
+
+Back up the card before enabling any formatting option in `idf.py menuconfig`.

@@ -43,9 +43,9 @@ The open factory project is in [examples/factory](examples/factory/README.md).
 
 | Framework | Version | Scope |
 | --- | --- | --- |
-| ESP-IDF | v5.5.5, v6.0.2 | First-party examples |
-| Arduino-ESP32 | 3.3.11 | Arduino sketches |
-| ESP-IDF | v5.5.5 | Factory firmware |
+| ESP-IDF | v5.5.3, v5.5.6, v6.1 | First-party examples |
+| Arduino-ESP32 | 3.3.12 | Arduino sketches |
+| ESP-IDF | v5.5.6 | Factory firmware |
 
 ## 📚 Resources
 

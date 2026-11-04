@@ -1,16 +1,30 @@
 # LVGL 8 控件
 
-[English](README.md)
+[English](README.md) | [简体中文](README_ZH.md)
 
-通过 `waveshare/esp32_p4_wifi6_touch_lcd_4b` 3.0.1 和 `espressif/esp_lvgl_adapter` 0.6.3，在 4 英寸 720 x 720 面板上运行 LVGL 8.4.0 控件演示。
+## 功能
 
-BSP 启动显示、触摸输入、LVGL 适配器和 LVGL 任务。创建应用程序 UI 时需要持有 BSP 显示锁。
+在带触摸输入的 4 英寸 720 x 720 显示屏上运行 LVGL 8.4.0 控件演示。
 
-BSP 3.0.1 在其显示 API 中使用 LVGL 9 的旋转类型拼写。该项目为 LVGL 8 的等效类型应用仅用于编译的别名；不会派生或修改托管 BSP。
+## 硬件需求
 
-```sh
+需要一块 ESP32-P4-WIFI6-Touch-LCD-4B 开发板。
+
+## 怎么运行
+
+使用 ESP-IDF v5.5.3、v5.5.6 或 v6.1；Board Manager 会解析 `waveshare/waveshare_boards` >=0.3 和 `espressif/esp_board_manager` >=0.7.5 依赖。
+
+```bash
+python -m pip install --upgrade esp-bmgr-assist
+idf.py bmgr -b esp32_p4_wifi6_touch_lcd_4b
 idf.py set-target esp32p4
-idf.py flash monitor
+idf.py build flash monitor
 ```
 
-仓库 CI 面向 ESP-IDF v5.5.5 和 v6.0.2。视觉输出、触摸方向、撕裂、帧率和内存余量仍属于硬件验证项目。
+## 预期现象
+
+显示屏显示 LVGL 8 控件演示并接受触摸输入。
+
+## 常见问题
+
+暂无。

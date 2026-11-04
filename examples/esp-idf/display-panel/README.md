@@ -1,14 +1,30 @@
-# Display and touch panel
+# Display and Touch Panel
 
-[中文](README_ZH.md)
+[English](README.md) | [简体中文](README_ZH.md)
 
-Starts the Waveshare BSP 3.0.1 display stack with LVGL 9.3.0 and `espressif/esp_lvgl_adapter` 0.6.3, shows red/green/blue/white screens, then creates a full-screen LVGL touch area that draws black squares at GT911 touch positions.
+## What It Does
 
-The project is fixed to the 4-inch 720 x 720 panel selection. All LVGL object changes are protected by the BSP display lock; the BSP owns the LVGL timer task.
+Initializes the 4-inch 720 x 720 display and GT911 touch panel with LVGL. The example cycles red, green, blue, and white screens, then draws squares at touch positions.
 
-```sh
+## Hardware Required
+
+An ESP32-P4-WIFI6-Touch-LCD-4B development board is required.
+
+## How to Run
+
+Use ESP-IDF v5.5.3, v5.5.6, or v6.1; Board Manager resolves `waveshare/waveshare_boards` >=0.3 and `espressif/esp_board_manager` >=0.7.5 as dependencies.
+
+```bash
+python -m pip install --upgrade esp-bmgr-assist
+idf.py bmgr -b esp32_p4_wifi6_touch_lcd_4b
 idf.py set-target esp32p4
-idf.py flash monitor
+idf.py build flash monitor
 ```
 
-Use this as the combined LCD/touch smoke test. Panel output, coordinate orientation, multi-touch behavior, and drawing latency require testing on the board and are not established by CI compilation.
+## Expected Result
+
+The panel cycles through the color screens and shows black squares where it is touched.
+
+## Troubleshooting
+
+None yet.

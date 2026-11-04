@@ -43,9 +43,9 @@
 
 | 框架 | 版本 | 范围 |
 | --- | --- | --- |
-| ESP-IDF | v5.5.5、v6.0.2 | 首方示例 |
-| Arduino-ESP32 | 3.3.11 | Arduino 草图 |
-| ESP-IDF | v5.5.5 | 出厂固件 |
+| ESP-IDF | v5.5.3、v5.5.6、v6.1 | 首方示例 |
+| Arduino-ESP32 | 3.3.12 | Arduino 草图 |
+| ESP-IDF | v5.5.6 | 出厂固件 |
 
 ## 📚 资料
 

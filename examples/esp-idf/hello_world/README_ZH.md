@@ -1,20 +1,30 @@
 # Hello World
 
-[English](README.md)
+[English](README.md) | [简体中文](README_ZH.md)
 
-此最小项目验证仓库、工具链和 ESP32-P4 目标配置正确。它不初始化显示屏、触摸控制器、音频硬件、存储或无线协处理器。
+## 功能
 
-## 构建
+构建不初始化开发板外设的 ESP32-P4 最小 ESP-IDF 应用。
 
-在仓库根目录且 ESP-IDF 环境已激活时：
+## 硬件需求
 
-```sh
-idf.py -C examples/esp-idf/hello_world set-target esp32p4
-idf.py -C examples/esp-idf/hello_world build
+运行该应用需要一块 ESP32-P4-WIFI6-Touch-LCD-4B 开发板。
+
+## 怎么运行
+
+使用 ESP-IDF v5.5.3、v5.5.6 或 v6.1；Board Manager 会解析 `waveshare/waveshare_boards` >=0.3 和 `espressif/esp_board_manager` >=0.7.5 依赖。
+
+```bash
+python -m pip install --upgrade esp-bmgr-assist
+idf.py bmgr -b esp32_p4_wifi6_touch_lcd_4b
+idf.py set-target esp32p4
+idf.py build flash monitor
 ```
 
-若要烧录并监视，请将串口替换为开发板使用的端口：
+## 预期现象
 
-```sh
-idf.py -C examples/esp-idf/hello_world -p PORT flash monitor
-```
+监视器打印 Hello World 启动消息。
+
+## 常见问题
+
+暂无。

@@ -1,22 +1,30 @@
 # Hello World
 
-[中文](README_ZH.md)
+[English](README.md) | [简体中文](README_ZH.md)
 
-This minimal project verifies that the repository, toolchain, and ESP32-P4
-target are configured correctly. It does not initialize the display, touch
-controller, audio hardware, storage, or wireless coprocessor.
+## What It Does
 
-## Build
+Builds the minimal ESP-IDF application for ESP32-P4 without initializing board peripherals.
 
-From the repository root, with an ESP-IDF environment active:
+## Hardware Required
 
-```sh
-idf.py -C examples/esp-idf/hello_world set-target esp32p4
-idf.py -C examples/esp-idf/hello_world build
+An ESP32-P4-WIFI6-Touch-LCD-4B development board is required to run the application.
+
+## How to Run
+
+Use ESP-IDF v5.5.3, v5.5.6, or v6.1; Board Manager resolves `waveshare/waveshare_boards` >=0.3 and `espressif/esp_board_manager` >=0.7.5 as dependencies.
+
+```bash
+python -m pip install --upgrade esp-bmgr-assist
+idf.py bmgr -b esp32_p4_wifi6_touch_lcd_4b
+idf.py set-target esp32p4
+idf.py build flash monitor
 ```
 
-To flash and monitor, replace the serial port with the port used by the board:
+## Expected Result
 
-```sh
-idf.py -C examples/esp-idf/hello_world -p PORT flash monitor
-```
+The monitor prints the Hello World startup messages.
+
+## Troubleshooting
+
+None yet.

@@ -1,15 +1,30 @@
-# Project template
+# Project Template
 
-[中文](README_ZH.md)
+[English](README.md) | [简体中文](README_ZH.md)
 
-Minimal ESP-IDF application layout for the ESP32-P4-WIFI6-Touch-LCD-4B. Use it as a clean starting point before adding display, touch, audio, storage, networking, or bottom-board features.
+## What It Does
 
-## Use
+Provides a minimal ESP-IDF application layout for starting an ESP32-P4-WIFI6-Touch-LCD-4B project.
 
-```sh
+## Hardware Required
+
+An ESP32-P4-WIFI6-Touch-LCD-4B development board is required to run the application.
+
+## How to Run
+
+Use ESP-IDF v5.5.3, v5.5.6, or v6.1; Board Manager resolves `waveshare/waveshare_boards` >=0.3 and `espressif/esp_board_manager` >=0.7.5 as dependencies.
+
+```bash
+python -m pip install --upgrade esp-bmgr-assist
+idf.py bmgr -b esp32_p4_wifi6_touch_lcd_4b
 idf.py set-target esp32p4
-idf.py build
-idf.py -p PORT flash monitor
+idf.py build flash monitor
 ```
 
-The repository CI targets ESP-IDF v5.5.5 and v6.0.2. No peripheral is initialized by this template, so it is also the quickest way to check a new toolchain setup. Runtime validation still requires the physical board.
+## Expected Result
+
+The monitor prints the template application's startup messages.
+
+## Troubleshooting
+
+None yet.
