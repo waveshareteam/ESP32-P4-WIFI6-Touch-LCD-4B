@@ -20,11 +20,8 @@ typedef struct {
 /**
  * @brief Create new touchscreen
  *
- * If you want to free resources allocated by this function, you can use esp_lcd_touch API, ie.:
- *
- * \code{.c}
- * esp_lcd_touch_del(tp);
- * \endcode
+ * The returned handle is owned by Board Manager for the factory lifetime and
+ * must not be deleted by callers.
  *
  * @param[in]  config    touch configuration
  * @param[out] ret_touch esp_lcd_touch touchscreen handle

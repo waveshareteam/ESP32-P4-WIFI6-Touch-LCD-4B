@@ -138,8 +138,8 @@ i2c_master_bus_handle_t bsp_i2c_get_handle(void);
  *  - ADC ES7210 for input (recording)
  *
  * Codec device handles returned by this BSP are BSP-owned. Applications may open and close them,
- * but must not call esp_codec_dev_delete(). bsp_audio_deinit() closes and deletes the codec devices,
- * their interfaces, the shared data interface, and the I2S channels.
+ * but must not call esp_codec_dev_delete(). bsp_audio_deinit() deinitializes the Board Manager
+ * codec devices and then releases the BSP's I2S peripheral references.
  **************************************************************************************************/
 
 /**

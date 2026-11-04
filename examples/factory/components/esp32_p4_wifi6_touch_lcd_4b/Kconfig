@@ -117,23 +117,12 @@ menu "Board Support Package(ESP32-P4)"
 
         endchoice
 
-        choice BSP_LCD_PANEL_IC
-            prompt "Select LCD panel controller"
-            default BSP_LCD_PANEL_IC_AUTO
+        config BSP_LCD_PANEL_IC_AUTO
+            bool
+            default y
             help
-                Auto detects the stock ST7703 and replacement JD9365DA through DSI reads.
-                An unknown or non-responsive panel uses the JD9365DA profile and logs a warning.
-                Manual choices are available for panels with a different module ID.
-
-            config BSP_LCD_PANEL_IC_AUTO
-                bool "Auto detect JD9365DA / ST7703"
-
-            config BSP_LCD_PANEL_IC_JD9365DA
-                bool "JD9365DA (720*720, 2-lane, 34.286 MHz pixel clock)"
-            config BSP_LCD_PANEL_IC_ST7703
-                bool "ST7703 (stock 4-inch 720*720 panel)"
-
-        endchoice
+                The managed board definition detects JD9365DA or ST7703 and
+                selects its register sequence and DPI timing during startup.
 
         
     endmenu

@@ -14,9 +14,12 @@ else()
 endif()
 
 idf_component_register(
-    SRCS "esp32_p4_wifi6_touch_lcd_4b.c" "bsp_panel_probe.c"
+    SRCS "esp32_p4_wifi6_touch_lcd_4b.c"
     INCLUDE_DIRS "include"
     PRIV_INCLUDE_DIRS "priv_include"
     REQUIRES ${REQ} fatfs
-    PRIV_REQUIRES ${PRIV_REQ} esp_lcd spiffs esp_psram esp_timer esp_lcd_jd9365 esp_lcd_st7703
+    PRIV_REQUIRES ${PRIV_REQ} esp_lcd spiffs esp_psram esp_timer esp_board_manager
 )
+
+# Generated only after `idf.py bmgr`; optional keeps set-target/bootstrap valid.
+idf_component_optional_requires(PRIVATE gen_bmgr_codes)

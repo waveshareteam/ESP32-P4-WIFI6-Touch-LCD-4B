@@ -5,15 +5,19 @@
 #include "esp_log.h"
 #include "esp_check.h"
 #include "esp_spiffs.h"
-#include "esp_lcd_panel_ops.h"
-#include "esp_lcd_mipi_dsi.h"
 #include "esp_ldo_regulator.h"
 #include "esp_vfs_fat.h"
 #include "usb/usb_host.h"
 #include "sd_pwr_ctrl_by_on_chip_ldo.h"
-#include "esp_lcd_jd9365.h"
-#include "esp_lcd_st7703.h"
-#include "bsp_panel_probe.h"
+#include "esp_board_manager.h"
+#include "esp_board_device.h"
+#include "esp_board_periph.h"
+#include "dev_display_lcd.h"
+#include "dev_lcd_touch.h"
+#include "dev_audio_codec.h"
+#include "periph_i2s.h"
+#include "periph_ledc.h"
+#include "lcd_panel_probe.h"
 #include "bsp/esp32_p4_wifi6_touch_lcd_4b.h"
 #include "bsp/display.h"
 #include "bsp/touch.h"
@@ -22,8 +26,16 @@
 #include "esp_codec_dev_defaults.h"
 
 static const char *TAG = "ESP32_P4_4B";
+typedef enum {
+    BSP_PANEL_UNKNOWN,
+    BSP_PANEL_JD9365,
+    BSP_PANEL_ST7703,
+} bsp_panel_kind_t;
 static bsp_panel_kind_t display_panel_kind = BSP_PANEL_UNKNOWN;
 static bool display_panel_identified = false;
+static dev_display_lcd_handles_t *display_handles;
+static dev_lcd_touch_handles_t *touch_handles;
+static periph_ledc_handle_t *brightness_handle;
 
 const char *bsp_display_get_panel_name(void)
 {
@@ -41,6 +53,10 @@ bool bsp_display_panel_is_identified(void)
 
 float bsp_display_get_pixel_clock_mhz(void)
 {
+    waveshare_lcd_panel_timing_t timing;
+    if (waveshare_lcd_panel_get_effective_timing(&timing)) {
+        return timing.pixel_clock_mhz;
+    }
     return display_panel_kind == BSP_PANEL_ST7703 ? 38.0f : (240.0f / 7.0f);
 }
 
@@ -63,18 +79,11 @@ typedef enum {
 static bsp_audio_mode_t audio_mode = BSP_AUDIO_MODE_NONE;
 static i2s_chan_handle_t i2s_tx_chan = NULL;
 static i2s_chan_handle_t i2s_rx_chan = NULL;
-static const audio_codec_data_if_t *i2s_data_if = NULL;  /* Codec data interface */
-
 static esp_codec_dev_handle_t speaker_codec_dev = NULL;
-static const audio_codec_gpio_if_t *speaker_gpio_if = NULL;
-static const audio_codec_ctrl_if_t *speaker_ctrl_if = NULL;
-static const audio_codec_if_t *speaker_codec_if = NULL;
+static dev_audio_codec_handles_t *speaker_codec_handles = NULL;
 
 static esp_codec_dev_handle_t microphone_codec_dev = NULL;
-static const audio_codec_ctrl_if_t *microphone_ctrl_if = NULL;
-static const audio_codec_if_t *microphone_codec_if = NULL;
-
-#define BSP_ES7210_CODEC_ADDR  ES7210_CODEC_DEFAULT_ADDR
+static dev_audio_codec_handles_t *microphone_codec_handles = NULL;
 
 /* Can be used for I2S STD and TDM GPIO configuration */
 #define BSP_I2S_GPIO_CFG       \
@@ -106,13 +115,7 @@ esp_err_t bsp_i2c_init(void)
         return ESP_OK;
     }
 
-    i2c_master_bus_config_t i2c_bus_conf = {
-        .clk_source = I2C_CLK_SRC_DEFAULT,
-        .sda_io_num = BSP_I2C_SDA,
-        .scl_io_num = BSP_I2C_SCL,
-        .i2c_port = BSP_I2C_NUM,
-    };
-    BSP_ERROR_CHECK_RETURN_ERR(i2c_new_master_bus(&i2c_bus_conf, &i2c_handle));
+    BSP_ERROR_CHECK_RETURN_ERR(esp_board_periph_ref_handle("i2c_master", (void **)&i2c_handle));
 
     i2c_initialized = true;
 
@@ -121,7 +124,11 @@ esp_err_t bsp_i2c_init(void)
 
 esp_err_t bsp_i2c_deinit(void)
 {
-    BSP_ERROR_CHECK_RETURN_ERR(i2c_del_master_bus(i2c_handle));
+    if (!i2c_initialized) {
+        return ESP_OK;
+    }
+    BSP_ERROR_CHECK_RETURN_ERR(esp_board_periph_unref_handle("i2c_master"));
+    i2c_handle = NULL;
     i2c_initialized = false;
     return ESP_OK;
 }
@@ -129,11 +136,6 @@ esp_err_t bsp_i2c_deinit(void)
 i2c_master_bus_handle_t bsp_i2c_get_handle(void)
 {
     return i2c_handle;
-}
-
-static esp_err_t bsp_i2c_device_probe(uint8_t address)
-{
-    return i2c_master_probe(i2c_handle, address, 100);
 }
 
 static esp_err_t bsp_enable_ldo_vo4(void)
@@ -232,92 +234,42 @@ static void bsp_audio_update_result(esp_err_t *result, esp_err_t error)
     }
 }
 
-static void bsp_audio_update_codec_result(esp_err_t *result, int codec_error)
-{
-    if ((*result == ESP_OK) && (codec_error != ESP_CODEC_DEV_OK)) {
-        *result = ESP_FAIL;
-    }
-}
-
 static bool bsp_audio_has_resources(void)
 {
     return (audio_mode != BSP_AUDIO_MODE_NONE) ||
            (i2s_tx_chan != NULL) ||
            (i2s_rx_chan != NULL) ||
-           (i2s_data_if != NULL) ||
            (speaker_codec_dev != NULL) ||
-           (speaker_gpio_if != NULL) ||
-           (speaker_ctrl_if != NULL) ||
-           (speaker_codec_if != NULL) ||
+           (speaker_codec_handles != NULL) ||
            (microphone_codec_dev != NULL) ||
-           (microphone_ctrl_if != NULL) ||
-           (microphone_codec_if != NULL);
+           (microphone_codec_handles != NULL);
 }
 
-static esp_err_t bsp_audio_delete_speaker_codec(void)
+static esp_err_t bsp_audio_deinit_codec_device(const char *name,
+                                               dev_audio_codec_handles_t **handles,
+                                               esp_codec_dev_handle_t *codec_dev)
 {
     esp_err_t ret = ESP_OK;
 
-    if (speaker_codec_dev != NULL) {
-        bsp_audio_update_codec_result(&ret, esp_codec_dev_close(speaker_codec_dev));
-        esp_codec_dev_delete(speaker_codec_dev);
-        speaker_codec_dev = NULL;
-    }
-    if (speaker_codec_if != NULL) {
-        bsp_audio_update_codec_result(&ret, audio_codec_delete_codec_if(speaker_codec_if));
-        speaker_codec_if = NULL;
-    }
-    if (speaker_ctrl_if != NULL) {
-        bsp_audio_update_codec_result(&ret, audio_codec_delete_ctrl_if(speaker_ctrl_if));
-        speaker_ctrl_if = NULL;
-    }
-    if (speaker_gpio_if != NULL) {
-        bsp_audio_update_codec_result(&ret, audio_codec_delete_gpio_if(speaker_gpio_if));
-        speaker_gpio_if = NULL;
+    if (*handles != NULL) {
+        /* The Board Manager owns this codec and every interface below it. */
+        bsp_audio_update_result(&ret, esp_board_manager_deinit_device_by_name(name));
+        if (ret == ESP_OK) {
+            *handles = NULL;
+            *codec_dev = NULL;
+        }
     }
 
     return ret;
 }
 
-static esp_err_t bsp_audio_delete_microphone_codec(void)
+static esp_err_t bsp_audio_release_i2s_channel(i2s_chan_handle_t *channel, const char *name)
 {
-    esp_err_t ret = ESP_OK;
-
-    if (microphone_codec_dev != NULL) {
-        bsp_audio_update_codec_result(&ret, esp_codec_dev_close(microphone_codec_dev));
-        esp_codec_dev_delete(microphone_codec_dev);
-        microphone_codec_dev = NULL;
-    }
-    if (microphone_codec_if != NULL) {
-        bsp_audio_update_codec_result(&ret, audio_codec_delete_codec_if(microphone_codec_if));
-        microphone_codec_if = NULL;
-    }
-    if (microphone_ctrl_if != NULL) {
-        bsp_audio_update_codec_result(&ret, audio_codec_delete_ctrl_if(microphone_ctrl_if));
-        microphone_ctrl_if = NULL;
-    }
-
-    return ret;
-}
-
-static esp_err_t bsp_audio_delete_i2s_channel(i2s_chan_handle_t *channel)
-{
-    esp_err_t ret = ESP_OK;
-    esp_err_t err;
-
     if (*channel == NULL) {
         return ESP_OK;
     }
-
-    err = i2s_channel_disable(*channel);
-    if (err != ESP_OK && err != ESP_ERR_INVALID_STATE) {
-        ret = err;
-    }
-
-    err = i2s_del_channel(*channel);
-    bsp_audio_update_result(&ret, err);
+    esp_err_t ret = esp_board_periph_unref_handle(name);
     *channel = NULL;
-
     return ret;
 }
 
@@ -325,16 +277,16 @@ esp_err_t bsp_audio_deinit(void)
 {
     esp_err_t ret = ESP_OK;
 
-    bsp_audio_update_result(&ret, bsp_audio_delete_microphone_codec());
-    bsp_audio_update_result(&ret, bsp_audio_delete_speaker_codec());
+    /* Devices release their Board Manager I2S references before ours. */
+    bsp_audio_update_result(&ret, bsp_audio_deinit_codec_device("audio_adc",
+                                                                 &microphone_codec_handles,
+                                                                 &microphone_codec_dev));
+    bsp_audio_update_result(&ret, bsp_audio_deinit_codec_device("audio_dac",
+                                                                 &speaker_codec_handles,
+                                                                 &speaker_codec_dev));
 
-    if (i2s_data_if != NULL) {
-        bsp_audio_update_codec_result(&ret, audio_codec_delete_data_if(i2s_data_if));
-        i2s_data_if = NULL;
-    }
-
-    bsp_audio_update_result(&ret, bsp_audio_delete_i2s_channel(&i2s_rx_chan));
-    bsp_audio_update_result(&ret, bsp_audio_delete_i2s_channel(&i2s_tx_chan));
+    bsp_audio_update_result(&ret, bsp_audio_release_i2s_channel(&i2s_rx_chan, "i2s_audio_in"));
+    bsp_audio_update_result(&ret, bsp_audio_release_i2s_channel(&i2s_tx_chan, "i2s_audio_out"));
     audio_mode = BSP_AUDIO_MODE_NONE;
 
     return ret;
@@ -352,35 +304,35 @@ static esp_err_t bsp_audio_init_channels(const i2s_std_config_t *tx_config,
         return ESP_ERR_INVALID_STATE;
     }
 
-    i2s_chan_config_t chan_cfg = I2S_CHANNEL_DEFAULT_CONFIG(CONFIG_BSP_I2S_NUM, I2S_ROLE_MASTER);
-    chan_cfg.auto_clear = true;
-
-    ESP_GOTO_ON_ERROR(i2s_new_channel(&chan_cfg, &i2s_tx_chan, &i2s_rx_chan),
-                      err, TAG, "I2S channel creation failed");
-    ESP_GOTO_ON_ERROR(i2s_channel_init_std_mode(i2s_tx_chan, tx_config),
-                      err, TAG, "I2S TX STD initialization failed");
-
-    if (rx_tdm_config != NULL) {
-        ESP_GOTO_ON_ERROR(i2s_channel_init_tdm_mode(i2s_rx_chan, rx_tdm_config),
-                          err, TAG, "I2S RX TDM initialization failed");
-    } else {
-        ESP_GOTO_ON_ERROR(i2s_channel_init_std_mode(i2s_rx_chan, rx_std_config),
-                          err, TAG, "I2S RX STD initialization failed");
-    }
-
-    ESP_GOTO_ON_ERROR(i2s_channel_enable(i2s_tx_chan), err, TAG, "I2S TX enabling failed");
-    ESP_GOTO_ON_ERROR(i2s_channel_enable(i2s_rx_chan), err, TAG, "I2S RX enabling failed");
-
-    audio_codec_i2s_cfg_t i2s_cfg = {
+    periph_i2s_config_t tx_periph_config = {
         .port = CONFIG_BSP_I2S_NUM,
-        .rx_handle = i2s_rx_chan,
-        .tx_handle = i2s_tx_chan,
+        .role = I2S_ROLE_MASTER,
+        .mode = I2S_COMM_MODE_STD,
+        .direction = I2S_DIR_TX,
+        .i2s_cfg.std = *tx_config,
     };
-    i2s_data_if = audio_codec_new_i2s_data(&i2s_cfg);
-    if (i2s_data_if == NULL) {
-        ret = ESP_ERR_NO_MEM;
-        goto err;
+    periph_i2s_config_t rx_periph_config = {
+        .port = CONFIG_BSP_I2S_NUM,
+        .role = I2S_ROLE_MASTER,
+        .mode = rx_tdm_config ? I2S_COMM_MODE_TDM : I2S_COMM_MODE_STD,
+        .direction = I2S_DIR_RX,
+    };
+    if (rx_tdm_config != NULL) {
+        rx_periph_config.i2s_cfg.tdm = *rx_tdm_config;
+    } else {
+        rx_periph_config.i2s_cfg.std = *rx_std_config;
     }
+    ESP_GOTO_ON_ERROR(esp_board_periph_override_config("i2s_audio_out", &tx_periph_config,
+                                                        sizeof(tx_periph_config)),
+                      err, TAG, "Override I2S TX configuration failed");
+    ESP_GOTO_ON_ERROR(esp_board_periph_override_config("i2s_audio_in", &rx_periph_config,
+                                                        sizeof(rx_periph_config)),
+                      err, TAG, "Override I2S RX configuration failed");
+    /* Board Manager's shared-port implementation requires STD TX first, then RX. */
+    ESP_GOTO_ON_ERROR(esp_board_periph_ref_handle("i2s_audio_out", (void **)&i2s_tx_chan),
+                      err, TAG, "I2S TX initialization failed");
+    ESP_GOTO_ON_ERROR(esp_board_periph_ref_handle("i2s_audio_in", (void **)&i2s_rx_chan),
+                      err, TAG, "I2S RX initialization failed");
 
     audio_mode = mode;
     return ESP_OK;
@@ -396,7 +348,7 @@ err:
 esp_err_t bsp_audio_init(const i2s_std_config_t *i2s_config)
 {
     if ((audio_mode == BSP_AUDIO_MODE_STD_STD) &&
-            (i2s_tx_chan != NULL) && (i2s_rx_chan != NULL) && (i2s_data_if != NULL)) {
+            (i2s_tx_chan != NULL) && (i2s_rx_chan != NULL)) {
         return ESP_OK;
     }
     if (bsp_audio_has_resources()) {
@@ -451,115 +403,62 @@ esp_err_t bsp_audio_init_voice_24k(void)
 
 esp_codec_dev_handle_t bsp_audio_codec_speaker_init(void)
 {
+    esp_err_t ret;
+
     if (speaker_codec_dev != NULL) {
         return speaker_codec_dev;
     }
 
-    BSP_ERROR_CHECK_RETURN_NULL(bsp_i2c_init());
-    if (i2s_data_if == NULL) {
+    if (i2s_tx_chan == NULL || i2s_rx_chan == NULL) {
         BSP_ERROR_CHECK_RETURN_NULL(bsp_audio_init(NULL));
     }
 
-    speaker_gpio_if = audio_codec_new_gpio();
-    if (speaker_gpio_if == NULL) {
-        goto err;
+    ret = esp_board_manager_init_device_by_name("audio_dac");
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "Audio DAC initialization failed: %s", esp_err_to_name(ret));
+        return NULL;
     }
-
-    audio_codec_i2c_cfg_t i2c_cfg = {
-        .port = BSP_I2C_NUM,
-        .addr = ES8311_CODEC_DEFAULT_ADDR,
-        .bus_handle = i2c_handle,
-    };
-    speaker_ctrl_if = audio_codec_new_i2c_ctrl(&i2c_cfg);
-    if (speaker_ctrl_if == NULL) {
-        goto err;
+    ret = esp_board_manager_get_device_handle("audio_dac", (void **)&speaker_codec_handles);
+    if (ret != ESP_OK ||
+        speaker_codec_handles == NULL || speaker_codec_handles->codec_dev == NULL) {
+        ESP_LOGE(TAG, "Audio DAC handle retrieval failed");
+        (void)esp_board_manager_deinit_device_by_name("audio_dac");
+        speaker_codec_handles = NULL;
+        return NULL;
     }
-
-    esp_codec_dev_hw_gain_t gain = {
-        .pa_voltage = 5.0,
-        .codec_dac_voltage = 3.3,
-    };
-    es8311_codec_cfg_t es8311_cfg = {
-        .ctrl_if = speaker_ctrl_if,
-        .gpio_if = speaker_gpio_if,
-        .codec_mode = ESP_CODEC_DEV_WORK_MODE_DAC,
-        .pa_pin = BSP_POWER_AMP_IO,
-        .pa_reverted = false,
-        .master_mode = false,
-        .use_mclk = true,
-        .digital_mic = false,
-        .invert_mclk = false,
-        .invert_sclk = false,
-        .hw_gain = gain,
-    };
-    speaker_codec_if = es8311_codec_new(&es8311_cfg);
-    if (speaker_codec_if == NULL) {
-        goto err;
-    }
-
-    esp_codec_dev_cfg_t codec_dev_cfg = {
-        .dev_type = ESP_CODEC_DEV_TYPE_OUT,
-        .codec_if = speaker_codec_if,
-        .data_if = i2s_data_if,
-    };
-    speaker_codec_dev = esp_codec_dev_new(&codec_dev_cfg);
-    if (speaker_codec_dev == NULL) {
-        goto err;
-    }
+    speaker_codec_dev = speaker_codec_handles->codec_dev;
 
     return speaker_codec_dev;
-
-err:
-    bsp_audio_delete_speaker_codec();
-    return NULL;
 }
 
 esp_codec_dev_handle_t bsp_audio_codec_microphone_init(void)
 {
+    esp_err_t ret;
+
     if (microphone_codec_dev != NULL) {
         return microphone_codec_dev;
     }
 
-    BSP_ERROR_CHECK_RETURN_NULL(bsp_i2c_init());
-    if (i2s_data_if == NULL) {
+    if (i2s_tx_chan == NULL || i2s_rx_chan == NULL) {
         BSP_ERROR_CHECK_RETURN_NULL(bsp_audio_init(NULL));
     }
 
-    audio_codec_i2c_cfg_t i2c_cfg = {
-        .port = BSP_I2C_NUM,
-        .addr = BSP_ES7210_CODEC_ADDR,
-        .bus_handle = i2c_handle,
-    };
-    microphone_ctrl_if = audio_codec_new_i2c_ctrl(&i2c_cfg);
-    if (microphone_ctrl_if == NULL) {
-        goto err;
+    ret = esp_board_manager_init_device_by_name("audio_adc");
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "Audio ADC initialization failed: %s", esp_err_to_name(ret));
+        return NULL;
     }
-
-    es7210_codec_cfg_t es7210_cfg = {
-        .ctrl_if = microphone_ctrl_if,
-        .mic_selected = (audio_mode == BSP_AUDIO_MODE_TX_STD_RX_TDM) ?
-                        BSP_AUDIO_ES7210_CONNECTED_MIC_MASK : 0,
-    };
-    microphone_codec_if = es7210_codec_new(&es7210_cfg);
-    if (microphone_codec_if == NULL) {
-        goto err;
+    ret = esp_board_manager_get_device_handle("audio_adc", (void **)&microphone_codec_handles);
+    if (ret != ESP_OK ||
+        microphone_codec_handles == NULL || microphone_codec_handles->codec_dev == NULL) {
+        ESP_LOGE(TAG, "Audio ADC handle retrieval failed");
+        (void)esp_board_manager_deinit_device_by_name("audio_adc");
+        microphone_codec_handles = NULL;
+        return NULL;
     }
-
-    esp_codec_dev_cfg_t codec_dev_cfg = {
-        .dev_type = ESP_CODEC_DEV_TYPE_IN,
-        .codec_if = microphone_codec_if,
-        .data_if = i2s_data_if,
-    };
-    microphone_codec_dev = esp_codec_dev_new(&codec_dev_cfg);
-    if (microphone_codec_dev == NULL) {
-        goto err;
-    }
+    microphone_codec_dev = microphone_codec_handles->codec_dev;
 
     return microphone_codec_dev;
-
-err:
-    bsp_audio_delete_microphone_codec();
-    return NULL;
 }
 
 // Bit number used to represent command and parameter
@@ -567,26 +466,12 @@ err:
 
 esp_err_t bsp_display_brightness_init(void)
 {
-    const ledc_channel_config_t LCD_backlight_channel = {
-        .gpio_num = BSP_LCD_BACKLIGHT,
-        .speed_mode = LEDC_LOW_SPEED_MODE,
-        .channel = LCD_LEDC_CH,
-        .intr_type = LEDC_INTR_DISABLE,
-        .timer_sel = 1,
-        .duty = 0,
-        .hpoint = 0,
-        .flags = { .output_invert = 1 }
-    };
-    const ledc_timer_config_t LCD_backlight_timer = {
-        .speed_mode = LEDC_LOW_SPEED_MODE,
-        .duty_resolution = LEDC_TIMER_10_BIT,
-        .timer_num = 1,
-        .freq_hz = 5000,
-        .clk_cfg = LEDC_AUTO_CLK
-    };
-
-    BSP_ERROR_CHECK_RETURN_ERR(ledc_timer_config(&LCD_backlight_timer));
-    BSP_ERROR_CHECK_RETURN_ERR(ledc_channel_config(&LCD_backlight_channel));
+    if (brightness_handle != NULL) {
+        return ESP_OK;
+    }
+    BSP_ERROR_CHECK_RETURN_ERR(esp_board_manager_init_device_by_name("lcd_brightness"));
+    BSP_ERROR_CHECK_RETURN_ERR(esp_board_manager_get_device_handle("lcd_brightness",
+                                                                     (void **)&brightness_handle));
 
     return ESP_OK;
 }
@@ -601,9 +486,10 @@ esp_err_t bsp_display_brightness_set(int brightness_percent)
 
     ESP_LOGI(TAG, "Setting LCD backlight: %d%%", brightness_percent);
 
+    BSP_ERROR_CHECK_RETURN_ERR(bsp_display_brightness_init());
     uint32_t duty_cycle = (1023 * brightness_percent) / 100;
-    BSP_ERROR_CHECK_RETURN_ERR(ledc_set_duty(LEDC_LOW_SPEED_MODE, LCD_LEDC_CH, duty_cycle));
-    BSP_ERROR_CHECK_RETURN_ERR(ledc_update_duty(LEDC_LOW_SPEED_MODE, LCD_LEDC_CH));
+    BSP_ERROR_CHECK_RETURN_ERR(ledc_set_duty(brightness_handle->speed_mode, brightness_handle->channel, duty_cycle));
+    BSP_ERROR_CHECK_RETURN_ERR(ledc_update_duty(brightness_handle->speed_mode, brightness_handle->channel));
 
     return ESP_OK;
 }
@@ -616,22 +502,6 @@ esp_err_t bsp_display_backlight_off(void)
 esp_err_t bsp_display_backlight_on(void)
 {
     return bsp_display_brightness_set(100);
-}
-
-static esp_err_t bsp_enable_dsi_phy_power(void)
-{
-#if BSP_MIPI_DSI_PHY_PWR_LDO_CHAN > 0
-    // Turn on the power for MIPI DSI PHY, so it can go from "No Power" state to "Shutdown" state
-    static esp_ldo_channel_handle_t phy_pwr_chan = NULL;
-    esp_ldo_channel_config_t ldo_cfg = {
-        .chan_id = BSP_MIPI_DSI_PHY_PWR_LDO_CHAN,
-        .voltage_mv = BSP_MIPI_DSI_PHY_PWR_LDO_VOLTAGE_MV,
-    };
-    ESP_RETURN_ON_ERROR(esp_ldo_acquire_channel(&ldo_cfg, &phy_pwr_chan), TAG, "Acquire LDO channel for DPHY failed");
-    ESP_LOGI(TAG, "MIPI DSI PHY Powered on");
-#endif // BSP_MIPI_DSI_PHY_PWR_LDO_CHAN > 0
-
-    return ESP_OK;
 }
 
 esp_err_t bsp_display_new(const bsp_display_config_t *config, esp_lcd_panel_handle_t *ret_panel, esp_lcd_panel_io_handle_t *ret_io)
@@ -650,148 +520,23 @@ esp_err_t bsp_display_new_with_handles(const bsp_display_config_t *config, bsp_l
 {
     ESP_RETURN_ON_FALSE(ret_handles, ESP_ERR_INVALID_ARG, TAG, "invalid display handles");
     *ret_handles = (bsp_lcd_handles_t){0};
-    esp_err_t ret = ESP_OK;
-    esp_lcd_dsi_bus_handle_t mipi_dsi_bus = NULL;
-    esp_lcd_panel_io_handle_t io = NULL;
-    esp_lcd_panel_handle_t disp_panel = NULL;
-
+    (void)config;
     ESP_RETURN_ON_ERROR(bsp_display_brightness_init(), TAG, "Brightness init failed");
-    ESP_RETURN_ON_ERROR(bsp_enable_dsi_phy_power(), TAG, "DSI PHY power failed");
-    ESP_RETURN_ON_ERROR(bsp_enable_ldo_vo4(), TAG, "Panel power failed");
-
-    esp_lcd_dsi_bus_config_t bus_config = {
-        .bus_id = 0,
-        .num_data_lanes = BSP_LCD_MIPI_DSI_LANE_NUM,
-        // IDF chooses the correct PHY reference clock for pre-v3/v3+ silicon.
-        .phy_clk_src = 0,
-        .lane_bit_rate_mbps = BSP_LCD_MIPI_DSI_LANE_BITRATE_MBPS,
-    };
-    esp_lcd_dbi_io_config_t dbi_config = {
-        .virtual_channel = 0,
-        .lcd_cmd_bits = 8,
-        .lcd_param_bits = 8,
-    };
-    ESP_GOTO_ON_ERROR(esp_lcd_new_dsi_bus(&bus_config, &mipi_dsi_bus), err, TAG, "New DSI bus failed");
-    ESP_GOTO_ON_ERROR(esp_lcd_new_panel_io_dbi(mipi_dsi_bus, &dbi_config, &io), err, TAG, "New panel IO failed");
-    bsp_panel_io_enable_bounded_reads(io);
-
-    display_panel_identified = false;
-#if CONFIG_BSP_LCD_PANEL_IC_AUTO
-    gpio_config_t reset_config = {
-        .mode = GPIO_MODE_OUTPUT,
-        .pin_bit_mask = 1ULL << BSP_LCD_RST,
-    };
-    ESP_GOTO_ON_ERROR(gpio_config(&reset_config), err, TAG, "LCD reset GPIO failed");
-    gpio_set_level(BSP_LCD_RST, 1);
-    vTaskDelay(pdMS_TO_TICKS(5));
-    gpio_set_level(BSP_LCD_RST, 0);
-    vTaskDelay(pdMS_TO_TICKS(10));
-    gpio_set_level(BSP_LCD_RST, 1);
-    vTaskDelay(pdMS_TO_TICKS(120));
-    esp_err_t probe_ret = bsp_panel_probe(io, &display_panel_kind);
-    display_panel_identified = display_panel_kind != BSP_PANEL_UNKNOWN;
-    if (!display_panel_identified) {
-        ESP_LOGW(TAG, "Panel not identified (%s); using unconfirmed JD9365DA fallback", esp_err_to_name(probe_ret));
-        display_panel_kind = BSP_PANEL_JD9365;
-    } else {
-        ESP_LOGI(TAG, "Detected LCD controller: %s", bsp_display_get_panel_name());
+    if (display_handles == NULL) {
+        ESP_RETURN_ON_ERROR(esp_board_manager_init_device_by_name("display_lcd"), TAG, "Display init failed");
+        ESP_RETURN_ON_ERROR(esp_board_manager_get_device_handle("display_lcd", (void **)&display_handles), TAG,
+                            "Display handle missing");
+        switch (waveshare_lcd_panel_get_kind()) {
+        case WAVESHARE_LCD_PANEL_JD9365: display_panel_kind = BSP_PANEL_JD9365; break;
+        case WAVESHARE_LCD_PANEL_ST7703: display_panel_kind = BSP_PANEL_ST7703; break;
+        default: display_panel_kind = BSP_PANEL_UNKNOWN; break;
+        }
+        display_panel_identified = waveshare_lcd_panel_is_identified();
     }
-    // A probe may leave BTA/FIFOs busy or a vendor page selected. Start from a
-    // fresh host and let the selected driver perform another hardware reset.
-    ESP_GOTO_ON_ERROR(esp_lcd_panel_io_del(io), err, TAG, "Delete probe IO failed");
-    io = NULL;
-    ESP_GOTO_ON_ERROR(esp_lcd_del_dsi_bus(mipi_dsi_bus), err, TAG, "Delete probe DSI bus failed");
-    mipi_dsi_bus = NULL;
-    ESP_GOTO_ON_ERROR(esp_lcd_new_dsi_bus(&bus_config, &mipi_dsi_bus), err, TAG, "Recreate DSI bus failed");
-    ESP_GOTO_ON_ERROR(esp_lcd_new_panel_io_dbi(mipi_dsi_bus, &dbi_config, &io), err, TAG, "Recreate panel IO failed");
-    bsp_panel_io_enable_bounded_reads(io);
-#elif CONFIG_BSP_LCD_PANEL_IC_ST7703
-    display_panel_kind = BSP_PANEL_ST7703;
-    ESP_LOGI(TAG, "LCD controller manually selected: ST7703");
-#else
-    display_panel_kind = BSP_PANEL_JD9365;
-    ESP_LOGI(TAG, "LCD controller manually selected: JD9365DA");
-#endif
-    ESP_LOGI(TAG, "Install %s panel profile (%.3f MHz, 720x720, 2 lanes)",
-             bsp_display_get_panel_name(), (double)bsp_display_get_pixel_clock_mhz());
-    if (display_panel_kind == BSP_PANEL_JD9365) {
-#if CONFIG_BSP_LCD_COLOR_FORMAT_RGB888
-        esp_lcd_dpi_panel_config_t dpi_config = JD9365_720_720_PANEL_60HZ_DPI_CONFIG(LCD_COLOR_PIXEL_FORMAT_RGB888);
-#else
-        esp_lcd_dpi_panel_config_t dpi_config = JD9365_720_720_PANEL_60HZ_DPI_CONFIG(LCD_COLOR_PIXEL_FORMAT_RGB565);
-#endif
-        dpi_config.num_fbs = CONFIG_BSP_LCD_DPI_BUFFER_NUMS;
-
-        jd9365_vendor_config_t vendor_config = {
-            .flags = {
-                .use_mipi_interface = 1,
-            },
-            .mipi_config = {
-                .dsi_bus = mipi_dsi_bus,
-                .dpi_config = &dpi_config,
-                .lane_num = BSP_LCD_MIPI_DSI_LANE_NUM,
-            },
-        };
-        esp_lcd_panel_dev_config_t lcd_dev_config = {
-#if CONFIG_BSP_LCD_COLOR_FORMAT_RGB888
-            .bits_per_pixel = 24,
-#else
-            .bits_per_pixel = 16,
-#endif
-            .rgb_ele_order = BSP_LCD_COLOR_SPACE,
-            .reset_gpio_num = BSP_LCD_RST,
-            .vendor_config = &vendor_config,
-        };
-        ESP_GOTO_ON_ERROR(esp_lcd_new_panel_jd9365(io, &lcd_dev_config, &disp_panel), err, TAG, "New LCD panel JD9365DA failed");
-    } else {
-#if CONFIG_BSP_LCD_COLOR_FORMAT_RGB888
-        esp_lcd_dpi_panel_config_t dpi_config = ST7703_720_720_PANEL_60HZ_DPI_CONFIG(LCD_COLOR_PIXEL_FORMAT_RGB888);
-#else
-        esp_lcd_dpi_panel_config_t dpi_config = ST7703_720_720_PANEL_60HZ_DPI_CONFIG(LCD_COLOR_PIXEL_FORMAT_RGB565);
-#endif
-        dpi_config.num_fbs = CONFIG_BSP_LCD_DPI_BUFFER_NUMS;
-
-        st7703_vendor_config_t vendor_config = {
-            .flags = {
-                .use_mipi_interface = 1,
-            },
-            .mipi_config = {
-                .dsi_bus = mipi_dsi_bus,
-                .dpi_config = &dpi_config,
-            },
-        };
-        esp_lcd_panel_dev_config_t lcd_dev_config = {
-#if CONFIG_BSP_LCD_COLOR_FORMAT_RGB888
-            .bits_per_pixel = 24,
-#else
-            .bits_per_pixel = 16,
-#endif
-            .rgb_ele_order = BSP_LCD_COLOR_SPACE,
-            .reset_gpio_num = BSP_LCD_RST,
-            .vendor_config = &vendor_config,
-        };
-        ESP_GOTO_ON_ERROR(esp_lcd_new_panel_st7703(io, &lcd_dev_config, &disp_panel), err, TAG, "New LCD panel Waveshare failed");
-    }
-    ESP_GOTO_ON_ERROR(esp_lcd_panel_reset(disp_panel), err, TAG, "LCD panel reset failed");
-    ESP_GOTO_ON_ERROR(esp_lcd_panel_init(disp_panel), err, TAG, "LCD panel init failed");
-
-    ret_handles->io = io;
-    ret_handles->mipi_dsi_bus = mipi_dsi_bus;
-    ret_handles->panel = disp_panel;
+    ret_handles->io = display_handles->io_handle;
+    ret_handles->panel = display_handles->panel_handle;
     ESP_LOGI(TAG, "Display initialized");
     return ESP_OK;
-
-err:
-    if (disp_panel) {
-        esp_lcd_panel_del(disp_panel);
-    }
-    if (io) {
-        esp_lcd_panel_io_del(io);
-    }
-    if (mipi_dsi_bus) {
-        esp_lcd_del_dsi_bus(mipi_dsi_bus);
-    }
-    return ret;
 }
 
 esp_err_t bsp_touch_new(const bsp_touch_config_t *config, esp_lcd_touch_handle_t *ret_touch)
@@ -807,48 +552,22 @@ esp_err_t bsp_touch_new(const bsp_touch_config_t *config, esp_lcd_touch_handle_t
         config = &default_config;
     }
 
-    /* Initilize I2C */
-    BSP_ERROR_CHECK_RETURN_ERR(bsp_i2c_init());
-
-    /* Initialize touch */
-    const esp_lcd_touch_config_t tp_cfg = {
-#if CONFIG_BSP_LCD_TYPE_480_640_2_8_INCH || CONFIG_BSP_LCD_TYPE_480_800_4_INCH
-        .x_max = BSP_LCD_V_RES,
-        .y_max = BSP_LCD_H_RES,
-#else
-        .x_max = BSP_LCD_H_RES,
-        .y_max = BSP_LCD_V_RES,
-#endif
-        .rst_gpio_num = BSP_LCD_TOUCH_RST,
-        .int_gpio_num = BSP_LCD_TOUCH_INT,
-        .levels = {
-            .reset = 0,
-            .interrupt = 0,
-        },
-        .flags = {
-            .swap_xy = config->flags.swap_xy,
-            .mirror_x = config->flags.mirror_x,
-            .mirror_y = config->flags.mirror_y,
-        },
-    };
-    esp_lcd_panel_io_handle_t tp_io_handle = NULL;
-    esp_lcd_panel_io_i2c_config_t tp_io_config = ESP_LCD_TOUCH_IO_I2C_GT911_CONFIG();
-
-    if (bsp_i2c_device_probe(ESP_LCD_TOUCH_IO_I2C_GT911_ADDRESS) == ESP_OK) {
-        tp_io_config.dev_addr = ESP_LCD_TOUCH_IO_I2C_GT911_ADDRESS;
-    } else if (bsp_i2c_device_probe(ESP_LCD_TOUCH_IO_I2C_GT911_ADDRESS_BACKUP) == ESP_OK) {
-        tp_io_config.dev_addr = ESP_LCD_TOUCH_IO_I2C_GT911_ADDRESS_BACKUP;
-    } else {
-        ESP_LOGE(TAG, "GT911 not found at 0x%02X or 0x%02X",
-                 ESP_LCD_TOUCH_IO_I2C_GT911_ADDRESS,
-                 ESP_LCD_TOUCH_IO_I2C_GT911_ADDRESS_BACKUP);
-        return ESP_ERR_NOT_FOUND;
+    if (touch_handles == NULL) {
+        dev_lcd_touch_config_t *touch_cfg = NULL;
+        ESP_RETURN_ON_ERROR(esp_board_manager_get_device_config("lcd_touch", (void **)&touch_cfg), TAG,
+                            "Touch configuration missing");
+        dev_lcd_touch_config_t adjusted_cfg = *touch_cfg;
+        adjusted_cfg.touch_config.flags.swap_xy = config->flags.swap_xy;
+        adjusted_cfg.touch_config.flags.mirror_x = config->flags.mirror_x;
+        adjusted_cfg.touch_config.flags.mirror_y = config->flags.mirror_y;
+        ESP_RETURN_ON_ERROR(esp_board_device_override_config("lcd_touch", &adjusted_cfg, sizeof(adjusted_cfg)), TAG,
+                            "Touch configuration override failed");
+        ESP_RETURN_ON_ERROR(esp_board_manager_init_device_by_name("lcd_touch"), TAG, "Touch init failed");
+        ESP_RETURN_ON_ERROR(esp_board_manager_get_device_handle("lcd_touch", (void **)&touch_handles), TAG,
+                            "Touch handle missing");
     }
-
-    ESP_LOGI(TAG, "GT911 found at 0x%02X", tp_io_config.dev_addr);
-    tp_io_config.scl_speed_hz = CONFIG_BSP_I2C_CLK_SPEED_HZ;
-    ESP_RETURN_ON_ERROR(esp_lcd_new_panel_io_i2c(i2c_handle, &tp_io_config, &tp_io_handle), TAG, "");
-    return esp_lcd_touch_new_i2c_gt911(tp_io_handle, &tp_cfg, ret_touch);
+    *ret_touch = touch_handles->touch_handle;
+    return ESP_OK;
 }
 
 #if (BSP_CONFIG_NO_GRAPHIC_LIB == 0)

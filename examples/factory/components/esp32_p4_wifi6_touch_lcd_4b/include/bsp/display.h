@@ -66,13 +66,8 @@ typedef struct {
  * The display's backlight is not turned on either. You can use bsp_display_backlight_on/off(),
  * bsp_display_brightness_set() (on supported boards) or implement your own backlight control.
  *
- * If you want to free resources allocated by this function, you can use esp_lcd API, ie.:
- *
- * \code{.c}
- * esp_lcd_panel_del(panel);
- * esp_lcd_panel_io_del(io);
- * esp_lcd_del_dsi_bus(mipi_dsi_bus);
- * \endcode
+ * Returned handles are owned by Board Manager for the factory lifetime. Callers
+ * must not delete the panel, IO, or DSI bus.
  *
  * @param[in]  config    display configuration
  * @param[out] ret_panel esp_lcd panel handle
@@ -91,14 +86,8 @@ esp_err_t bsp_display_new(const bsp_display_config_t *config, esp_lcd_panel_hand
  * The display's backlight is not turned on either. You can use bsp_display_backlight_on/off(),
  * bsp_display_brightness_set() (on supported boards) or implement your own backlight control.
  *
- * If you want to free resources allocated by this function, you can use esp_lcd API, ie.:
- *
- * \code{.c}
- * esp_lcd_panel_del(panel);
- * esp_lcd_panel_del(control);
- * esp_lcd_panel_io_del(io);
- * esp_lcd_del_dsi_bus(mipi_dsi_bus);
- * \endcode
+ * Returned handles are owned by Board Manager for the factory lifetime. Callers
+ * must not delete the panel, IO, control, or DSI bus.
  *
  * @param[in]  config    display configuration
  * @param[out] ret_handles all esp_lcd handles in one structure

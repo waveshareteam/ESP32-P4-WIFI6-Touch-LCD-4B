@@ -420,7 +420,7 @@ namespace esp_brookesia::apps
         }
 
         if (touch_handle) {
-            esp_lcd_touch_del(touch_handle);
+            // Board Manager owns the shared GT911 handle.
             touch_handle = nullptr;
         }
 
