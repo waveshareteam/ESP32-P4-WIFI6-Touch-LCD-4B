@@ -86,7 +86,7 @@ source code. In particular:
 - Confirm provenance and redistribution terms for `canon.pcm`.
 - Keep the recorded Xiaozhi OGG prompt provenance and MIT license with source
   or binary distributions that contain those prompts.
-- Do not add MP3 tracks until their redistribution rights are recorded.
+- The factory MP3 samples are included from the reference product; their source is recorded in [sources.md](sources.md).
 - Retain font licenses and notices when font binaries or generated arrays are
   redistributed.
 - Record the source and license for application icons and other artwork.

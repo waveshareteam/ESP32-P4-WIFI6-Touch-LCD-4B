@@ -35,4 +35,3 @@ Thumbs.db
 *.Zone.Identifier
 
 # Demo media should be replaced with redistributable assets before publishing.
-spiffs/music/*.mp3

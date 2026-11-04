@@ -14,3 +14,6 @@ examples/arduino/libraries/lv_conf.h whitespace=-trailing-space
 
 # Flash images and fonts contain raw bytes, including long erased-flash regions.
 *.bin -diff -text
+*.mp3 -diff -text
+*.wav -diff -text
+*.ogg -diff -text
