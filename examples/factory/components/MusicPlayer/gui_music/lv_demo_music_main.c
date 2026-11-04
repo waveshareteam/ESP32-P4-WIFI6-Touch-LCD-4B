@@ -106,6 +106,7 @@ static const uint16_t rnd_array[30] = {994, 285, 553, 11, 792, 707, 966, 641, 85
 static file_iterator_instance_t *file_iterator;
 static bool pause = false;
 static bool pause_exit = false;
+static bool audio_started = false;
 
 /**********************
  *      MACROS
@@ -138,6 +139,7 @@ lv_obj_t * lv_demo_music_main_create(lv_obj_t * parent, file_iterator_instance_t
     file_iterator = iterator;
     pause = false;
     playing = false;
+    audio_started = false;
     spectrum_i = 0;
     spectrum_i_pause = 0;
     bar_ofs = 0;
@@ -350,6 +352,7 @@ void lv_demo_music_main_close(void)
     playing = false;
     pause = false;
     pause_exit = false;
+    audio_started = false;
     spectrum_obj = NULL;
     album_image_obj = NULL;
     play_obj = NULL;
@@ -413,6 +416,7 @@ void lv_demo_music_resume(void)
     }
     else {
         pause_exit = false;
+        audio_started = false;
         LV_LOG_USER("Music is not playing. Start playing.");
         ret = bsp_extra_player_play_index(file_iterator, track_id);
     }
@@ -804,6 +808,7 @@ static void track_load(uint32_t id)
     spectrum_i = 0;
     time_act = 0;
     spectrum_i_pause = 0;
+    audio_started = false;
     lv_slider_set_value(slider_obj, 0, LV_ANIM_OFF);
     lv_label_set_text(time_obj, "0:00");
 
@@ -1140,7 +1145,11 @@ static void next_click_event_cb(lv_event_t * e)
 static void timer_cb(lv_timer_t * t)
 {
     LV_UNUSED(t);
-    if (playing && audio_player_get_state() == AUDIO_PLAYER_STATE_IDLE) {
+    const audio_player_state_t state = audio_player_get_state();
+    if (playing && state == AUDIO_PLAYER_STATE_PLAYING) {
+        audio_started = true;
+    }
+    else if (playing && audio_started && state == AUDIO_PLAYER_STATE_IDLE) {
         const uint32_t duration = lv_demo_music_get_track_length(track_id);
         if (duration > 0) {
             time_act = duration;
