@@ -1,0 +1,24 @@
+dependencies:
+  esp_codec_dev:
+    public: true
+    version: ~1.5
+  esp_lcd_touch_gt911: ^1
+  espressif/esp_lvgl_adapter:
+    public: true
+    version: ~0.6
+  idf: '>=5.5'
+  lvgl/lvgl: '>=8,<10'
+  usb:
+    public: true
+    rules:
+    - if: idf_version >=6.0
+    version: ^1.0.0
+  # Retained so the stock 4-inch ST7703 panel stays selectable through
+  # CONFIG_BSP_LCD_PANEL_IC_ST7703.
+  waveshare/esp_lcd_st7703: ^2.0.0
+description: Local ESP32-P4-WIFI6-Touch-LCD-4B BSP with JD9365DA 720x720 panel support
+tags:
+- bsp
+targets:
+- esp32p4
+version: 3.0.1+local

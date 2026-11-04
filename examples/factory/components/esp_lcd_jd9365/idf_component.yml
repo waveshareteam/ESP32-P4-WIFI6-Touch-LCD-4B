@@ -1,0 +1,8 @@
+dependencies:
+  idf:
+    version: '>=5.3'
+description: ESP LCD JD9365DA (MIPI-DSI) driver for the 4-inch 720x720 2-lane panel of the ESP32-P4-WIFI6-Touch-LCD-4B
+license: Apache-2.0
+targets:
+- esp32p4
+version: 1.0.0
