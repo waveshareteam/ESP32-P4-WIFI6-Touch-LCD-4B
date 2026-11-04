@@ -12,11 +12,16 @@
 #include "esp_heap_caps.h"
 #include "esp_hosted.h"
 #include "esp_hosted_host_fw_ver.h"
+#include "esp_idf_version.h"
 #include "esp_log.h"
 #include "esp_system.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(6, 1, 0)
+#include "psa/crypto.h"
+#else
 #include "mbedtls/sha256.h"
+#endif
 #include "sdkconfig.h"
 
 #include "c6_bundled_hash.hpp"
@@ -203,7 +208,16 @@ bool receive_image(uart_port_t uart, uint8_t *image, size_t image_bytes)
 bool digest_matches(const uint8_t *image, size_t image_bytes, const uint8_t expected_digest[32])
 {
     uint8_t actual_digest[32]{};
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(6, 1, 0)
+    size_t digest_bytes = 0;
+    const bool calculated = psa_crypto_init() == PSA_SUCCESS &&
+            psa_hash_compute(PSA_ALG_SHA_256, image, image_bytes, actual_digest,
+                             sizeof(actual_digest), &digest_bytes) == PSA_SUCCESS &&
+            digest_bytes == sizeof(actual_digest);
+    if (!calculated) {
+#else
     if (mbedtls_sha256(image, image_bytes, actual_digest, 0) != 0) {
+#endif
         response("ERROR stage=sha256 reason=calculation_failed");
         return false;
     }
