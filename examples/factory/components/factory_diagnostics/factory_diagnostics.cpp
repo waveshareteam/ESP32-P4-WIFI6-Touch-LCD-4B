@@ -12,6 +12,7 @@
 #include "esp_chip_info.h"
 #include "esp_flash.h"
 #include "esp_heap_caps.h"
+#include "esp_hosted.h"
 #include "esp_log.h"
 #include "esp_system.h"
 #include "freertos/FreeRTOS.h"
@@ -113,6 +114,17 @@ void command_i2c()
         vTaskDelay(1);
     }
     response("I2C done=%u", found);
+}
+
+void command_c6_version()
+{
+    esp_hosted_coprocessor_fwver_t version{};
+    const esp_err_t result = esp_hosted_get_coprocessor_fwversion(&version);
+    response("C6_VERSION result=%s major=%lu minor=%lu patch=%lu revision=%ld prerelease=%ld build=%ld",
+             esp_err_to_name(result), static_cast<unsigned long>(version.major1),
+             static_cast<unsigned long>(version.minor1), static_cast<unsigned long>(version.patch1),
+             static_cast<long>(version.revision), static_cast<long>(version.prerelease),
+             static_cast<long>(version.build));
 }
 
 void command_touch()
@@ -314,6 +326,8 @@ void process_command(char *line)
         command_status();
     } else if (command_equals(line, "factory_i2c")) {
         command_i2c();
+    } else if (command_equals(line, "factory_c6_version")) {
+        command_c6_version();
     } else if (command_equals(line, "factory_touch")) {
         command_touch();
     } else if (command_equals(line, "factory_capture")) {
@@ -325,7 +339,7 @@ void process_command(char *line)
     } else if (command_equals(line, "factory_music")) {
         command_music(argument);
     } else if (command_equals(line, "factory_help")) {
-        response("COMMANDS factory_status factory_i2c factory_touch factory_capture factory_app <calculator|draw|spectrum|music|camera|video|settings|xiaozhi|ethernet|relay|rs485> factory_close <app> factory_music <play|pause|status>");
+        response("COMMANDS factory_status factory_i2c factory_c6_version factory_touch factory_capture factory_app <calculator|draw|spectrum|music|camera|video|settings|xiaozhi|ethernet|relay|rs485> factory_close <app> factory_music <play|pause|status>");
     } else if (*line) {
         response("ERROR unknown_command=%s", line);
     }
