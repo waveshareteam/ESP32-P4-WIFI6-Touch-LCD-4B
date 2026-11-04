@@ -2,14 +2,12 @@ dependencies:
   idf:
     version: ">=5.5"
 
-  # The board BSP is overridden by the local component
-  # examples/factory/components/esp32_p4_wifi6_touch_lcd_4b, which adds the JD9365DA
-  # 720x720 panel used by the current screen. The Registry package
-  # waveshare/esp32_p4_wifi6_touch_lcd_4b 3.0.1 must not be pulled in at the same time:
-  # both components provide the same bsp/* headers and symbols.
-  #
-  # waveshare/esp32_p4_wifi6_touch_lcd_4b:
-  #   version: "3.0.1"
+  espressif/ip101:
+    version: "^1.1.0"
+    rules:
+    - if: "idf_version >=6.0"
+
+  # The local BSP keeps the factory API while the managed board owns devices.
 
   espressif/esp_codec_dev:
     version: "2.0.0-beta5"

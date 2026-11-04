@@ -12,7 +12,9 @@ if(TARGET __idf_espressif__mcp-c-sdk AND CMAKE_C_COMPILER_ID STREQUAL "GNU")
     )
 endif()
 
-if(TARGET __idf_espressif__esp-boost AND CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+if(TARGET __idf_espressif__esp-boost AND
+   (CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR
+    (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL "15")))
     target_compile_options(__idf_espressif__esp-boost PRIVATE
         $<$<COMPILE_LANGUAGE:CXX>:-Wno-error=deprecated-variadic-comma-omission>
     )

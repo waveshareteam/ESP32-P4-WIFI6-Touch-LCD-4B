@@ -14,7 +14,9 @@
 #include "esp_heap_caps.h"
 #include "esp_hosted.h"
 #include "esp_log.h"
+#include "esp_netif.h"
 #include "esp_system.h"
+#include "esp_wifi.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "lvgl.h"
@@ -96,6 +98,13 @@ void command_status()
              static_cast<unsigned long>(width), static_cast<unsigned long>(height),
              bsp_display_get_panel_name(), bsp_display_panel_is_identified() ? "yes" : "no");
     response("ACTIVE_APP name=%s", active_name);
+    wifi_ap_record_t access_point{};
+    const esp_err_t wifi_ret = esp_wifi_sta_get_ap_info(&access_point);
+    esp_netif_ip_info_t ip{};
+    esp_netif_t *netif = esp_netif_get_handle_from_ifkey("WIFI_STA_DEF");
+    const bool has_ipv4 = netif && esp_netif_get_ip_info(netif, &ip) == ESP_OK && ip.ip.addr != 0;
+    response("NETWORK associated=%s ipv4=%s result=%s",
+             wifi_ret == ESP_OK ? "yes" : "no", has_ipv4 ? "yes" : "no", esp_err_to_name(wifi_ret));
 }
 
 void command_i2c()

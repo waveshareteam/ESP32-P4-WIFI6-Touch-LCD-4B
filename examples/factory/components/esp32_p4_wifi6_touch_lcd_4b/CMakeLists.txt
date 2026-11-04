@@ -13,6 +13,10 @@ else()
     list(APPEND PRIV_REQ esp_hal_lcd)
 endif()
 
+if(EXISTS "${PROJECT_DIR}/components/gen_bmgr_codes/CMakeLists.txt")
+    list(APPEND PRIV_REQ gen_bmgr_codes)
+endif()
+
 idf_component_register(
     SRCS "esp32_p4_wifi6_touch_lcd_4b.c"
     INCLUDE_DIRS "include"
@@ -20,6 +24,3 @@ idf_component_register(
     REQUIRES ${REQ} fatfs
     PRIV_REQUIRES ${PRIV_REQ} esp_lcd spiffs esp_psram esp_timer esp_board_manager
 )
-
-# Generated only after `idf.py bmgr`; optional keeps set-target/bootstrap valid.
-idf_component_optional_requires(PRIVATE gen_bmgr_codes)

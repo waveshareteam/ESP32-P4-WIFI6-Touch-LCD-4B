@@ -11,8 +11,13 @@
 #include "esp_check.h"
 #include "esp_eth.h"
 #include "esp_event.h"
+#include "esp_idf_version.h"
 #include "esp_log.h"
 #include "esp_netif.h"
+
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(6, 0, 0)
+#include "esp_eth_phy_ip101.h"
+#endif
 
 #include "bsp_board_peripherals.h"
 
