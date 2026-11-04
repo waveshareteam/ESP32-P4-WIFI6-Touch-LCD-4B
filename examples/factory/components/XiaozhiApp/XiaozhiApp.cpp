@@ -646,6 +646,25 @@ void XiaozhiApp::refreshUi()
     State state = _state.load();
     _ui->setNetworkReady(_network_ready.load());
     _ui->setStatus(stateText(state));
+    switch (state) {
+    case State::NetworkRequired: _ui->setMode(XiaozhiUi::Mode::Offline); break;
+    case State::Preparing:
+    case State::Connecting: _ui->setMode(XiaozhiUi::Mode::Busy); break;
+    case State::ActivationRequired: _ui->setMode(XiaozhiUi::Mode::Activation); break;
+    case State::Ready: _ui->setMode(XiaozhiUi::Mode::Ready); break;
+    case State::Listening: _ui->setMode(XiaozhiUi::Mode::Listening); break;
+    case State::Processing: _ui->setMode(XiaozhiUi::Mode::Thinking); break;
+    case State::Speaking: _ui->setMode(XiaozhiUi::Mode::Speaking); break;
+    case State::Error: _ui->setMode(XiaozhiUi::Mode::Error); break;
+    }
+    constexpr float kPcmFullScale = 32768.0f;
+    if (state == State::Listening) {
+        _ui->setLevel(_input_pcm_peak.load() / kPcmFullScale);
+    } else if (state == State::Speaking) {
+        _ui->setLevel(_output_pcm_peak.exchange(0) / kPcmFullScale);
+    } else {
+        _ui->setLevel(0);
+    }
     _ui->setChatMessage(role, text);
     _ui->setEmotion(emotion[0] ? emotion : "neutral");
     _ui->setActivation(
@@ -2306,6 +2325,7 @@ bool XiaozhiApp::startListening(ListenMode mode, const char *wake_word)
     _pcm_mean_abs.store(0);
     _input_pcm_peak.store(0);
     _input_pcm_mean_abs.store(0);
+    _output_pcm_peak.store(0);
     if (_pcm_queue) {
         xQueueReset(_pcm_queue);
     }
@@ -2357,6 +2377,7 @@ bool XiaozhiApp::startListening(ListenMode mode, const char *wake_word)
     _pcm_mean_abs.store(0);
     _input_pcm_peak.store(0);
     _input_pcm_mean_abs.store(0);
+    _output_pcm_peak.store(0);
     if (_pcm_queue) {
         xQueueReset(_pcm_queue);
     }
@@ -2522,6 +2543,7 @@ void XiaozhiApp::handlePlaybackDrained()
         _pcm_mean_abs.store(0);
         _input_pcm_peak.store(0);
         _input_pcm_mean_abs.store(0);
+        _output_pcm_peak.store(0);
         if (_pcm_queue) {
             xQueueReset(_pcm_queue);
         }
@@ -3039,10 +3061,17 @@ void XiaozhiApp::playAudio()
             }
         } else if (decoded && _accept_playback.load() &&
                 packet.turn_generation == _turn_generation.load()) {
+            uint32_t output_peak = 0;
             for (size_t i = 0; i < playback_samples; ++i) {
+                const int32_t sample = playback_pcm[i];
+                const uint32_t magnitude = static_cast<uint32_t>(
+                    sample < 0 ? -sample : sample
+                );
+                output_peak = magnitude > output_peak ? magnitude : output_peak;
                 stereo[i * 2] = playback_pcm[i];
                 stereo[i * 2 + 1] = playback_pcm[i];
             }
+            _output_pcm_peak.store(output_peak);
             size_t written = 0;
             size_t write_size =
                 playback_samples * 2 * sizeof(int16_t);

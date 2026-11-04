@@ -286,13 +286,15 @@ void command_music(const char *action)
         lv_demo_music_play(0);
     } else if (command_equals(action, "pause")) {
         lv_demo_music_pause();
-    } else {
+    } else if (!command_equals(action, "status")) {
         bsp_display_unlock();
-        response("MUSIC result=use_play_or_pause");
+        response("MUSIC result=use_play_pause_or_status");
         return;
     }
+    const unsigned tracks = lv_demo_music_get_track_count();
+    const int state = audio_player_get_state();
     bsp_display_unlock();
-    response("MUSIC request=%s", action);
+    response("MUSIC request=%s tracks=%u state=%d", action, tracks, state);
 }
 
 void process_command(char *line)
@@ -323,7 +325,7 @@ void process_command(char *line)
     } else if (command_equals(line, "factory_music")) {
         command_music(argument);
     } else if (command_equals(line, "factory_help")) {
-        response("COMMANDS factory_status factory_i2c factory_touch factory_capture factory_app <calculator|draw|spectrum|music|camera|video|settings|xiaozhi|ethernet|relay|rs485> factory_close <app> factory_music <play|pause>");
+        response("COMMANDS factory_status factory_i2c factory_touch factory_capture factory_app <calculator|draw|spectrum|music|camera|video|settings|xiaozhi|ethernet|relay|rs485> factory_close <app> factory_music <play|pause|status>");
     } else if (*line) {
         response("ERROR unknown_command=%s", line);
     }

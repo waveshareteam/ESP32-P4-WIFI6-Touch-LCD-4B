@@ -184,6 +184,7 @@ private:
     std::atomic<uint32_t> _pcm_peak{0};
     std::atomic<uint32_t> _pcm_mean_abs{0};
     std::atomic<uint32_t> _input_pcm_peak{0};
+    std::atomic<uint32_t> _output_pcm_peak{0};
     std::atomic<uint32_t> _input_pcm_mean_abs{0};
     std::atomic<bool> _accept_playback{false};
     std::atomic<bool> _tts_stop_pending{false};
