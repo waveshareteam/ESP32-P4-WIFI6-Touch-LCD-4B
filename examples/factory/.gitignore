@@ -34,4 +34,5 @@ __pycache__/
 Thumbs.db
 *.Zone.Identifier
 
-# Demo media should be replaced with redistributable assets before publishing.
+# SPIFFS contents are runtime source assets, including audio and binary fonts.
+!spiffs/**
