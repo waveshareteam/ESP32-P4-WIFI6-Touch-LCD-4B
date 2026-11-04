@@ -296,7 +296,7 @@ void RelayControl::createUi()
         lv_obj_set_style_bg_color(
             _switches[i],
             lv_color_hex(hardware_ui::COLOR_SUCCESS),
-            LV_PART_INDICATOR | LV_STATE_CHECKED
+            static_cast<lv_style_selector_t>(LV_PART_INDICATOR) | LV_STATE_CHECKED
         );
         lv_obj_add_event_cb(_switches[i], switchEventCallback, LV_EVENT_VALUE_CHANGED, this);
         updateRelayUi(i);

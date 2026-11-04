@@ -162,7 +162,7 @@ void RS485Terminal::createUi()
     lv_obj_set_style_bg_color(
         _auto_switch,
         lv_color_hex(hardware_ui::COLOR_SUCCESS),
-        LV_PART_INDICATOR | LV_STATE_CHECKED
+        static_cast<lv_style_selector_t>(LV_PART_INDICATOR) | LV_STATE_CHECKED
     );
     lv_obj_add_event_cb(_auto_switch, autoSwitchCallback, LV_EVENT_VALUE_CHANGED, this);
 
