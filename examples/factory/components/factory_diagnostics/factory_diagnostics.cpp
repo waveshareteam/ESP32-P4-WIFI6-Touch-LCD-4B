@@ -306,11 +306,15 @@ void command_music(const char *action)
     }
     if (command_equals(action, "play")) {
         lv_demo_music_play(0);
+    } else if (command_equals(action, "resume")) {
+        lv_demo_music_resume();
+    } else if (command_equals(action, "next")) {
+        lv_demo_music_album_next(true);
     } else if (command_equals(action, "pause")) {
         lv_demo_music_pause();
     } else if (!command_equals(action, "status")) {
         bsp_display_unlock();
-        response("MUSIC result=use_play_pause_or_status");
+        response("MUSIC result=use_play_pause_resume_next_or_status");
         return;
     }
     const unsigned tracks = lv_demo_music_get_track_count();
@@ -353,7 +357,7 @@ void process_command(char *line)
     } else if (command_equals(line, "factory_music")) {
         command_music(argument);
     } else if (command_equals(line, "factory_help")) {
-        response("COMMANDS factory_status factory_i2c factory_c6_version factory_c6_update <byte_count> <sha256hex> factory_c6_install factory_touch factory_capture factory_app <calculator|draw|spectrum|music|camera|video|settings|xiaozhi|ethernet|relay|rs485> factory_close <app> factory_music <play|pause|status>");
+        response("COMMANDS factory_status factory_i2c factory_c6_version factory_c6_update <byte_count> <sha256hex> factory_c6_install factory_touch factory_capture factory_app <calculator|draw|spectrum|music|camera|video|settings|xiaozhi|ethernet|relay|rs485> factory_close <app> factory_music <play|pause|resume|next|status>");
     } else if (*line) {
         response("ERROR unknown_command=%s", line);
     }

@@ -321,6 +321,7 @@ esp_err_t bsp_extra_player_play_index(file_iterator_instance_t *instance, int in
     ESP_LOGI(TAG, "Playing '%s'", filename);
     ESP_RETURN_ON_ERROR(audio_player_play(fp), TAG, "audio_player_play failed");
 
+    file_iterator_set_index(instance, index);
     memcpy(audio_file_path, filename, sizeof(audio_file_path));
 
     return ESP_OK;
