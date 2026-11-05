@@ -4,7 +4,7 @@ dependencies:
     version: ">=0.3.1"
   esp32_p4_wifi6_touch_lcd_4b:
     path: ../../../factory/components/esp32_p4_wifi6_touch_lcd_4b
-  idf: ">=5.5.3"
+  idf: ">=5.5.6"
   espressif/esp_codec_dev:
     version: "2.0.0-beta5"
   lvgl/lvgl:
