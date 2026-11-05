@@ -34,7 +34,7 @@ This repository provides ESP-IDF and Arduino examples, factory firmware source, 
 
 | Framework | Examples |
 | --- | --- |
-| ESP-IDF | [13 projects](examples/esp-idf/README.md) |
+| ESP-IDF | [12 projects](examples/esp-idf/README.md) |
 | Arduino | [10 sketches](examples/arduino/README.md) |
 
 The open factory project is in [examples/factory](examples/factory/README.md).

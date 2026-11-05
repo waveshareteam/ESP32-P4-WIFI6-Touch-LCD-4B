@@ -34,7 +34,7 @@
 
 | 框架 | 示例 |
 | --- | --- |
-| ESP-IDF | [13 个工程](examples/esp-idf/README_ZH.md) |
+| ESP-IDF | [12 个工程](examples/esp-idf/README_ZH.md) |
 | Arduino | [10 个草图](examples/arduino/README_ZH.md) |
 
 开放的出厂工程位于 [examples/factory](examples/factory/README_ZH.md)。

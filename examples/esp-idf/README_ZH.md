@@ -14,7 +14,6 @@
 | `audio-codec` | `06_I2SCodec` | ES8311 播放/音频路径 | 主板音频硬件 |
 | `lcd-color-test` | `07_color_panel` | ST7703 面板色彩测试 | 主板显示屏 |
 | `display-panel` | `08_lvgl_display_panel` | 基于 BSP 的显示/触摸 UI | 主板显示屏和触摸 |
-| `lvgl-v8` | `09_lvgl_demo_v8` | LVGL 8 演示 | 主板显示屏和触摸 |
 | `lvgl-v9` | `10_lvgl_demo_v9` | LVGL 9 演示 | 主板显示屏和触摸 |
 | `usb-extended-screen` | `12_usb_extend_screen` | USB 显示/音频/触摸组合 | USB 主机和设备配置 |
 | `ethernet` | `13_ethernetbasic` | IP101 以太网 | 匹配的 ESP32-P4-86-Panel-ETH-2RO 组件 |

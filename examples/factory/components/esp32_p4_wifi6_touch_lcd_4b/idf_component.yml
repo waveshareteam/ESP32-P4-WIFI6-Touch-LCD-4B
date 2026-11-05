@@ -7,7 +7,7 @@ dependencies:
     public: true
     version: ~0.6
   idf: '>=5.5.3'
-  lvgl/lvgl: '>=8,<10'
+  lvgl/lvgl: '>=9,<10'
   usb:
     public: true
     rules:

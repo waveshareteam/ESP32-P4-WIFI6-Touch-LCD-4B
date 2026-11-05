@@ -17,7 +17,6 @@ include tests or examples nested inside components.
 | `audio-codec` | `06_I2SCodec` | ES8311 playback/audio path | Main-board audio hardware |
 | `lcd-color-test` | `07_color_panel` | ST7703 panel color test | Main-board display |
 | `display-panel` | `08_lvgl_display_panel` | BSP-backed display/touch UI | Main-board display and touch |
-| `lvgl-v8` | `09_lvgl_demo_v8` | LVGL 8 demonstration | Main-board display and touch |
 | `lvgl-v9` | `10_lvgl_demo_v9` | LVGL 9 demonstration | Main-board display and touch |
 | `usb-extended-screen` | `12_usb_extend_screen` | USB display/audio/touch composition | USB host and device configuration |
 | `ethernet` | `13_ethernetbasic` | IP101 Ethernet | Matching ESP32-P4-86-Panel-ETH-2RO assembly |
