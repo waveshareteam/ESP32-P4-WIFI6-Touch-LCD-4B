@@ -144,23 +144,14 @@ direction control and bus ownership are understood.
 
 ## BSP baseline
 
-The repository migration baseline is the published
-`waveshare/esp32_p4_wifi6_touch_lcd_4b` version 3.0.1:
+First-party projects require ESP-IDF `>=5.5.6`, ESP Board Manager `>=0.7.5`
+and the published `waveshare/waveshare_boards >=0.3.1` component. The product
+BSP compatibility layer borrows Board Manager's display, touch, audio and bus
+handles; drivers remain managed dependencies.
 
-- ESP-IDF `>=5.5`.
-- `espressif/esp_lvgl_adapter ~0.6`.
-- `waveshare/esp_lcd_st7703 ^2.0.0`.
-- `espressif/esp_lcd_touch_gt911 ^1`.
-- `espressif/esp_codec_dev ~1.5`.
-- `espressif/usb ^1.0.0` when building with ESP-IDF 6 or newer.
-
-First-party ESP-IDF examples that need board or display support, together with
-the maintained Brookesia firmware, resolve the reusable BSP and ST7703 driver
-from the ESP Component Registry. No local copy of either component is kept to
-shadow that resolution; only product-specific `bsp_extra` code remains local.
-
-Product manifests resolve the published BSP 3.0.1 through the Component Registry.
-Do not use a Git URL as a substitute for a registry release.
+The shared board definition supplies the original JD9365DA/8904ANT and ST7703
+initialization and timing. Dependency details are declared in each component's
+`idf_component.yml`, including the codec and LVGL adapter versions.
 
 ## Validation status
 
@@ -170,8 +161,8 @@ a 200 MHz PSRAM baseline; `rev3_x` covers silicon revision 3.00 through 3.99
 (maximum exclusive 4.00) with a 250 MHz PSRAM baseline. Do not cross-flash their binaries. The default
 ESP-IDF examples and Arduino sketches use `rev3_x`/post-v3 and are not doubled
 into a second matrix. Brookesia alone continues to build both profiles. Its
-v3.x profile requires ESP-IDF 5.5.3 or newer (or 6.0 or newer), while this
-repository's maintained firmware workflow currently pins v5.5.5. The available
+factory profiles use the supported ESP-IDF versions declared in
+`product.json`; the factory build is pinned to v5.5.6. The available
 main-board schematics do not establish a PCB/electrical difference between
 these two profile names; a chip probe or compile likewise does not prove
 hardware compatibility.

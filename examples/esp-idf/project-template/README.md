@@ -12,7 +12,7 @@ An ESP32-P4-WIFI6-Touch-LCD-4B development board is required to run the applicat
 
 ## How to Run
 
-Use ESP-IDF v5.5.3, v5.5.6, or v6.1; Board Manager resolves `waveshare/waveshare_boards` >=0.3 and `espressif/esp_board_manager` >=0.7.5 as dependencies.
+Use ESP-IDF v5.5.6 or v6.1; Board Manager resolves `waveshare/waveshare_boards` >=0.3.1 and `espressif/esp_board_manager` >=0.7.5 as dependencies.
 
 ```bash
 python -m pip install --upgrade esp-bmgr-assist

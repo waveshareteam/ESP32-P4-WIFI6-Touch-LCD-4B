@@ -128,21 +128,12 @@ C6 的 SDIO/控制连接。信号级映射与时序由 Hosted 配置和匹配的
 
 ## BSP 基线
 
-仓库迁移基线是已发布的 `waveshare/esp32_p4_wifi6_touch_lcd_4b` 3.0.1 版本：
+首方工程要求 ESP-IDF `>=5.5.6`、ESP Board Manager `>=0.7.5`，并使用已发布的
+`waveshare/waveshare_boards >=0.3.1`。产品 BSP 兼容层借用 Board Manager 管理的
+显示、触摸、音频和总线句柄，驱动继续由受管组件提供。
 
-- ESP-IDF `>=5.5`。
-- `espressif/esp_lvgl_adapter ~0.6`。
-- `waveshare/esp_lcd_st7703 ^2.0.0`。
-- `espressif/esp_lcd_touch_gt911 ^1`。
-- `espressif/esp_codec_dev ~1.5`。
-- 使用 ESP-IDF 6 或更高版本构建时使用 `espressif/usb ^1.0.0`。
-
-需要板级或显示支持的首方 ESP-IDF 示例，以及受维护的 Brookesia 固件，均从
-ESP Component Registry 解析可复用的 BSP 与 ST7703 驱动。本地不再保留会遮蔽
-解析的同名副本，只保留产品专用的 `bsp_extra` 代码。
-
-产品 manifest 通过 Component Registry 解析已发布的 BSP 3.0.1。不能以 Git URL 替代
-Registry 发布版本。
+共享板定义提供 JD9365DA/8904ANT 和 ST7703 的原始初始化及时序。编解码器、LVGL
+适配层等具体依赖以各组件的 `idf_component.yml` 为准。
 
 ## 验证状态
 
@@ -150,8 +141,8 @@ Registry 发布版本。
 覆盖芯片版本 1.00 至 1.99、使用 200 MHz PSRAM 基线；`rev3_x` 覆盖芯片版本 3.00 至 3.99
 （最高排他版本 4.00）、使用 250 MHz PSRAM 基线。二者的二进制不能交叉烧录。默认 ESP-IDF 示例和 Arduino 草图
 使用 `rev3_x`/post-v3，不会扩展为双矩阵；只有 Brookesia 继续构建两个 profile。v3.x
-profile 需要 ESP-IDF 5.5.3 或更高版本（或 6.0 及更高版本），本仓库的受维护固件工作流
-当前固定为 v5.5.5。现有主板原理图不足以证明这两个 profile 名称之间存在 PCB/电气差异；
+profile 使用 `product.json` 声明的受支持 ESP-IDF 版本，出厂构建固定为 v5.5.6。
+现有主板原理图不足以证明这两个 profile 名称之间存在 PCB/电气差异；
 芯片探测或编译同样不能证明硬件兼容性。
 
 ### 由源材料支持
