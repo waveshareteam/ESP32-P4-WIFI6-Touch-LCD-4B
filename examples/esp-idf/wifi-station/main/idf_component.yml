@@ -1,7 +1,7 @@
 ## IDF Component Manager Manifest File
 dependencies:
   waveshare/waveshare_boards:
-    version: ">=0.3.0"
+    version: ">=0.3.1"
   idf: ">=5.5.3"
   espressif/esp_hosted: "3.0.10"
   espressif/esp_wifi_remote: "1.6.5"

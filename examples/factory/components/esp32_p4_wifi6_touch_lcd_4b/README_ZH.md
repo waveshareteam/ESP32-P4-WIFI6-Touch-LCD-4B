@@ -4,7 +4,7 @@
 
 ## 功能
 
-保留出厂应用现有的 BSP API，由 ESP Board Manager 管理板级资源。硬件定义来自 [waveshare_boards](https://github.com/waveshareteam/waveshare_boards/tree/v0.3.0/boards/esp32_p4_wifi6_touch_lcd_4b)。
+保留出厂应用现有的 BSP API，由 ESP Board Manager 管理板级资源。硬件定义来自 [waveshare_boards](https://github.com/waveshareteam/waveshare_boards/tree/v0.3.1/boards/esp32_p4_wifi6_touch_lcd_4b)。
 
 ## 显示
 

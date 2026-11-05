@@ -12,6 +12,6 @@ endif()
 
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 
-set(COMPONENTS main)
+set(COMPONENTS main gen_bmgr_codes)
 
 project(sd_card)

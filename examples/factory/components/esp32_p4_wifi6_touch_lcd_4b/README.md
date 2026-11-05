@@ -4,7 +4,7 @@
 
 ## Purpose
 
-Preserves the factory application's BSP APIs while ESP Board Manager owns the board resources. The hardware definition comes from [waveshare_boards](https://github.com/waveshareteam/waveshare_boards/tree/v0.3.0/boards/esp32_p4_wifi6_touch_lcd_4b).
+Preserves the factory application's BSP APIs while ESP Board Manager owns the board resources. The hardware definition comes from [waveshare_boards](https://github.com/waveshareteam/waveshare_boards/tree/v0.3.1/boards/esp32_p4_wifi6_touch_lcd_4b).
 
 ## Display
 
