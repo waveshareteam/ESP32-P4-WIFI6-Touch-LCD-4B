@@ -32,10 +32,37 @@ This repository provides ESP-IDF and Arduino examples, factory firmware source, 
 
 ## 🧪 Examples
 
-| Framework | Examples |
+**ESP-IDF (12 projects)**
+
+| Example | Purpose |
 | --- | --- |
-| ESP-IDF | [12 projects](examples/esp-idf/README.md) |
-| Arduino | [10 sketches](examples/arduino/README.md) |
+| [project-template](examples/esp-idf/project-template/) | Minimal project structure |
+| [hello_world](examples/esp-idf/hello_world/) | Minimal application and CI smoke test |
+| [i2c-tools](examples/esp-idf/i2c-tools/) | Interactive I2C scanning and register access |
+| [sd-card](examples/esp-idf/sd-card/) | MicroSD card access |
+| [wifi-station](examples/esp-idf/wifi-station/) | Station-mode Wi-Fi through ESP32-C6 |
+| [audio-codec](examples/esp-idf/audio-codec/) | ES8311 playback/audio path |
+| [lcd-color-test](examples/esp-idf/lcd-color-test/) | ST7703 panel color test |
+| [display-panel](examples/esp-idf/display-panel/) | BSP-backed display/touch UI |
+| [lvgl-v9](examples/esp-idf/lvgl-v9/) | LVGL 9 demonstration |
+| [usb-extended-screen](examples/esp-idf/usb-extended-screen/) | USB display/audio/touch composition |
+| [ethernet](examples/esp-idf/ethernet/) | IP101 Ethernet |
+| [rs485](examples/esp-idf/rs485/) | UART/RS485 transmit and receive |
+
+**Arduino (10 sketches)**
+
+| Example | Purpose |
+| --- | --- |
+| [01_HelloWorld](examples/arduino/examples/01_HelloWorld/) | Minimal Arduino_GFX DSI display bring-up |
+| [02_AsciiTable](examples/arduino/examples/02_AsciiTable/) | Arduino_GFX capability/benchmark table |
+| [03_Drawing_board](examples/arduino/examples/03_Drawing_board/) | GT911 five-point capacitive touch drawing |
+| [04_LVGLV9_Arduino](examples/arduino/examples/04_LVGLV9_Arduino/) | LVGL 9 widgets UI with touch input |
+| [05_GFX_ESPWiFiAnalyzer](examples/arduino/examples/05_GFX_ESPWiFiAnalyzer/) | Graphical Wi-Fi scan (on-board ESP32-C6 coprocessor) |
+| [06_Camera_Preview](examples/arduino/examples/06_Camera_Preview/) | OV5647 MIPI-CSI camera preview on the display |
+| [07_Camera_ISP_Tuning](examples/arduino/examples/07_Camera_ISP_Tuning/) | Live preview with interactive ISP/3A tuning over serial |
+| [08_SD_Card](examples/arduino/examples/08_SD_Card/) | microSD read/write over the SDIO 3.0 slot |
+| [09_Audio_Playback](examples/arduino/examples/09_Audio_Playback/) | ES8311 codec plays the opening of "Für Elise" as different-frequency tones |
+| [10_Mic_Record](examples/arduino/examples/10_Mic_Record/) | ES7210 quad-microphone capture; prints peak/RMS/decimated samples over serial |
 
 The open factory project is in [examples/factory](examples/factory/README.md).
 

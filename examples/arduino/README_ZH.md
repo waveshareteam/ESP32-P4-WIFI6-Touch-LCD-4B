@@ -7,7 +7,7 @@ OV5647 MIPI-CSI 摄像头)的 Arduino 草图与随仓库。
 
 ## 开发板设置(Arduino IDE)
 
-- Arduino-ESP32 3.3.11（或更新 3.x）。
+- Arduino-ESP32 版本以[产品配置](../../.github/product.json)为准。
 - 开发板:`ESP32P4 Dev Module`(`esp32:esp32:esp32p4`)。
 - 菜单选项:
   - `Chip Variant`:`v3.00 or newer`（Arduino 菜单中的默认 `postv3` 名称；本仓库验证范围为
@@ -30,16 +30,16 @@ OV5647 MIPI-CSI 摄像头)的 Arduino 草图与随仓库。
 
 | 草图 | 说明 |
 | --- | --- |
-| `01_HelloWorld` | Arduino_GFX DSI 显示最小点亮 |
-| `02_AsciiTable` | Arduino_GFX 能力/基准表 |
-| `03_Drawing_board` | GT911 五点电容触摸画板 |
-| `04_LVGLV9_Arduino` | LVGL 9 控件界面 + 触摸 |
-| `05_GFX_ESPWiFiAnalyzer` | 图形化 Wi-Fi 扫描(板载 ESP32-C6 协处理器) |
-| `06_Camera_Preview` | OV5647 MIPI-CSI 摄像头实时上屏 |
-| `07_Camera_ISP_Tuning` | 实时预览 + 串口交互 ISP/3A 调参 |
-| `08_SD_Card` | microSD SDIO 3.0 读写 |
-| `09_Audio_Playback` | ES8311 编解码器以不同频率音色演奏《致爱丽丝》开篇 |
-| `10_Mic_Record` | ES7210 四麦克风采集,串口打印峰值/RMS/抽样数据 |
+| [01_HelloWorld](examples/01_HelloWorld/README_ZH.md) | Arduino_GFX DSI 显示最小点亮 |
+| [02_AsciiTable](examples/02_AsciiTable/README_ZH.md) | Arduino_GFX 能力/基准表 |
+| [03_Drawing_board](examples/03_Drawing_board/README_ZH.md) | GT911 五点电容触摸画板 |
+| [04_LVGLV9_Arduino](examples/04_LVGLV9_Arduino/README_ZH.md) | LVGL 9 控件界面 + 触摸 |
+| [05_GFX_ESPWiFiAnalyzer](examples/05_GFX_ESPWiFiAnalyzer/README_ZH.md) | 图形化 Wi-Fi 扫描(板载 ESP32-C6 协处理器) |
+| [06_Camera_Preview](examples/06_Camera_Preview/README_ZH.md) | OV5647 MIPI-CSI 摄像头实时上屏 |
+| [07_Camera_ISP_Tuning](examples/07_Camera_ISP_Tuning/README_ZH.md) | 实时预览 + 串口交互 ISP/3A 调参 |
+| [08_SD_Card](examples/08_SD_Card/README_ZH.md) | microSD SDIO 3.0 读写 |
+| [09_Audio_Playback](examples/09_Audio_Playback/README_ZH.md) | ES8311 编解码器以不同频率音色演奏《致爱丽丝》开篇 |
+| [10_Mic_Record](examples/10_Mic_Record/README_ZH.md) | ES7210 四麦克风采集,串口打印峰值/RMS/抽样数据 |
 
 ## 音频说明
 

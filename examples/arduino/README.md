@@ -7,7 +7,7 @@ Arduino sketches and bundled libraries for the Waveshare ESP32-P4-WIFI6-Touch-LC
 
 ## Board settings (Arduino IDE)
 
-- Arduino-ESP32 3.3.11 (or newer 3.x).
+- Arduino-ESP32 version from the [product configuration](../../.github/product.json).
 - Board: `ESP32P4 Dev Module` (`esp32:esp32:esp32p4`).
 - Menu options:
   - `Chip Variant`: `v3.00 or newer` (the Arduino menu label for the default
@@ -30,16 +30,16 @@ Arduino sketches and bundled libraries for the Waveshare ESP32-P4-WIFI6-Touch-LC
 
 | Sketch | Description |
 | --- | --- |
-| `01_HelloWorld` | Minimal Arduino_GFX DSI display bring-up |
-| `02_AsciiTable` | Arduino_GFX capability/benchmark table |
-| `03_Drawing_board` | GT911 five-point capacitive touch drawing |
-| `04_LVGLV9_Arduino` | LVGL 9 widgets UI with touch input |
-| `05_GFX_ESPWiFiAnalyzer` | Graphical Wi-Fi scan (on-board ESP32-C6 coprocessor) |
-| `06_Camera_Preview` | OV5647 MIPI-CSI camera preview on the display |
-| `07_Camera_ISP_Tuning` | Live preview with interactive ISP/3A tuning over serial |
-| `08_SD_Card` | microSD read/write over the SDIO 3.0 slot |
-| `09_Audio_Playback` | ES8311 codec plays the opening of "Für Elise" as different-frequency tones |
-| `10_Mic_Record` | ES7210 quad-microphone capture; prints peak/RMS/decimated samples over serial |
+| [01_HelloWorld](examples/01_HelloWorld/) | Minimal Arduino_GFX DSI display bring-up |
+| [02_AsciiTable](examples/02_AsciiTable/) | Arduino_GFX capability/benchmark table |
+| [03_Drawing_board](examples/03_Drawing_board/) | GT911 five-point capacitive touch drawing |
+| [04_LVGLV9_Arduino](examples/04_LVGLV9_Arduino/) | LVGL 9 widgets UI with touch input |
+| [05_GFX_ESPWiFiAnalyzer](examples/05_GFX_ESPWiFiAnalyzer/) | Graphical Wi-Fi scan (on-board ESP32-C6 coprocessor) |
+| [06_Camera_Preview](examples/06_Camera_Preview/) | OV5647 MIPI-CSI camera preview on the display |
+| [07_Camera_ISP_Tuning](examples/07_Camera_ISP_Tuning/) | Live preview with interactive ISP/3A tuning over serial |
+| [08_SD_Card](examples/08_SD_Card/) | microSD read/write over the SDIO 3.0 slot |
+| [09_Audio_Playback](examples/09_Audio_Playback/) | ES8311 codec plays the opening of "Für Elise" as different-frequency tones |
+| [10_Mic_Record](examples/10_Mic_Record/) | ES7210 quad-microphone capture; prints peak/RMS/decimated samples over serial |
 
 ## Audio notes
 

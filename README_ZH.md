@@ -32,10 +32,37 @@
 
 ## 🧪 示例
 
-| 框架 | 示例 |
+**ESP-IDF（12 个工程）**
+
+| 示例 | 用途 |
 | --- | --- |
-| ESP-IDF | [12 个工程](examples/esp-idf/README_ZH.md) |
-| Arduino | [10 个草图](examples/arduino/README_ZH.md) |
+| [project-template](examples/esp-idf/project-template/README_ZH.md) | 最小项目结构 |
+| [hello_world](examples/esp-idf/hello_world/README_ZH.md) | 最小应用和 CI 冒烟测试 |
+| [i2c-tools](examples/esp-idf/i2c-tools/README_ZH.md) | 交互式 I2C 扫描和寄存器访问 |
+| [sd-card](examples/esp-idf/sd-card/README_ZH.md) | MicroSD 卡访问 |
+| [wifi-station](examples/esp-idf/wifi-station/README_ZH.md) | 通过 ESP32-C6 的站点模式 Wi-Fi |
+| [audio-codec](examples/esp-idf/audio-codec/README_ZH.md) | ES8311 播放/音频路径 |
+| [lcd-color-test](examples/esp-idf/lcd-color-test/README_ZH.md) | ST7703 面板色彩测试 |
+| [display-panel](examples/esp-idf/display-panel/README_ZH.md) | 基于 BSP 的显示/触摸 UI |
+| [lvgl-v9](examples/esp-idf/lvgl-v9/README_ZH.md) | LVGL 9 演示 |
+| [usb-extended-screen](examples/esp-idf/usb-extended-screen/README_ZH.md) | USB 显示/音频/触摸组合 |
+| [ethernet](examples/esp-idf/ethernet/README_ZH.md) | IP101 以太网 |
+| [rs485](examples/esp-idf/rs485/README_ZH.md) | UART/RS485 收发 |
+
+**Arduino（10 个草图）**
+
+| 示例 | 用途 |
+| --- | --- |
+| [01_HelloWorld](examples/arduino/examples/01_HelloWorld/README_ZH.md) | Arduino_GFX DSI 显示最小点亮 |
+| [02_AsciiTable](examples/arduino/examples/02_AsciiTable/README_ZH.md) | Arduino_GFX 能力/基准表 |
+| [03_Drawing_board](examples/arduino/examples/03_Drawing_board/README_ZH.md) | GT911 五点电容触摸画板 |
+| [04_LVGLV9_Arduino](examples/arduino/examples/04_LVGLV9_Arduino/README_ZH.md) | LVGL 9 控件界面 + 触摸 |
+| [05_GFX_ESPWiFiAnalyzer](examples/arduino/examples/05_GFX_ESPWiFiAnalyzer/README_ZH.md) | 图形化 Wi-Fi 扫描(板载 ESP32-C6 协处理器) |
+| [06_Camera_Preview](examples/arduino/examples/06_Camera_Preview/README_ZH.md) | OV5647 MIPI-CSI 摄像头实时上屏 |
+| [07_Camera_ISP_Tuning](examples/arduino/examples/07_Camera_ISP_Tuning/README_ZH.md) | 实时预览 + 串口交互 ISP/3A 调参 |
+| [08_SD_Card](examples/arduino/examples/08_SD_Card/README_ZH.md) | microSD SDIO 3.0 读写 |
+| [09_Audio_Playback](examples/arduino/examples/09_Audio_Playback/README_ZH.md) | ES8311 编解码器以不同频率音色演奏《致爱丽丝》开篇 |
+| [10_Mic_Record](examples/arduino/examples/10_Mic_Record/README_ZH.md) | ES7210 四麦克风采集,串口打印峰值/RMS/抽样数据 |
 
 开放的出厂工程位于 [examples/factory](examples/factory/README_ZH.md)。
 
