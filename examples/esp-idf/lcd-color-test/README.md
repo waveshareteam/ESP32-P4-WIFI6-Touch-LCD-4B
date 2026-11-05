@@ -1,10 +1,10 @@
-# ST7703 LCD Color Test
+# LCD Color Test
 
 [English](README.md) | [简体中文](README_ZH.md)
 
 ## What It Does
 
-Runs a low-level 720 x 720 MIPI-DSI color-bar test for the ST7703 display panel.
+Runs a 720 x 720 MIPI-DSI color-bar test using Board Manager's automatic JD9365DA/ST7703 panel selection.
 
 ## Hardware Required
 
@@ -12,7 +12,7 @@ An ESP32-P4-WIFI6-Touch-LCD-4B development board is required.
 
 ## How to Run
 
-Use ESP-IDF v5.5.3, v5.5.6, or v6.1; Board Manager resolves `waveshare/waveshare_boards` >=0.3 and `espressif/esp_board_manager` >=0.7.5 as dependencies.
+Use a supported ESP-IDF version from the [product configuration](../../../.github/product.json). Board Manager uses the shared board definition.
 
 ```bash
 python -m pip install --upgrade esp-bmgr-assist
@@ -23,8 +23,8 @@ idf.py build flash monitor
 
 ## Expected Result
 
-The panel displays the controller's vertical color-bar pattern.
+The panel displays the MIPI-DSI host's vertical color-bar pattern.
 
 ## Troubleshooting
 
-None yet.
+Check the selected panel in the boot log and the MIPI-DSI cable connection.

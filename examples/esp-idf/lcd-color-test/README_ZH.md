@@ -1,10 +1,10 @@
-# ST7703 LCD 色彩测试
+# LCD 色彩测试
 
 [English](README.md) | [简体中文](README_ZH.md)
 
 ## 功能
 
-运行面向 ST7703 显示面板的低级 720 x 720 MIPI-DSI 彩条测试。
+通过 Board Manager 自动选择 JD9365DA/ST7703 屏幕配置，运行 720 x 720 MIPI-DSI 色条测试。
 
 ## 硬件需求
 
@@ -12,7 +12,7 @@
 
 ## 怎么运行
 
-使用 ESP-IDF v5.5.3、v5.5.6 或 v6.1；Board Manager 会解析 `waveshare/waveshare_boards` >=0.3 和 `espressif/esp_board_manager` >=0.7.5 依赖。
+支持的 ESP-IDF 版本以[产品配置](../../../.github/product.json)为准，Board Manager 使用共享板定义。
 
 ```bash
 python -m pip install --upgrade esp-bmgr-assist
@@ -23,8 +23,8 @@ idf.py build flash monitor
 
 ## 预期现象
 
-面板显示控制器的垂直彩条图案。
+面板显示由 MIPI-DSI 主机生成的垂直彩条图案。
 
 ## 常见问题
 
-暂无。
+检查启动日志中的屏幕识别结果及 MIPI-DSI 排线连接。
