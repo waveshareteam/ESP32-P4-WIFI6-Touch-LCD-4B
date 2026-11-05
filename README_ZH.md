@@ -42,7 +42,7 @@
 | [sd-card](examples/esp-idf/sd-card/README_ZH.md) | MicroSD 卡访问 |
 | [wifi-station](examples/esp-idf/wifi-station/README_ZH.md) | 通过 ESP32-C6 的站点模式 Wi-Fi |
 | [audio-codec](examples/esp-idf/audio-codec/README_ZH.md) | ES8311 播放/音频路径 |
-| [lcd-color-test](examples/esp-idf/lcd-color-test/README_ZH.md) | ST7703 面板色彩测试 |
+| [lcd-color-test](examples/esp-idf/lcd-color-test/README_ZH.md) | 显示屏色彩测试 |
 | [display-panel](examples/esp-idf/display-panel/README_ZH.md) | 基于 BSP 的显示/触摸 UI |
 | [lvgl-v9](examples/esp-idf/lvgl-v9/README_ZH.md) | LVGL 9 演示 |
 | [usb-extended-screen](examples/esp-idf/usb-extended-screen/README_ZH.md) | USB 显示/音频/触摸组合 |
@@ -79,12 +79,11 @@
 - [原理图](hardware/schematic/README_ZH.md)
 - [尺寸图](hardware/mechanical/ESP32-P4-WIFI6-Touch-LCD-4B-Dimensions.pdf)
 - [产品页面](https://www.waveshare.com/esp32-p4-wifi6-touch-lcd-4b.htm)
-- [产品文档](https://docs.waveshare.com/ESP32-P4-WIFI6-Touch-LCD-4B)
+- [产品文档](https://docs.waveshare.net/ESP32-P4-WIFI6-Touch-LCD-4B/)
 
 ## 🤝 支持
 
-- [GitHub issues](https://github.com/waveshareteam/ESP32-P4-WIFI6-Touch-LCD-4B/issues)
-- [技术支持](https://www.waveshare.com/contact_us)
+- [技术支持](https://docs.waveshare.net/ESP32-P4-WIFI6-Touch-LCD-4B/Technical-Support/)
 
 ## 📄 许可证
 

@@ -15,7 +15,7 @@ include tests or examples nested inside components.
 | [sd-card](sd-card/) | `04_sdmmc` | MicroSD card access | Main-board MicroSD slot |
 | [wifi-station](wifi-station/) | `05_wifistation` | Station-mode Wi-Fi through ESP32-C6 | SSID/password and compatible C6 firmware |
 | [audio-codec](audio-codec/) | `06_I2SCodec` | ES8311 playback/audio path | Main-board audio hardware |
-| [lcd-color-test](lcd-color-test/) | `07_color_panel` | ST7703 panel color test | Main-board display |
+| [lcd-color-test](lcd-color-test/) | `07_color_panel` | Display color test | Main-board display |
 | [display-panel](display-panel/) | `08_lvgl_display_panel` | BSP-backed display/touch UI | Main-board display and touch |
 | [lvgl-v9](lvgl-v9/) | `10_lvgl_demo_v9` | LVGL 9 demonstration | Main-board display and touch |
 | [usb-extended-screen](usb-extended-screen/) | `12_usb_extend_screen` | USB display/audio/touch composition | USB host and device configuration |

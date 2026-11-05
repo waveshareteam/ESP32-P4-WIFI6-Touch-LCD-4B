@@ -42,7 +42,7 @@ This repository provides ESP-IDF and Arduino examples, factory firmware source, 
 | [sd-card](examples/esp-idf/sd-card/) | MicroSD card access |
 | [wifi-station](examples/esp-idf/wifi-station/) | Station-mode Wi-Fi through ESP32-C6 |
 | [audio-codec](examples/esp-idf/audio-codec/) | ES8311 playback/audio path |
-| [lcd-color-test](examples/esp-idf/lcd-color-test/) | ST7703 panel color test |
+| [lcd-color-test](examples/esp-idf/lcd-color-test/) | Display color test |
 | [display-panel](examples/esp-idf/display-panel/) | BSP-backed display/touch UI |
 | [lvgl-v9](examples/esp-idf/lvgl-v9/) | LVGL 9 demonstration |
 | [usb-extended-screen](examples/esp-idf/usb-extended-screen/) | USB display/audio/touch composition |

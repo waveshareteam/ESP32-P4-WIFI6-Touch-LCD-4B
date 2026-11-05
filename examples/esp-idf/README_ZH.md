@@ -12,7 +12,7 @@
 | [sd-card](sd-card/README_ZH.md) | `04_sdmmc` | MicroSD 卡访问 | 主板 MicroSD 卡槽 |
 | [wifi-station](wifi-station/README_ZH.md) | `05_wifistation` | 通过 ESP32-C6 的站点模式 Wi-Fi | SSID/密码和兼容的 C6 固件 |
 | [audio-codec](audio-codec/README_ZH.md) | `06_I2SCodec` | ES8311 播放/音频路径 | 主板音频硬件 |
-| [lcd-color-test](lcd-color-test/README_ZH.md) | `07_color_panel` | ST7703 面板色彩测试 | 主板显示屏 |
+| [lcd-color-test](lcd-color-test/README_ZH.md) | `07_color_panel` | 显示屏色彩测试 | 主板显示屏 |
 | [display-panel](display-panel/README_ZH.md) | `08_lvgl_display_panel` | 基于 BSP 的显示/触摸 UI | 主板显示屏和触摸 |
 | [lvgl-v9](lvgl-v9/README_ZH.md) | `10_lvgl_demo_v9` | LVGL 9 演示 | 主板显示屏和触摸 |
 | [usb-extended-screen](usb-extended-screen/README_ZH.md) | `12_usb_extend_screen` | USB 显示/音频/触摸组合 | USB 主机和设备配置 |
