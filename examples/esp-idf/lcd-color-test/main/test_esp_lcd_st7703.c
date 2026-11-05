@@ -11,45 +11,29 @@
 #include <inttypes.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-#include "driver/gpio.h"
+#include "driver/ledc.h"
+#include "esp_board_manager.h"
+#include "dev_display_lcd.h"
+#include "periph_ledc.h"
 #include "esp_heap_caps.h"
 #include "esp_log.h"
 #include "esp_timer.h"
 #include "esp_lcd_panel_ops.h"
-#include "esp_lcd_panel_io.h"
-#include "esp_ldo_regulator.h"
 #include "unity.h"
 #include "unity_test_runner.h"
 #include "unity_test_utils_memory.h"
 #include "esp_lcd_mipi_dsi.h"
-#include "esp_lcd_st7703.h"
 
 #define TEST_LCD_H_RES (720)
 #define TEST_LCD_V_RES (720)
-#define TEST_LCD_BIT_PER_PIXEL (18)
-#define TEST_PIN_NUM_LCD_RST (27)
-#define TEST_PIN_NUM_BK_LIGHT (26) // set to -1 if not used
-#define TEST_LCD_BK_LIGHT_ON_LEVEL (0)
-#define TEST_LCD_BK_LIGHT_OFF_LEVEL !TEST_LCD_BK_LIGHT_ON_LEVEL
-
-#if TEST_LCD_BIT_PER_PIXEL == 24
-#define TEST_MIPI_DPI_PX_FORMAT (LCD_COLOR_PIXEL_FORMAT_RGB888)
-#elif TEST_LCD_BIT_PER_PIXEL == 18
-#define TEST_MIPI_DPI_PX_FORMAT (LCD_COLOR_PIXEL_FORMAT_RGB666)
-#elif TEST_LCD_BIT_PER_PIXEL == 16
-#define TEST_MIPI_DPI_PX_FORMAT (LCD_COLOR_PIXEL_FORMAT_RGB565)
-#endif
 
 #define TEST_DELAY_TIME_MS (3000)
 
-#define TEST_MIPI_DSI_PHY_PWR_LDO_CHAN (3)
-#define TEST_MIPI_DSI_PHY_PWR_LDO_VOLTAGE_MV (2500)
-
-static char *TAG = "st7703_test";
-static esp_ldo_channel_handle_t ldo_mipi_phy = NULL;
+static char *TAG = "lcd_color_test";
 static esp_lcd_panel_handle_t panel_handle = NULL;
-static esp_lcd_dsi_bus_handle_t mipi_dsi_bus = NULL;
-static esp_lcd_panel_io_handle_t mipi_dbi_io = NULL;
+static dev_display_lcd_handles_t *lcd_handles = NULL;
+static periph_ledc_handle_t *brightness_handle = NULL;
+static uint32_t lcd_bits_per_pixel;
 static SemaphoreHandle_t refresh_finish = NULL;
 
 IRAM_ATTR static bool test_notify_refresh_ready(esp_lcd_panel_handle_t panel, esp_lcd_dpi_panel_event_data_t *edata, void *user_ctx)
@@ -64,53 +48,25 @@ IRAM_ATTR static bool test_notify_refresh_ready(esp_lcd_panel_handle_t panel, es
 
 static void test_init_lcd(void)
 {
-#if TEST_PIN_NUM_BK_LIGHT >= 0
-    ESP_LOGI(TAG, "Turn on LCD backlight");
-    gpio_config_t bk_gpio_config = {
-        .mode = GPIO_MODE_OUTPUT,
-        .pin_bit_mask = 1ULL << TEST_PIN_NUM_BK_LIGHT};
-    TEST_ESP_OK(gpio_config(&bk_gpio_config));
-    TEST_ESP_OK(gpio_set_level(TEST_PIN_NUM_BK_LIGHT, TEST_LCD_BK_LIGHT_ON_LEVEL));
-#endif
+    dev_display_lcd_config_t *lcd_config = NULL;
 
-    // Turn on the power for MIPI DSI PHY, so it can go from "No Power" state to "Shutdown" state
-#ifdef TEST_MIPI_DSI_PHY_PWR_LDO_CHAN
-    ESP_LOGI(TAG, "MIPI DSI PHY Powered on");
-    esp_ldo_channel_config_t ldo_mipi_phy_config = {
-        .chan_id = TEST_MIPI_DSI_PHY_PWR_LDO_CHAN,
-        .voltage_mv = TEST_MIPI_DSI_PHY_PWR_LDO_VOLTAGE_MV,
-    };
-    TEST_ESP_OK(esp_ldo_acquire_channel(&ldo_mipi_phy_config, &ldo_mipi_phy));
-#endif
+    ESP_LOGI(TAG, "Initialize Board Manager LCD device");
+    TEST_ESP_OK(esp_board_manager_init_device_by_name("display_lcd"));
+    TEST_ESP_OK(esp_board_manager_get_device_handle("display_lcd", (void **)&lcd_handles));
+    TEST_ESP_OK(esp_board_manager_get_device_config("display_lcd", (void **)&lcd_config));
+    TEST_ASSERT_NOT_NULL(lcd_handles);
+    TEST_ASSERT_NOT_NULL(lcd_handles->panel_handle);
+    TEST_ASSERT_NOT_NULL(lcd_config);
+    TEST_ASSERT_TRUE(lcd_config->bits_per_pixel > 0);
+    panel_handle = lcd_handles->panel_handle;
+    lcd_bits_per_pixel = lcd_config->bits_per_pixel;
 
-    ESP_LOGI(TAG, "Initialize MIPI DSI bus");
-    esp_lcd_dsi_bus_config_t bus_config = ST7703_PANEL_BUS_DSI_2CH_CONFIG();
-    TEST_ESP_OK(esp_lcd_new_dsi_bus(&bus_config, &mipi_dsi_bus));
-
-    ESP_LOGI(TAG, "Install panel IO");
-    esp_lcd_dbi_io_config_t dbi_config = ST7703_PANEL_IO_DBI_CONFIG();
-    TEST_ESP_OK(esp_lcd_new_panel_io_dbi(mipi_dsi_bus, &dbi_config, &mipi_dbi_io));
-
-    ESP_LOGI(TAG, "Install LCD driver of st7703");
-    esp_lcd_dpi_panel_config_t dpi_config = ST7703_720_720_PANEL_60HZ_DPI_CONFIG(TEST_MIPI_DPI_PX_FORMAT);
-    st7703_vendor_config_t vendor_config = {
-        .flags = {
-            .use_mipi_interface = 1,
-        },
-        .mipi_config = {
-            .dsi_bus = mipi_dsi_bus,
-            .dpi_config = &dpi_config,
-        },
-    };
-    const esp_lcd_panel_dev_config_t panel_config = {
-        .reset_gpio_num = TEST_PIN_NUM_LCD_RST,
-        .rgb_ele_order = LCD_RGB_ELEMENT_ORDER_RGB,
-        .bits_per_pixel = TEST_LCD_BIT_PER_PIXEL,
-        .vendor_config = &vendor_config,
-    };
-    TEST_ESP_OK(esp_lcd_new_panel_st7703(mipi_dbi_io, &panel_config, &panel_handle));
-    TEST_ESP_OK(esp_lcd_panel_reset(panel_handle));
-    TEST_ESP_OK(esp_lcd_panel_init(panel_handle));
+    ESP_LOGI(TAG, "Initialize Board Manager LCD backlight device");
+    TEST_ESP_OK(esp_board_manager_init_device_by_name("lcd_brightness"));
+    TEST_ESP_OK(esp_board_manager_get_device_handle("lcd_brightness", (void **)&brightness_handle));
+    TEST_ASSERT_NOT_NULL(brightness_handle);
+    TEST_ESP_OK(ledc_set_duty(brightness_handle->speed_mode, brightness_handle->channel, 1023));
+    TEST_ESP_OK(ledc_update_duty(brightness_handle->speed_mode, brightness_handle->channel));
     TEST_ESP_OK(esp_lcd_panel_disp_on_off(panel_handle, true));
 
     refresh_finish = xSemaphoreCreateBinary();
@@ -123,30 +79,21 @@ static void test_init_lcd(void)
 
 static void test_deinit_lcd(void)
 {
-    TEST_ESP_OK(esp_lcd_panel_del(panel_handle));
-    TEST_ESP_OK(esp_lcd_panel_io_del(mipi_dbi_io));
-    TEST_ESP_OK(esp_lcd_del_dsi_bus(mipi_dsi_bus));
+    TEST_ESP_OK(esp_board_manager_deinit_device_by_name("display_lcd"));
     panel_handle = NULL;
-    mipi_dbi_io = NULL;
-    mipi_dsi_bus = NULL;
+    lcd_handles = NULL;
+    lcd_bits_per_pixel = 0;
 
-    if (ldo_mipi_phy)
-    {
-        TEST_ESP_OK(esp_ldo_release_channel(ldo_mipi_phy));
-        ldo_mipi_phy = NULL;
-    }
+    TEST_ESP_OK(esp_board_manager_deinit_device_by_name("lcd_brightness"));
+    brightness_handle = NULL;
 
     vSemaphoreDelete(refresh_finish);
     refresh_finish = NULL;
-
-#if TEST_PIN_NUM_BK_LIGHT >= 0
-    TEST_ESP_OK(gpio_reset_pin(TEST_PIN_NUM_BK_LIGHT));
-#endif
 }
 
 static void test_draw_color_bar(esp_lcd_panel_handle_t panel_handle, uint16_t h_res, uint16_t v_res)
 {
-    uint8_t byte_per_pixel = (TEST_LCD_BIT_PER_PIXEL + 7) / 8;
+    uint8_t byte_per_pixel = (lcd_bits_per_pixel + 7) / 8;
     uint16_t row_line = v_res / byte_per_pixel / 8;
     uint8_t *color = (uint8_t *)heap_caps_calloc(1, row_line * h_res * byte_per_pixel, MALLOC_CAP_DMA);
 
@@ -181,7 +128,7 @@ static void test_draw_color_bar(esp_lcd_panel_handle_t panel_handle, uint16_t h_
     free(color);
 }
 
-TEST_CASE("test st7703 to draw pattern with MIPI interface", "[st7703][draw_pattern]")
+TEST_CASE("test LCD to draw pattern with MIPI interface", "[lcd][draw_pattern]")
 {
     ESP_LOGI(TAG, "Initialize LCD device");
     test_init_lcd();
@@ -197,7 +144,7 @@ TEST_CASE("test st7703 to draw pattern with MIPI interface", "[st7703][draw_patt
     test_deinit_lcd();
 }
 
-TEST_CASE("test st7703 to draw color bar with MIPI interface", "[st7703][draw_color_bar]")
+TEST_CASE("test LCD to draw color bar with MIPI interface", "[lcd][draw_color_bar]")
 {
     ESP_LOGI(TAG, "Initialize LCD device");
     test_init_lcd();
@@ -210,7 +157,7 @@ TEST_CASE("test st7703 to draw color bar with MIPI interface", "[st7703][draw_co
     test_deinit_lcd();
 }
 
-TEST_CASE("test st7703 to rotate with MIPI interface", "[st7703][rotate]")
+TEST_CASE("test LCD to rotate with MIPI interface", "[lcd][rotate]")
 {
     esp_err_t ret = ESP_OK;
 

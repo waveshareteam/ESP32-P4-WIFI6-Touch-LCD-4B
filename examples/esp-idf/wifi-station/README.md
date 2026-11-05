@@ -1,20 +1,30 @@
-# Wi-Fi station through ESP32-C6
+# Wi-Fi Station Through ESP32-C6
 
-[中文](README_ZH.md)
+[English](README.md) | [简体中文](README_ZH.md)
 
-Runs the standard station example on ESP32-P4 while `esp_wifi_remote` uses `esp_hosted` and the board's ESP32-C6 coprocessor over SDIO.
+## What It Does
 
-Pinned host components:
+Runs the ESP-IDF station example on ESP32-P4 through the board's ESP32-C6 coprocessor. Set the network credentials in `idf.py menuconfig` before building.
 
-- `espressif/esp_wifi_remote` 1.6.3
-- `espressif/esp_hosted` 2.12.11
+## Hardware Required
 
-Set the SSID and password with `idf.py menuconfig` under **Example Configuration**. The application deliberately does not print the password.
+An ESP32-P4-WIFI6-Touch-LCD-4B development board and access to a Wi-Fi network are required.
 
-```sh
+## How to Run
+
+Use ESP-IDF v5.5.3, v5.5.6, or v6.1; Board Manager resolves `waveshare/waveshare_boards` >=0.3 and `espressif/esp_board_manager` >=0.7.5 as dependencies.
+
+```bash
+python -m pip install --upgrade esp-bmgr-assist
+idf.py bmgr -b esp32_p4_wifi6_touch_lcd_4b
 idf.py set-target esp32p4
-idf.py menuconfig
-idf.py flash monitor
+idf.py build flash monitor
 ```
 
-The official product example archive does not contain the ESP32-C6 slave source, image, or a recovery procedure. A successful P4 build therefore does not prove that the C6 currently on the board implements the matching Hosted protocol. See [`../../../docs/p4-c6-hosted-wifi.md`](../../../docs/p4-c6-hosted-wifi.md).
+## Expected Result
+
+After connecting, the monitor reports the station's network events and assigned address.
+
+## Troubleshooting
+
+Confirm the network credentials and matching ESP-Hosted firmware on the ESP32-C6 before retrying the connection.

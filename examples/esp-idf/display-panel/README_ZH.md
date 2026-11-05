@@ -1,14 +1,30 @@
 # 显示与触摸面板
 
-[English](README.md)
+[English](README.md) | [简体中文](README_ZH.md)
 
-使用 LVGL 9.3.0 和 `espressif/esp_lvgl_adapter` 0.6.3 启动 Waveshare BSP 3.0.1 显示栈，依次显示红色/绿色/蓝色/白色屏幕，然后创建一个全屏 LVGL 触摸区域，在 GT911 触摸位置绘制黑色方块。
+## 功能
 
-该项目固定为 4 英寸 720 x 720 面板选择。所有 LVGL 对象更改均受 BSP 显示锁保护；LVGL 定时器任务由 BSP 管理。
+使用 LVGL 初始化 4 英寸 720 x 720 显示屏和 GT911 触摸面板。示例依次显示红、绿、蓝、白屏幕，然后在触摸位置绘制方块。
 
-```sh
+## 硬件需求
+
+需要一块 ESP32-P4-WIFI6-Touch-LCD-4B 开发板。
+
+## 怎么运行
+
+使用 ESP-IDF v5.5.3、v5.5.6 或 v6.1；Board Manager 会解析 `waveshare/waveshare_boards` >=0.3 和 `espressif/esp_board_manager` >=0.7.5 依赖。
+
+```bash
+python -m pip install --upgrade esp-bmgr-assist
+idf.py bmgr -b esp32_p4_wifi6_touch_lcd_4b
 idf.py set-target esp32p4
-idf.py flash monitor
+idf.py build flash monitor
 ```
 
-将此示例用作 LCD/触摸组合冒烟测试。面板输出、坐标方向、多点触摸行为和绘制延迟需要在开发板上测试，不能由 CI 编译确认。
+## 预期现象
+
+面板依次显示色彩屏幕，并在触摸处显示黑色方块。
+
+## 常见问题
+
+暂无。

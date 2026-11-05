@@ -1,19 +1,30 @@
-# I2C tools
+# I2C Tools
 
-[中文](README_ZH.md)
+[English](README.md) | [简体中文](README_ZH.md)
 
-Interactive I2C console for the board's shared bus:
+## What It Does
 
-- SDA: GPIO 7
-- SCL: GPIO 8
-- default port: I2C0
+Provides an interactive I2C console for the board's shared I2C0 bus on GPIO 7 and GPIO 8. It supports bus scanning and register access commands.
 
-The console provides `i2cconfig`, `i2cdetect`, `i2cget`, `i2cset`, and `i2cdump`. The same bus is used by the GT911 touch controller and the audio codecs, so writes to detected devices can change live hardware state.
+## Hardware Required
 
-```sh
+An ESP32-P4-WIFI6-Touch-LCD-4B development board is required.
+
+## How to Run
+
+Use ESP-IDF v5.5.3, v5.5.6, or v6.1; Board Manager resolves `waveshare/waveshare_boards` >=0.3 and `espressif/esp_board_manager` >=0.7.5 as dependencies.
+
+```bash
+python -m pip install --upgrade esp-bmgr-assist
+idf.py bmgr -b esp32_p4_wifi6_touch_lcd_4b
 idf.py set-target esp32p4
-idf.py menuconfig
-idf.py flash monitor
+idf.py build flash monitor
 ```
 
-Configure the console transport under **Example Configuration**. The repository CI targets ESP-IDF v5.5.5 and v6.0.2; hardware scanning and register access are not validated by compilation alone.
+## Expected Result
+
+The monitor presents the I2C console prompt and accepts its commands.
+
+## Troubleshooting
+
+Use write commands only when the target device and register are known.

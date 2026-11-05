@@ -1,0 +1,21 @@
+dependencies:
+  esp_codec_dev:
+    public: true
+    version: 2.0.0-beta5
+  esp_lcd_touch_gt911: "1.2.1"
+  espressif/esp_lvgl_adapter:
+    public: true
+    version: ~0.6
+  idf: '>=5.5.3'
+  lvgl/lvgl: '>=9,<10'
+  usb:
+    public: true
+    rules:
+    - if: idf_version >=6.0
+    version: ^1.0.0
+description: Product BSP compatibility APIs backed by ESP Board Manager
+tags:
+- bsp
+targets:
+- esp32p4
+version: 3.0.1+local

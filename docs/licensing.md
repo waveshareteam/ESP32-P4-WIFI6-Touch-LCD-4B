@@ -2,10 +2,10 @@
 
 [English](licensing.md) · [简体中文](licensing_ZH.md)
 
-No repository-wide license has been selected. Do not infer one from a
-subcomponent, an SPDX header, a dependency manifest, or an upstream repository.
-This document records observed boundaries; it is not legal advice and does not
-grant permission to use or redistribute any material.
+Waveshare's first-party software and project documentation use
+[Apache-2.0](../LICENSE), except where a file states separate terms.
+Third-party code, audio, fonts and vendor reference materials retain their
+own licenses and notices. The root license does not relicense those materials.
 
 ## Provenance is not permission
 
@@ -21,17 +21,10 @@ material whose individual terms are absent.
 
 ## Repository-wide license
 
-Do not add `LICENSE.txt` by copying a license from any of these locations:
-
-- `firmware/brookesia/components/brookesia_core/license.txt`.
-- A Waveshare BSP or driver package.
-- GFX Library for Arduino or LVGL.
-- Xiaozhi third-party code.
-- An ESP-IDF example source header.
-
-Those terms apply only to their respective material. The repository owner must
-choose and document a repository-wide license that is compatible with all
-included source and assets.
+The root `LICENSE` records Apache-2.0 for the first-party scope above.
+Preserve file-level SPDX headers and component licenses. In particular, the
+root license does not replace the separate terms for Brookesia, Arduino
+libraries, Xiaozhi code, fonts, audio or hardware reference documents.
 
 ## Imported Waveshare material
 
@@ -86,13 +79,13 @@ source code. In particular:
 - Confirm provenance and redistribution terms for `canon.pcm`.
 - Keep the recorded Xiaozhi OGG prompt provenance and MIT license with source
   or binary distributions that contain those prompts.
-- Do not add MP3 tracks until their redistribution rights are recorded.
+- The factory MP3 samples are included from the reference product; their source is recorded in [sources.md](sources.md).
 - Retain font licenses and notices when font binaries or generated arrays are
   redistributed.
 - Record the source and license for application icons and other artwork.
 
 The dated checked-in Brookesia rev3_x image has an exact release inventory in
-`../THIRD_PARTY_NOTICES.md`. It records `78/xiaozhi-fonts` 1.6.0,
+`THIRD_PARTY_NOTICES.md`. It records `78/xiaozhi-fonts` 1.6.0,
 `espressif/esp-sr` 2.4.7, `lvgl/lvgl` 9.4.0, the Xiaozhi prompt source commit,
 and the relevant local component notices. The Registry metadata recorded for
 `xiaozhi-fonts` does not create an additional downstream license; rebuilds must
@@ -102,12 +95,11 @@ A file being usable at runtime does not establish permission to distribute it.
 
 ## Before publication or release
 
-1. Record whether the project owner has selected a repository-wide license;
-   absence of one grants no general downstream permission.
+1. Include the root Apache-2.0 license together with the applicable third-party notices.
 2. Resolve, remove, or explicitly preserve and escalate files with unknown or
    conflicting terms before distributing them.
 3. Preserve all per-file SPDX headers and bundled license files.
-4. Update `../THIRD_PARTY_NOTICES.md` with the exact versions and materials
+4. Update `THIRD_PARTY_NOTICES.md` with the exact versions and materials
    included in the distribution.
 5. Review generated firmware for linked-component notice obligations.
 6. Review hardware documents and media separately from source code.
@@ -116,5 +108,5 @@ A file being usable at runtime does not establish permission to distribute it.
 
 The checked-in image inventory closes the component/media accounting step for
 that exact dated source build; it does not waive upstream terms or authorize a
-different build. The absence of a root license means no repository-wide
-permission has been granted, not that a default license was selected.
+different build. Rights for separately licensed material remain defined by
+their own terms.

@@ -1,37 +1,30 @@
-# RS485 echo
+# RS485 Echo
 
-[中文](README_ZH.md)
+[English](README.md) | [简体中文](README_ZH.md)
 
-Exercises the RS485 transceiver on the bottom board of the related
-ESP32-P4-86-Panel-ETH-2RO assembly. This is not a TTL-UART wiring example; the
-standalone 4B board does not expose the RS485 A/B pair, and its main PCB must
-not be assumed interchangeable.
+## What It Does
 
-## Board configuration
+Receives data through the RS485 transceiver on the compatible bottom board and echoes it back to the bus.
 
-| Function | Default |
-| --- | --- |
-| UART port | UART1 |
-| TX / RX | GPIO 47 / GPIO 48 |
-| Serial format | 115200 baud, 8 data bits, no parity, 1 stop bit |
-| Bottom-board power | ESP32-P4 on-chip LDO channel 4, 3.3 V |
+## Hardware Required
 
-The current product documentation describes automatic RS485 direction control, so the application uses ordinary UART transmit and receive calls without an RTS direction pin. Received bytes are sent back onto the bus and reported on the debug console.
+Use an ESP32-P4-WIFI6-Touch-LCD-4B board with the compatible ESP32-P4-86-Panel-ETH-2RO bottom board and an RS485 peer.
 
-Configure the UART settings under **Echo Example Configuration**:
+## How to Run
 
-```sh
+Use ESP-IDF v5.5.3, v5.5.6, or v6.1; Board Manager resolves `waveshare/waveshare_boards` >=0.3 and `espressif/esp_board_manager` >=0.7.5 as dependencies.
+
+```bash
+python -m pip install --upgrade esp-bmgr-assist
+idf.py bmgr -b esp32_p4_wifi6_touch_lcd_4b
 idf.py set-target esp32p4
-idf.py menuconfig
-idf.py flash monitor
+idf.py build flash monitor
 ```
 
-## Wiring and safety
+## Expected Result
 
-Connect A to A, B to B, and provide a common reference ground through an RS485-capable peer. Use termination appropriate to the cable and topology. Never short A and B together for loopback testing, and avoid two devices transmitting at once.
+Data received from the RS485 peer is echoed and reported in the monitor.
 
-The repository also preserves `schematic/86 Panel Bottom Board V1.3(1).pdf` as a historical reference. In that reviewed V1.3 drawing, `/RE` and `DE` share a pulled-high net, which may leave the receiver disabled. That limitation is revision-specific and must not be generalized to the current official bottom board, whose documentation states automatic direction control.
+## Troubleshooting
 
-## Validation boundary
-
-The repository CI targets ESP-IDF v5.5.5 and v6.0.2. Compilation cannot prove the installed transceiver revision, direction timing, polarity, termination, receive behavior, or noise immunity; verify those on the exact bottom-board revision in use.
+Connect A to A and B to B, and use an appropriate common reference and termination for the RS485 network.

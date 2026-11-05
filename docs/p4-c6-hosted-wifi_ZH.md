@@ -22,7 +22,7 @@ ESP32-P4 没有集成 Wi-Fi 射频。本开发板通过 SDIO 使用 ESP32-C6-MIN
 | --- | --- | --- | --- | --- | --- |
 | `examples/esp-idf/wifi-station` | ESP-IDF v5.5.5 | `esp_wifi_remote` 1.6.3、`esp_hosted` 2.12.11 | 本仓库中未标识 | CI 目标；请查阅工作流结果 | 未验证 |
 | `examples/esp-idf/wifi-station` | ESP-IDF v6.0.2 | `esp_wifi_remote` 1.6.3、`esp_hosted` 2.12.11 | 本仓库中未标识 | CI 目标；请查阅工作流结果 | 未验证 |
-| `firmware/brookesia` | ESP-IDF v5.5.5 | 相同的固定 2.x 主机线 | 本仓库中未标识 | CI 目标；请查阅工作流结果 | 未验证 |
+| `examples/factory` | ESP-IDF v5.5.5 | 相同的固定 2.x 主机线 | 本仓库中未标识 | CI 目标；请查阅工作流结果 | 未验证 |
 | `examples/arduino/GFX_ESPWiFiAnalyzer` | Arduino-ESP32 3.3.11 | Arduino 核心捆绑 Hosted 支持；不要假定托管组件版本 | 本仓库中未标识 | Arduino CI 目标 | 未验证 |
 
 “CI 目标”并不声称当前提交已经通过。编译证据需要 GitHub Actions 运行或记录的本地构建，运行时证据需要

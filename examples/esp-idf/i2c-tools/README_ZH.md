@@ -1,19 +1,30 @@
 # I2C 工具
 
-[English](README.md)
+[English](README.md) | [简体中文](README_ZH.md)
 
-用于开发板共享总线的交互式 I2C 控制台：
+## 功能
 
-- SDA：GPIO 7
-- SCL：GPIO 8
-- 默认端口：I2C0
+为开发板 GPIO 7 和 GPIO 8 上的共享 I2C0 总线提供交互式控制台。它支持总线扫描和寄存器访问命令。
 
-控制台提供 `i2cconfig`、`i2cdetect`、`i2cget`、`i2cset` 和 `i2cdump`。GT911 触摸控制器和音频编解码器共用同一总线，因此写入检测到的设备可能改变实时硬件状态。
+## 硬件需求
 
-```sh
+需要一块 ESP32-P4-WIFI6-Touch-LCD-4B 开发板。
+
+## 怎么运行
+
+使用 ESP-IDF v5.5.3、v5.5.6 或 v6.1；Board Manager 会解析 `waveshare/waveshare_boards` >=0.3 和 `espressif/esp_board_manager` >=0.7.5 依赖。
+
+```bash
+python -m pip install --upgrade esp-bmgr-assist
+idf.py bmgr -b esp32_p4_wifi6_touch_lcd_4b
 idf.py set-target esp32p4
-idf.py menuconfig
-idf.py flash monitor
+idf.py build flash monitor
 ```
 
-在 **Example Configuration** 下配置控制台传输。仓库 CI 面向 ESP-IDF v5.5.5 和 v6.0.2；硬件扫描和寄存器访问无法仅靠编译验证。
+## 预期现象
+
+监视器显示 I2C 控制台提示符并接受命令。
+
+## 常见问题
+
+仅在确认目标设备和寄存器时使用写入命令。

@@ -1,14 +1,30 @@
-# LVGL 9 benchmark
+# LVGL 9 Benchmark
 
-[中文](README_ZH.md)
+[English](README.md) | [简体中文](README_ZH.md)
 
-Runs the LVGL 9.3.0 benchmark through `waveshare/esp32_p4_wifi6_touch_lcd_4b` 3.0.1 and `espressif/esp_lvgl_adapter` 0.6.3 on the 4-inch 720 x 720 panel. Backlight brightness is set to 50 percent after the BSP display stack starts.
+## What It Does
 
-The BSP owns display flushing, touch registration, and the LVGL task. Application UI creation is performed while holding the BSP display lock.
+Runs the LVGL 9.3.0 benchmark on the 4-inch 720 x 720 display with touch input.
 
-```sh
+## Hardware Required
+
+An ESP32-P4-WIFI6-Touch-LCD-4B development board is required.
+
+## How to Run
+
+Use ESP-IDF v5.5.3, v5.5.6, or v6.1; Board Manager resolves `waveshare/waveshare_boards` >=0.3 and `espressif/esp_board_manager` >=0.7.5 as dependencies.
+
+```bash
+python -m pip install --upgrade esp-bmgr-assist
+idf.py bmgr -b esp32_p4_wifi6_touch_lcd_4b
 idf.py set-target esp32p4
-idf.py flash monitor
+idf.py build flash monitor
 ```
 
-The repository CI targets ESP-IDF v5.5.5 and v6.0.2. Benchmark scores, tearing, touch behavior, thermals, and memory headroom must be measured on hardware.
+## Expected Result
+
+The display shows the LVGL benchmark while it runs.
+
+## Troubleshooting
+
+None yet.

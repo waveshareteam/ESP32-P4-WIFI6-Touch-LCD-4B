@@ -1,18 +1,30 @@
-# Audio codecs
+# Audio Codec
 
-[中文](README_ZH.md)
+[English](README.md) | [简体中文](README_ZH.md)
 
-Exercises the ES8311 speaker codec and ES7210 microphone ADC through the Waveshare BSP 3.0.1 audio API.
+## What It Does
 
-- I2C control: SDA GPIO 7, SCL GPIO 8
-- I2S: DOUT 9, LRCK 10, DIN 11, BCLK 12, MCLK 13
-- power amplifier enable: GPIO 53
+Exercises the ES8311 speaker codec and ES7210 microphone ADC through the board audio API. Select PCM playback or microphone echo in `idf.py menuconfig`.
 
-`idf.py menuconfig` selects one of two modes:
+## Hardware Required
 
-- bundled 16 kHz stereo PCM playback (default);
-- 24 kHz FL/FR microphone echo using STD TX and four-slot TDM RX.
+An ESP32-P4-WIFI6-Touch-LCD-4B development board is required.
 
-The TDM mode uses the BSP's documented slot order and channel masks; it does not provide acoustic echo cancellation. Speaker, microphone, gain, channel order, and feedback behavior still require hardware testing.
+## How to Run
 
-`main/canon.pcm` came from the official product example archive, but its original source and redistribution terms were not supplied. Review [`../../../docs/licensing.md`](../../../docs/licensing.md) before redistribution.
+Use ESP-IDF v5.5.3, v5.5.6, or v6.1; Board Manager resolves `waveshare/waveshare_boards` >=0.3 and `espressif/esp_board_manager` >=0.7.5 as dependencies.
+
+```bash
+python -m pip install --upgrade esp-bmgr-assist
+idf.py bmgr -b esp32_p4_wifi6_touch_lcd_4b
+idf.py set-target esp32p4
+idf.py build flash monitor
+```
+
+## Expected Result
+
+The selected playback or microphone-echo mode starts and reports its status in the monitor.
+
+## Troubleshooting
+
+Review the [`canon.pcm` licensing note](../../../docs/licensing.md) before redistributing the bundled audio file.

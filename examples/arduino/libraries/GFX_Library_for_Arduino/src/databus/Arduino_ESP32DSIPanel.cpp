@@ -11,6 +11,10 @@
 #define TAG "Arduino_ESP32DSIPanel"
 
 #if defined(ESP32) && (CONFIG_IDF_TARGET_ESP32P4)
+static constexpr mipi_dsi_phy_pllref_clock_source_t kMipiDsiPhyClockAuto =
+    static_cast<mipi_dsi_phy_pllref_clock_source_t>(0);
+static_assert(kMipiDsiPhyClockAuto == 0, "DSI PHY clock must remain revision-aware");
+
 Arduino_ESP32DSIPanel::Arduino_ESP32DSIPanel(
     uint32_t hsync_pulse_width, uint32_t hsync_back_porch, uint32_t hsync_front_porch,
     uint32_t vsync_pulse_width, uint32_t vsync_back_porch, uint32_t vsync_front_porch,
@@ -47,7 +51,7 @@ bool Arduino_ESP32DSIPanel::begin(int16_t w, int16_t h, int32_t speed, const lcd
   esp_lcd_dsi_bus_config_t bus_config = {
       .bus_id = 0,
       .num_data_lanes = 2,
-      .phy_clk_src = MIPI_DSI_PHY_CLK_SRC_DEFAULT,
+      .phy_clk_src = kMipiDsiPhyClockAuto,
       .lane_bit_rate_mbps = _lane_bit_rate, /*新增成员变量*/
   };
   esp_lcd_dsi_bus_handle_t mipi_dsi_bus = NULL;

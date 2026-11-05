@@ -7,7 +7,7 @@ related ESP32-P4-86-Panel-ETH-2RO assembly and its bottom board. The official
 product page identifies different main-PCB and enclosure arrangements; the
 bottom board is not documented as a drop-in option for the standalone 4B.
 Pin facts come from the official product documentation, the schematics listed
-in `schematic/README.md`, and the current board-support configuration. A
+in `hardware/schematic/README.md`, and the current board-support configuration. A
 documented pin is not, by itself, evidence that a peripheral has been exercised
 on physical hardware.
 
@@ -38,7 +38,7 @@ on physical hardware.
 | LCD | DSI lane rate in Registry BSP 3.0.1 | 480 Mbit/s per lane |
 | LCD | Reset | GPIO27 |
 | LCD backlight | PWM | GPIO26 |
-| LCD backlight | Enable | GPIO33 |
+| LCD backlight | Enable | Not connected (0R NC; do not configure GPIO33) |
 | Touch / shared control bus | SDA | GPIO7 |
 | Touch / shared control bus | SCL | GPIO8 |
 | Touch | Reset | GPIO23 is present in the schematic; neither the Arduino helper nor the published BSP 3.0.1 drives it |
@@ -129,7 +129,7 @@ matching shared-board design.
 ### Historical V1.3 RS485 difference
 
 In the reviewed historical file
-`schematic/86 Panel Bottom Board V1.3(1).pdf`, the RS485 transceiver `/RE` and
+`hardware/schematic/ESP32-P4-86-Panel-Bottom-Board-V1.3.pdf`, the RS485 transceiver `/RE` and
 `DE` signals are tied together and the net is pulled high through 4.7 kOhm.
 That state selects transmit mode and disables the receiver. Receive operation
 may therefore be unavailable on that V1.3 board.
