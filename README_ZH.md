@@ -4,7 +4,7 @@
   <p>
     <a href="https://github.com/waveshareteam/ESP32-P4-WIFI6-Touch-LCD-4B/actions/workflows/build.yml"><img alt="构建" src="https://github.com/waveshareteam/ESP32-P4-WIFI6-Touch-LCD-4B/actions/workflows/build.yml/badge.svg"></a>
     <a href="https://github.com/waveshareteam/ESP32-P4-WIFI6-Touch-LCD-4B/releases/latest"><img alt="最新版本" src="https://img.shields.io/github/v/release/waveshareteam/ESP32-P4-WIFI6-Touch-LCD-4B"></a>
-    <a href="docs/licensing_ZH.md"><img alt="许可证" src="https://img.shields.io/badge/license-not%20selected-lightgrey"></a>
+    <a href="LICENSE"><img alt="许可证" src="https://img.shields.io/badge/license-Apache--2.0-blue"></a>
   </p>
   <p><a href="README.md">English</a> · <strong>简体中文</strong></p>
   <p><a href="https://www.waveshare.com/esp32-p4-wifi6-touch-lcd-4b.htm">🌐 产品</a> &middot; <a href="https://github.com/waveshareteam/ESP32-P4-WIFI6-Touch-LCD-4B/releases/latest">📦 固件</a> &middot; <a href="examples/esp-idf/">🧩 ESP-IDF</a> &middot; <a href="examples/arduino/examples/">🔧 Arduino</a> &middot; <a href="hardware/">📚 文档</a></p>
@@ -61,4 +61,4 @@
 
 ## 📄 许可证
 
-本仓库尚未选择仓库级许可证。再分发前请查看随附的第三方声明。
+第一方软件和项目文档采用 [Apache-2.0](LICENSE)。第三方材料保留各自条款，详见[许可边界](docs/licensing_ZH.md)。

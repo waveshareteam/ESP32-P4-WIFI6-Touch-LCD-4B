@@ -4,7 +4,7 @@
   <p>
     <a href="https://github.com/waveshareteam/ESP32-P4-WIFI6-Touch-LCD-4B/actions/workflows/build.yml"><img alt="Build" src="https://github.com/waveshareteam/ESP32-P4-WIFI6-Touch-LCD-4B/actions/workflows/build.yml/badge.svg"></a>
     <a href="https://github.com/waveshareteam/ESP32-P4-WIFI6-Touch-LCD-4B/releases/latest"><img alt="Latest Release" src="https://img.shields.io/github/v/release/waveshareteam/ESP32-P4-WIFI6-Touch-LCD-4B"></a>
-    <a href="docs/licensing.md"><img alt="License" src="https://img.shields.io/badge/license-not%20selected-lightgrey"></a>
+    <a href="LICENSE"><img alt="License" src="https://img.shields.io/badge/license-Apache--2.0-blue"></a>
   </p>
   <p><strong>English</strong> · <a href="README_ZH.md">简体中文</a></p>
   <p><a href="https://www.waveshare.com/esp32-p4-wifi6-touch-lcd-4b.htm">🌐 Product</a> &middot; <a href="https://github.com/waveshareteam/ESP32-P4-WIFI6-Touch-LCD-4B/releases/latest">📦 Firmware</a> &middot; <a href="examples/esp-idf/">🧩 ESP-IDF</a> &middot; <a href="examples/arduino/examples/">🔧 Arduino</a> &middot; <a href="hardware/">📚 Documentation</a></p>
@@ -61,4 +61,4 @@ The open factory project is in [examples/factory](examples/factory/README.md).
 
 ## 📄 License
 
-No repository-wide license has been selected. See the included third-party notices before redistribution.
+First-party software and project documentation use [Apache-2.0](LICENSE). Third-party materials retain their own terms; see [licensing boundaries](docs/licensing.md).
