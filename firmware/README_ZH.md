@@ -6,7 +6,7 @@
 
 | 文件 | 用途 |
 | --- | --- |
-| [出厂 rev1.x](ESP32-P4-WIFI6-Touch-LCD-4B_FactoryOnly_rev1_x_20261104.bin) | 芯片版本 1.00–1.99；已在 rev1.3 设备整包烧录并验证启动 |
+| [出厂 rev1.x](ESP32-P4-WIFI6-Touch-LCD-4B_FactoryOnly_rev1_x_20261113.bin) | 芯片版本 1.00–1.99；已在 rev1.3 设备验证显示正常 |
 | [出厂 rev3.x](ESP32-P4-WIFI6-Touch-LCD-4B_FactoryOnly_rev3_x_20261104.bin) | 芯片版本 3.00–3.99；已通过构建和镜像边界校验，待实机测试 |
 
 ```bash
