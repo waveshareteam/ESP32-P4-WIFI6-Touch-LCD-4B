@@ -1,16 +1,33 @@
-# Factory Firmware
+# Firmware
 
 [English](README.md) | [简体中文](README_ZH.md)
 
-Flash the combined image at `0x0`. Choose the image that matches the ESP32-P4 silicon revision.
+Factory firmware for ESP32-P4-WIFI6-Touch-LCD-4B. Each BIN is a merged image flashed at `0x0`; the date in its file name identifies the version. Select the image for your ESP32-P4 silicon revision, not the PCB revision.
 
 | File | Purpose |
 | --- | --- |
-| [Factory rev1.x](ESP32-P4-WIFI6-Touch-LCD-4B_FactoryOnly_rev1_x_20261113.bin) | Silicon 1.00–1.99; display verified on rev1.3 |
-| [Factory rev3.x](ESP32-P4-WIFI6-Touch-LCD-4B_FactoryOnly_rev3_x_20261104.bin) | Silicon 3.00–3.99; build and image bounds verified, hardware test pending |
+| [ESP32-P4-WIFI6-Touch-LCD-4B_FactoryOnly_20261113.bin](ESP32-P4-WIFI6-Touch-LCD-4B_FactoryOnly_20261113.bin) | Factory firmware for ESP32-P4 silicon revisions 1.00–1.99 |
+| [ESP32-P4-WIFI6-Touch-LCD-4B_FactoryOnly_20261104.bin](ESP32-P4-WIFI6-Touch-LCD-4B_FactoryOnly_20261104.bin) | Factory firmware for ESP32-P4 silicon revisions 3.00–3.99 |
+
+Run these commands in this directory, replacing `<PORT>` with the board's serial port. Erasing flash removes existing settings and user data.
 
 ```bash
-esptool.py --chip esp32p4 --port <PORT> write_flash 0x0 <IMAGE.bin>
+python -m pip install esptool
+esptool.py --chip esp32p4 --port <PORT> erase_flash
 ```
 
-Both use the same [factory source](../examples/factory/README.md), automatic JD9365DA/ST7703 selection, and the paired Hosted/C6 3.0.10 stack. For an older C6 image, use the [bundled P4-driven installer](../examples/factory/tools/README.md).
+Then run only the write command matching your silicon revision.
+
+For rev1.x:
+
+```bash
+esptool.py --chip esp32p4 --port <PORT> write_flash 0x0 ESP32-P4-WIFI6-Touch-LCD-4B_FactoryOnly_20261113.bin
+```
+
+For rev3.x:
+
+```bash
+esptool.py --chip esp32p4 --port <PORT> write_flash 0x0 ESP32-P4-WIFI6-Touch-LCD-4B_FactoryOnly_20261104.bin
+```
+
+See the [factory source and display configuration](../examples/factory/README.md) and [C6 firmware upgrade instructions](../examples/factory/tools/README.md).
