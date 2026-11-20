@@ -4,6 +4,8 @@
 
 ESP32-P4-WIFI6-Touch-LCD-4B 的出厂固件。每个 BIN 都是从 `0x0` 烧录的合并镜像，文件名中的日期即版本。请按 ESP32-P4 芯片版本选择镜像，注意与 PCB 版本区分。
 
+这两份固件同样适用于 `ESP32-P4-86-Panel-ETH-2RO`，请根据其 ESP32-P4 芯片版本选择对应镜像。
+
 | 文件 | 用途 |
 | --- | --- |
 | [ESP32-P4-WIFI6-Touch-LCD-4B_FactoryOnly_20261113.bin](ESP32-P4-WIFI6-Touch-LCD-4B_FactoryOnly_20261113.bin) | 出厂固件，适用于 ESP32-P4 芯片版本 1.00–1.99 |

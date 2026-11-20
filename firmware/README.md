@@ -4,6 +4,8 @@
 
 Factory firmware for ESP32-P4-WIFI6-Touch-LCD-4B. Each BIN is a merged image flashed at `0x0`; the date in its file name identifies the version. Select the image for your ESP32-P4 silicon revision, not the PCB revision.
 
+Both firmware images also support `ESP32-P4-86-Panel-ETH-2RO`. Select the image that matches its ESP32-P4 silicon revision.
+
 | File | Purpose |
 | --- | --- |
 | [ESP32-P4-WIFI6-Touch-LCD-4B_FactoryOnly_20261113.bin](ESP32-P4-WIFI6-Touch-LCD-4B_FactoryOnly_20261113.bin) | Factory firmware for ESP32-P4 silicon revisions 1.00–1.99 |
